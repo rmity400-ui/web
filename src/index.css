@@ -1,3 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+@import "tailwindcss";
+
+/* ជួយឱ្យផែនទី Google Maps ដើរតាមទំហំ Container ត្រឹមត្រូវ */
+.gm-style img {
+  max-width: none;
+}
+
+/* រក្សាទុក Style នៃ InfoWindow ឱ្យនៅដដែល */
+.gm-style .gm-style-iw-c {
+  padding: 10px !important;
+  border-radius: 12px !important;
+}
