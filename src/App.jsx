@@ -4,14 +4,12 @@ import {
   Map as MapIcon, Loader2, Navigation, PhoneCall, Plus, 
   AlertCircle, Crosshair, 
   UserCircle, Globe, Activity, ShieldAlert, Users, TrendingUp,
-  Eye, EyeOff, WifiOff, Calendar, Clock
+  Eye, EyeOff, WifiOff, Clock, BarChart3
 } from 'lucide-react';
-import './index.css'
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
 
-// 1. Firebase Configuration
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
   apiKey: "AIzaSyBq_1YKH4Hf4M65qMHirvWCD_-tyqCDz5E", 
   authDomain: "ramit-7e364.firebaseapp.com",
@@ -28,7 +26,7 @@ const db = getFirestore(app);
 const rawAppId = typeof __app_id !== 'undefined' ? String(__app_id) : 'smart-map-app-kh';
 const appId = rawAppId.split('/')[0]; 
 
-// Distance Calculator
+// Math helper for distances
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return null;
   const R = 6371; 
@@ -59,16 +57,13 @@ export default function App() {
 
   const [showDistances, setShowDistances] = useState(true);
   
-  // Storage for Locations
-  const [firebaseLocations, setFirebaseLocations] = useState([]); // Admin data
-  const [osmLocations, setOsmLocations] = useState([]); // Auto fetched data
-  
+  const [firebaseLocations, setFirebaseLocations] = useState([]); 
+  const [osmLocations, setOsmLocations] = useState([]); 
   const [isFetchingPois, setIsFetchingPois] = useState(false); 
-  const [gpsStatus, setGpsStatus] = useState('កំពុងស្វែងរកទីតាំង...');
+  const [gpsStatus, setGpsStatus] = useState('');
 
   const [markers, setMarkers] = useState([]);
   const [userLocation, setUserLocation] = useState(null); 
-  const [lastFetchedPos, setLastFetchedPos] = useState(null);
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [pendingLocation, setPendingLocation] = useState(null);
@@ -85,9 +80,8 @@ export default function App() {
   const autocompleteRef = useRef(null);
   const watchIdRef = useRef(null);
   const profileMenuRef = useRef(null);
-  const searchContainerRef = useRef(null);
+  const isMapCenteredRef = useRef(false);
 
-  // Load Offline Data & Network Listeners
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -95,9 +89,7 @@ export default function App() {
     window.addEventListener('offline', handleOffline);
 
     const cachedLocs = localStorage.getItem('offline_contacts');
-    if (cachedLocs) {
-        setFirebaseLocations(JSON.parse(cachedLocs));
-    }
+    if (cachedLocs) setFirebaseLocations(JSON.parse(cachedLocs));
 
     return () => {
         window.removeEventListener('online', handleOnline);
@@ -105,7 +97,7 @@ export default function App() {
     };
   }, []);
 
-  // Dark Mode System Set
+  // Dark Mode Logic
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -159,7 +151,15 @@ export default function App() {
       } catch (e) { }
   };
 
-  // Firebase Real-time Listener (Admin Data)
+  const getClientIP = async () => {
+      try {
+          const res = await fetch('https://api.ipify.org?format=json');
+          const data = await res.json();
+          return data.ip;
+      } catch (e) { return 'Unknown IP'; }
+  };
+
+  // Firebase Real-time Listeners
   useEffect(() => {
     if (!authUser) return;
     const locRef = collection(db, 'artifacts', appId, 'public', 'data', 'ramit');
@@ -172,7 +172,6 @@ export default function App() {
     return () => unsubLoc();
   }, [authUser]);
 
-  // Firebase Admin Stats Listeners
   useEffect(() => {
      if (!authUser || !isAdmin) return;
      const visRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitor_stats');
@@ -200,7 +199,7 @@ export default function App() {
     { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
   ];
 
-  // Auto Fetch POIs (Radius: 5km)
+  // Auto Fetch POIs (Radius: 5km) Real location randomizer
   const fetchNearbyPOIs = async (lat, lng) => {
       if (isOffline) return;
       setIsFetchingPois(true);
@@ -280,14 +279,16 @@ export default function App() {
 
     const initialCenter = { lat: 11.5564, lng: 104.9282 };
     const initialMap = new window.google.maps.Map(mapRef.current, {
-      center: initialCenter, zoom: 15, minZoom: 6, mapTypeControl: true, zoomControl: true, gestureHandling: 'greedy', mapId: "450ae928a2c49128",
+      center: initialCenter, zoom: 15, minZoom: 6, mapTypeControl: false, zoomControl: true, 
+      zoomControlOptions: { position: window.google.maps.ControlPosition.LEFT_CENTER },
+      gestureHandling: 'greedy', mapId: "450ae928a2c49128",
       styles: isDarkMode ? darkMapStyle : []
     });
 
     infoWindowRef.current = new window.google.maps.InfoWindow();
     initialMap.addListener("click", () => { if (infoWindowRef.current) infoWindowRef.current.close(); });
 
-    // Set up Google Places Autocomplete 
+    // Set up Google Places Autocomplete (Khmer Supported Search)
     if (searchInputRef.current && !autocompleteRef.current) {
         autocompleteRef.current = new window.google.maps.places.Autocomplete(searchInputRef.current, {
             fields: ['geometry', 'name', 'formatted_address']
@@ -305,7 +306,7 @@ export default function App() {
                 if (tempMarkerRef.current) tempMarkerRef.current.map = null;
                 if (window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
                     const searchPin = document.createElement('div');
-                    searchPin.innerHTML = `<div class="text-4xl filter drop-shadow-lg pb-4">📍</div>`;
+                    searchPin.innerHTML = `<div class="text-4xl filter drop-shadow-lg pb-4 animate-bounce">📍</div>`;
                     tempMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({ position: {lat, lng}, map: initialMap, content: searchPin, title: place.name });
                     setTimeout(() => { if (tempMarkerRef.current) tempMarkerRef.current.map = null; }, 8000);
                 }
@@ -314,10 +315,7 @@ export default function App() {
         });
     }
 
-    // Default fetch for center
-    fetchNearbyPOIs(initialCenter.lat, initialCenter.lng);
-
-    // LIVE GPS TRACKING
+    // LIVE GPS TRACKING (Pan Map Auto)
     if (navigator.geolocation) {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
@@ -325,12 +323,11 @@ export default function App() {
           setUserLocation(userPos);
           setGpsStatus('ចាប់បានទីតាំងជោគជ័យ (Live)');
 
-          if (initialMap) {
+          if (initialMap && !isMapCenteredRef.current) {
             initialMap.panTo(userPos);
-            if (!setLastFetchedPos.isInitialZoomed) {
-                initialMap.setZoom(16);
-                setLastFetchedPos.isInitialZoomed = true;
-            }
+            initialMap.setZoom(16);
+            isMapCenteredRef.current = true;
+            fetchNearbyPOIs(userPos.lat, userPos.lng);
           }
 
           if (userMarkerRef.current) {
@@ -342,20 +339,8 @@ export default function App() {
               userMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({ map: initialMap, position: userPos, content: userPin, title: "អ្នកកំពុងនៅទីនេះ" });
             }
           }
-          
-          // Accumulate POIs if user moved more than 1km
-          setLastFetchedPos(prev => {
-              if (!prev || calculateDistance(prev.lat, prev.lng, userPos.lat, userPos.lng) > 1.0) {
-                  fetchNearbyPOIs(userPos.lat, userPos.lng);
-                  return userPos;
-              }
-              return prev;
-          });
         },
-        (error) => { 
-            console.warn("GPS tracking unavailable."); 
-            setGpsStatus('សូមបើក GPS ដើម្បីមើលទីតាំងផ្ទាល់');
-        },
+        (error) => { setGpsStatus('សូមបើក GPS ដើម្បីមើលទីតាំងផ្ទាល់'); },
         { enableHighAccuracy: true, timeout: 30000, maximumAge: 5000 }
       );
     } else {
@@ -366,6 +351,7 @@ export default function App() {
 
   const allLocationsForMap = useMemo(() => {
     if (!firebaseLocations || !osmLocations) return [];
+    // Filter out OSM data that is too close to Admin Data (merge)
     const filteredOsm = osmLocations.filter(osmLoc => {
         return !firebaseLocations.some(fbLoc => calculateDistance(osmLoc.lat, osmLoc.lng, fbLoc.lat, fbLoc.lng) < 0.05);
     });
@@ -432,8 +418,9 @@ export default function App() {
       const phoneContent = loc.isAdminData && loc.phone ? `
             <div class="mt-2 pt-2 border-t border-gray-200">
                 <a href="tel:${loc.phone}" class="bg-green-600 hover:bg-green-700 text-white w-full py-2 px-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-md transition-colors mt-1" style="text-decoration: none;">
-                    <span style="font-size: 1rem;">📞</span> ចុចដើម្បីខល
+                    <span style="font-size: 1rem;">📞</span> ខលទំនាក់ទំនង
                 </a>
+                <p class="text-center text-xs mt-1 text-gray-500">${loc.phone}</p>
             </div>
             ` : (!loc.isAdminData ? `<div class="bg-red-50 border border-red-200 p-1.5 rounded mt-2 text-center"><p class="text-xs text-red-600 font-bold">NO ! មិនទាន់មានទិន្នន័យ</p></div>` : '');
 
@@ -496,6 +483,7 @@ export default function App() {
      } catch (e) { showToast("មិនអាចលុបបានទេ", "error"); }
   };
 
+  // High Security Admin Login & IP Grabber
   const handleAdminLogin = async () => {
     if (adminPassword === 'ict168mit') { 
         setIsAdmin(true); setShowPasswordModal(false); setAdminPassword('');
@@ -504,10 +492,14 @@ export default function App() {
         showToast('លេខសម្ងាត់មិនត្រឹមត្រូវ!', 'error'); 
         if (authUser) {
             try {
+                const ip = await getClientIP();
                 const secId = Date.now().toString();
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', secId), {
-                    timestamp: Date.now(), attemptedTime: new Date().toLocaleString(),
-                    lat: userLocation ? userLocation.lat : null, lng: userLocation ? userLocation.lng : null,
+                    timestamp: Date.now(), 
+                    attemptedTime: new Date().toLocaleString(),
+                    lat: userLocation ? userLocation.lat : null, 
+                    lng: userLocation ? userLocation.lng : null,
+                    ipAddress: ip,
                     userAgent: navigator.userAgent
                 });
             } catch (e) {}
@@ -526,7 +518,6 @@ export default function App() {
     }
   }
 
-  // Dashboard Metrics Logic
   const totalUsers = visitorLogs.length;
   const now = Date.now();
   
@@ -538,10 +529,26 @@ export default function App() {
   
   const growthPercentage = totalUsers > 0 ? Math.round((active24h / totalUsers) * 100) : 0;
 
+  // Render Charts Function
+  const renderBarChart = (value, max, label, color) => {
+      const percentage = max > 0 ? (value / max) * 100 : 0;
+      return (
+          <div className="mb-3">
+              <div className="flex justify-between text-xs mb-1 font-bold">
+                  <span className="text-gray-600 dark:text-gray-300">{label}</span>
+                  <span className={`text-${color}-600 dark:text-${color}-400`}>{value} នាក់</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div className={`bg-${color}-500 h-2 rounded-full`} style={{ width: `${percentage}%` }}></div>
+              </div>
+          </div>
+      );
+  }
+
   return (
     <div className={`h-screen flex flex-col font-sans ${isDarkMode ? 'dark bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'} overflow-hidden`}>
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 10px; }
         .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }
@@ -554,172 +561,159 @@ export default function App() {
         .dark .pac-item-query { color: #93c5fd; }
       `}</style>
       
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm z-20 p-3 flex justify-between items-center relative transition-colors duration-300 border-b dark:border-gray-700">
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-2 rounded-lg shadow-md hidden sm:block">
-            <MapIcon className="w-5 h-5" />
-          </div>
-          <h1 className="text-lg md:text-xl font-bold flex items-center gap-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">SmartMap</h1>
+      {/* Smart Mobile Header - Wrapped beautifully */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm z-20 p-2.5 md:p-3 relative transition-colors duration-300 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
           
-          {isOffline && (
-            <span className="ml-2 bg-red-100 text-red-600 text-[10px] md:text-xs px-2 py-1 rounded-full flex items-center gap-1 font-bold">
-              <WifiOff className="w-3 h-3" /> <span className="hidden sm:inline">Offline (ប្រើទិន្នន័យចាស់)</span>
-            </span>
-          )}
-        </div>
-
-        {/* Desktop Google Maps Search */}
-        <div className="flex-grow max-w-xs md:max-w-md mx-2 relative" ref={searchContainerRef}>
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+          {/* Logo & Title */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-1.5 md:p-2 rounded-lg shadow-md">
+              <MapIcon className="w-4 h-4 md:w-5 md:h-5" />
+            </div>
+            <h1 className="text-base md:text-xl font-extrabold flex items-center gap-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 tracking-tight">SmartMap</h1>
+            {isOffline && (
+              <span className="ml-1 bg-red-100 text-red-600 text-[10px] md:text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-bold">
+                <WifiOff className="w-3 h-3" /> <span className="hidden sm:inline">Offline Mode</span>
+              </span>
+            )}
           </div>
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="ស្វែងរកទីតាំង (Google Maps)..."
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white shadow-sm"
-          />
-        </div>
 
-        <div className="flex gap-2 shrink-0 items-center">
-          <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors hidden sm:block">
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
+          {/* Action Buttons (Right side on Mobile/Desktop) */}
+          <div className="flex gap-1.5 md:gap-2 shrink-0 items-center order-2 md:order-3">
+            <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-1.5 md:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+              {isDarkMode ? <Sun className="w-5 h-5 text-yellow-500" /> : <Moon className="w-5 h-5" />}
+            </button>
 
-          {/* User Profile Dropdown */}
-          <div className="relative" ref={profileMenuRef}>
-              <button onClick={() => setShowProfileMenu(!showProfileMenu)} className={`p-1.5 border-2 rounded-full transition-all ${isAdmin ? 'border-green-500 text-green-600' : 'border-blue-500 text-blue-600'}`}>
-                  {isAdmin ? <Shield className="w-6 h-6" /> : <UserCircle className="w-6 h-6" />}
-              </button>
+            {/* Profile Menu */}
+            <div className="relative" ref={profileMenuRef}>
+                <button onClick={() => setShowProfileMenu(!showProfileMenu)} className={`p-1 border-2 rounded-full transition-all ${isAdmin ? 'border-green-500 text-green-600' : 'border-blue-500 text-blue-600'} hover:bg-gray-100 dark:hover:bg-gray-700`}>
+                    {isAdmin ? <Shield className="w-5 h-5 md:w-6 md:h-6" /> : <UserCircle className="w-5 h-5 md:w-6 md:h-6" />}
+                </button>
 
-              {showProfileMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border dark:border-gray-700 z-50 overflow-hidden py-2">
-                      <div className="px-4 py-2 border-b dark:border-gray-700 mb-1">
-                          <p className="text-sm font-bold dark:text-white">{isAdmin ? 'គណនី Admin' : 'គណនីអ្នកប្រើប្រាស់'}</p>
-                          <p className="text-xs text-gray-500">{isAdmin ? 'សិទ្ធិពេញលេញ' : 'សិទ្ធិទូទៅ'}</p>
-                      </div>
-                      
-                      <button onClick={() => setLanguage(language === 'kh' ? 'en' : 'kh')} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 dark:text-gray-200">
-                          <Globe className="w-4 h-4 text-blue-500" />
-                          ប្តូរភាសា: {language === 'kh' ? 'English' : 'ខ្មែរ'}
-                      </button>
-                      
-                      {!isAdmin ? (
-                          <button onClick={() => {setShowProfileMenu(false); setShowPasswordModal(true);}} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium">
-                              <Shield className="w-4 h-4" /> ចូលកម្រិត Admin
-                          </button>
-                      ) : (
-                          <button onClick={() => {setIsAdmin(false); setShowProfileMenu(false); setAdminTab('locations');}} className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-600 dark:text-red-400 font-medium border-t dark:border-gray-700 mt-1">
-                              <User className="w-4 h-4" /> ចាកចេញពី Admin
-                          </button>
-                      )}
-                  </div>
-              )}
+                {showProfileMenu && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden py-2 animate-in slide-in-from-top-2">
+                        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 mb-1 bg-gray-50 dark:bg-gray-900/50">
+                            <p className="text-sm font-black text-gray-800 dark:text-white flex items-center gap-2">
+                                {isAdmin ? <Shield className="w-4 h-4 text-green-500"/> : <User className="w-4 h-4 text-blue-500"/>}
+                                {isAdmin ? 'គណនី Admin' : 'គណនីអ្នកប្រើប្រាស់'}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">{isAdmin ? 'សិទ្ធិគ្រប់គ្រងពេញលេញ' : 'ទិដ្ឋភាពទូទៅ'}</p>
+                        </div>
+                        
+                        <button onClick={() => setLanguage(language === 'kh' ? 'en' : 'kh')} className="w-full text-left px-4 py-3 text-sm hover:bg-blue-50 dark:hover:bg-gray-700 flex items-center gap-3 dark:text-gray-200 transition-colors font-medium">
+                            <Globe className="w-4 h-4 text-blue-500" /> ប្តូរភាសា (Lang)
+                        </button>
+                        
+                        {!isAdmin ? (
+                            <button onClick={() => {setShowProfileMenu(false); setShowPasswordModal(true);}} className="w-full text-left px-4 py-3 text-sm hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-3 text-indigo-600 dark:text-indigo-400 font-bold transition-colors">
+                                <Shield className="w-4 h-4" /> Access Admin
+                            </button>
+                        ) : (
+                            <button onClick={() => {setIsAdmin(false); setShowProfileMenu(false); setAdminTab('locations');}} className="w-full text-left px-4 py-3 text-sm hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 text-red-600 dark:text-red-400 font-bold border-t border-gray-100 dark:border-gray-700 mt-1 transition-colors">
+                                <User className="w-4 h-4" /> ចាកចេញពី Admin
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
           </div>
+
+          {/* Search Box - Wraps to new line on mobile, stays in middle on desktop */}
+          <div className="w-full md:w-auto md:flex-grow md:max-w-md mx-auto relative order-3 md:order-2">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />
+            </div>
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="ស្វែងរក ភូមិ ឃុំ ស្រុក (Google Maps)..."
+              className="block w-full pl-9 md:pl-10 pr-3 py-2 md:py-2.5 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-gray-900 text-[13px] md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white shadow-sm"
+            />
+          </div>
+
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+      {/* Main Content: Flex column reverse puts Map on Top, Sidebar on Bottom for Mobile */}
+      <div className="flex-1 flex flex-col-reverse md:flex-row overflow-hidden relative">
         
-        {/* Sidebar */}
-        <div className="w-full md:w-80 lg:w-96 flex flex-col bg-white dark:bg-gray-800 shadow-xl z-10 transition-all duration-300 border-r dark:border-gray-700 h-[40%] md:h-full shrink-0">
+        {/* Sidebar / Bottom Sheet */}
+        <div className="w-full md:w-80 lg:w-96 flex flex-col bg-white dark:bg-gray-800 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] md:shadow-[2px_0_15px_rgba(0,0,0,0.1)] z-10 transition-all duration-300 border-t md:border-t-0 md:border-r border-gray-200 dark:border-gray-700 h-[45%] md:h-full shrink-0">
           
           {/* Admin Tabs */}
           {isAdmin && (
-             <div className="flex border-b dark:border-gray-700 shrink-0">
-                 <button onClick={() => setAdminTab('locations')} className={`flex-1 py-3 text-sm font-bold flex justify-center items-center gap-2 ${adminTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-400'}`}>
-                    <Navigation className="w-4 h-4" /> ទីតាំង
+             <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0 bg-gray-50 dark:bg-gray-900">
+                 <button onClick={() => setAdminTab('locations')} className={`flex-1 py-3 text-[13px] font-bold flex justify-center items-center gap-1.5 transition-all ${adminTab === 'locations' ? 'text-blue-600 border-b-2 border-blue-600 bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <Navigation className="w-3.5 h-3.5" /> ទីតាំង
                  </button>
-                 <button onClick={() => setAdminTab('reports')} className={`flex-1 py-3 text-sm font-bold flex justify-center items-center gap-2 ${adminTab === 'reports' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 dark:text-gray-400'}`}>
-                    <Activity className="w-4 h-4" /> របាយការណ៍
+                 <button onClick={() => setAdminTab('reports')} className={`flex-1 py-3 text-[13px] font-bold flex justify-center items-center gap-1.5 transition-all ${adminTab === 'reports' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <BarChart3 className="w-3.5 h-3.5" /> របាយការណ៍
                  </button>
              </div>
           )}
 
           {adminTab === 'locations' ? (
               <>
-                  {/* ADMIN ADD BUTTON IN SIDEBAR */}
+                  {/* ADMIN ADD BUTTON */}
                   {isAdmin && (
-                      <div className="p-3 border-b dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 shrink-0">
-                         <button onClick={handleInitiateAddDetail} className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow flex justify-center items-center gap-2 transition-colors text-sm">
-                            <Plus className="w-5 h-5" /> បន្ថែមព័ត៌មានលម្អិតទីតាំង
+                      <div className="p-3 md:p-4 border-b border-gray-200 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-900/10 shrink-0">
+                         <button onClick={handleInitiateAddDetail} className="w-full py-2.5 md:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md flex justify-center items-center gap-2 transition-all active:scale-95 text-[13px] md:text-sm">
+                            <Plus className="w-4 h-4 md:w-5 md:h-5" /> បន្ថែមព័ត៌មានលម្អិតទីតាំង
                          </button>
                       </div>
                   )}
 
-                  {isOffline && (
-                      <div className="bg-red-50 dark:bg-red-900/30 p-2 text-center text-red-600 dark:text-red-400 text-xs font-bold border-b border-red-100 dark:border-red-900">
-                          OFFLINE MODE - បង្ហាញបញ្ជីលេខទូរស័ព្ទចាស់ៗដែលធ្លាប់ទាក់ទង
-                      </div>
-                  )}
-
-                  <div className="p-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
+                  <div className="p-2.5 md:p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
                      <div className="flex justify-between items-center mb-1">
-                         <h2 className="font-bold text-gray-800 dark:text-white flex items-center gap-2 text-sm">
-                            <Navigation className="w-4 h-4 text-blue-600 dark:text-blue-400" /> ទីតាំងសំខាន់ៗជុំវិញ (5Km)
+                         <h2 className="font-bold text-gray-800 dark:text-white flex items-center gap-1.5 text-[13px] uppercase tracking-wide">
+                            <Navigation className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> ទីតាំងជុំវិញ
                          </h2>
-                         <button onClick={() => setShowDistances(!showDistances)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="បង្ហាញចម្ងាយ">
+                         <button onClick={() => setShowDistances(!showDistances)} className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="បង្ហាញចម្ងាយ">
                             {showDistances ? <Eye className="w-4 h-4"/> : <EyeOff className="w-4 h-4"/>}
                          </button>
                      </div>
                      {gpsStatus && (
-                        <div className={`text-[11px] p-2 rounded-lg font-bold border ${userLocation ? 'text-green-600 bg-green-50 border-green-200' : 'text-orange-600 bg-orange-50 border-orange-200'}`}>
-                           {userLocation ? '✅' : '⚠️'} {gpsStatus}
+                        <div className={`text-[10px] md:text-[11px] px-2 py-1 md:py-1.5 rounded-lg font-bold border ${userLocation ? 'text-green-700 bg-green-100 border-green-300 dark:bg-green-900/30 dark:text-green-400' : 'text-orange-700 bg-orange-100 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400'} flex items-center gap-1.5`}>
+                           {userLocation ? <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span></span> : '⚠️'} {gpsStatus}
                         </div>
                      )}
                   </div>
 
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3 bg-gray-50/50 dark:bg-gray-900/50">
-                     {isFetchingPois && filteredAndSortedLocations.length === 0 && (
-                         <div className="flex flex-col items-center justify-center p-8 text-gray-500">
-                             <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
-                             <p className="text-sm font-bold">កំពុងទាញយកទិន្នន័យភូមិ/ឃុំ...</p>
-                         </div>
-                     )}
-                     
-                     {!isFetchingPois && filteredAndSortedLocations.length === 0 && (
-                        <div className="text-center p-8 text-gray-500">
-                            <Info className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">រកមិនឃើញទីតាំងសំខាន់ៗទេ</p>
-                        </div>
-                     )}
-
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-2.5 md:p-3 space-y-2.5 md:space-y-3 bg-gray-50/30 dark:bg-gray-900/30">
                      {filteredAndSortedLocations.map((loc) => (
-                       <div key={loc.id} onClick={() => focusLocation(loc)} className={`bg-white dark:bg-gray-800 border ${loc.isAdminData ? 'border-green-200 dark:border-green-800 shadow-md' : 'border-gray-200 dark:border-gray-700 shadow-sm'} p-3 rounded-xl hover:shadow-lg transition-all cursor-pointer group`}>
-                         <div className="flex justify-between items-start mb-1">
-                           <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-start gap-1.5 text-sm">
-                             {loc.isAdminData ? <span title="ទិន្នន័យផ្ទៀងផ្ទាត់" className="text-green-500 shrink-0">✅</span> : <MapPin className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />}
-                             <span className="line-clamp-2">{loc.name}</span>
+                       <div key={loc.id} onClick={() => focusLocation(loc)} className={`bg-white dark:bg-gray-800 border ${loc.isAdminData ? 'border-l-4 border-l-green-500 border-y-green-100 border-r-green-100 dark:border-green-800 shadow-md' : 'border-gray-200 dark:border-gray-700 shadow-sm'} p-3 md:p-3.5 rounded-xl hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden`}>
+                         <div className="flex justify-between items-start mb-1.5 md:mb-2">
+                           <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-start gap-1.5 text-[14px] md:text-[15px] pr-6">
+                             {loc.isAdminData ? <span title="ទិន្នន័យ Admin" className="text-green-500 shrink-0">✅</span> : <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 mt-0.5 text-gray-400 shrink-0" />}
+                             <span className="line-clamp-2 leading-tight">{loc.name}</span>
                            </h3>
-                           {/* ប៊ូតុងលុបបង្ហាញតែពេលទីតាំងនោះ Admin ជាអ្នកបញ្ចូល និង User គឺជា Admin ប៉ុណ្ណោះ */}
                            {isAdmin && loc.isAdminData && (
-                             <button onClick={(e) => { e.stopPropagation(); handleDeleteLocation(loc.id); }} className="text-red-400 hover:text-red-600 p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 shrink-0" title="លុបទីតាំងដែលបានបញ្ចូល">
-                               <Trash2 className="w-4 h-4" />
+                             <button onClick={(e) => { e.stopPropagation(); handleDeleteLocation(loc.id); }} className="absolute top-1 right-1 md:top-2 md:right-2 text-gray-300 hover:text-red-500 p-1 md:p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="លុបទីតាំង">
+                               <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
                              </button>
                            )}
                          </div>
                          
-                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                         <div className="flex items-center gap-1.5 mb-1.5 md:mb-2 flex-wrap">
+                           <span className="text-[10px] md:text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
                              {loc.type}
                            </span>
                            {showDistances && loc.distance !== null && loc.distance !== undefined && (
-                              <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
-                                 📍 {formatDistance(loc.distance)}
+                              <span className="text-[10px] md:text-[11px] font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                 <Navigation className="w-2.5 h-2.5 md:w-3 md:h-3" /> {formatDistance(loc.distance)}
                               </span>
                            )}
                          </div>
 
                          {loc.isAdminData && loc.phone ? (
-                           <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                             <a href={`tel:${loc.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-1.5 w-full py-1.5 bg-green-500 hover:bg-green-600 text-white text-[11px] font-bold rounded-md transition-colors shadow-sm">
-                               <PhoneCall className="w-3.5 h-3.5" /> ខល: {loc.phone}
+                           <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-gray-100 dark:border-gray-700">
+                             <a href={`tel:${loc.phone}`} onClick={(e) => e.stopPropagation()} className="flex items-center justify-center gap-1.5 w-full py-1.5 md:py-2 bg-green-50 hover:bg-green-600 text-green-700 hover:text-white dark:bg-green-900/20 dark:hover:bg-green-600 dark:text-green-400 dark:hover:text-white text-[12px] md:text-sm font-bold rounded-lg transition-colors border border-green-200 dark:border-green-800">
+                               <PhoneCall className="w-3.5 h-3.5 md:w-4 md:h-4" /> លេខ: {loc.phone}
                              </a>
                            </div>
                          ) : (
-                           <div className="mt-1 flex items-center">
-                              <span className="text-[10px] font-bold text-red-500">NO ! មិនទាន់មានទិន្នន័យ</span>
+                           <div className="mt-1 md:mt-2 flex items-center">
+                              <span className="text-[9px] md:text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-900">NO ! មិនទាន់មានទិន្នន័យលម្អិត</span>
                            </div>
                          )}
                        </div>
@@ -728,110 +722,100 @@ export default function App() {
               </>
           ) : (
               // Reports Dashboard Tab (Admin Only)
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 bg-gray-50 dark:bg-gray-900">
-                  <div className="grid grid-cols-1 gap-3 mb-4">
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border dark:border-gray-700">
-                          <div className="flex items-center justify-between mb-2">
-                             <div className="flex items-center gap-2 text-gray-500">
-                                <Users className="w-4 h-4 text-blue-500" />
-                                <span className="text-xs font-bold uppercase">អ្នកប្រើប្រាស់សរុប</span>
-                             </div>
-                             <div className="text-2xl font-black text-gray-900 dark:text-white">{totalUsers}</div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t dark:border-gray-700">
-                              <div className="text-center bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg">
-                                  <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 mb-1">សប្តាហ៍នេះ</p>
-                                  <p className="font-black text-gray-800 dark:text-white">{active7d}</p>
-                              </div>
-                              <div className="text-center bg-indigo-50 dark:bg-indigo-900/20 p-2 rounded-lg">
-                                  <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mb-1">ខែនេះ</p>
-                                  <p className="font-black text-gray-800 dark:text-white">{active30d}</p>
-                              </div>
-                              <div className="text-center bg-green-50 dark:bg-green-900/20 p-2 rounded-lg">
-                                  <p className="text-[10px] font-bold text-green-600 dark:text-green-400 mb-1">ឆ្នាំនេះ</p>
-                                  <p className="font-black text-gray-800 dark:text-white">{active1y}</p>
-                              </div>
-                          </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-5 bg-gray-50 dark:bg-gray-900">
+                  
+                  {/* Stats Cards */}
+                  <h3 className="font-bold text-gray-800 dark:text-white mb-2.5 md:mb-3 flex items-center gap-2 text-[13px] md:text-sm uppercase tracking-wide">
+                      <BarChart3 className="w-4 h-4 text-blue-500" /> ស្ថិតិអ្នកប្រើប្រាស់
+                  </h3>
+                  
+                  <div className="bg-white dark:bg-gray-800 p-4 md:p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-5 md:mb-6">
+                      <div className="flex items-center justify-between mb-3 md:mb-4">
+                         <div className="flex items-center gap-2 text-gray-500">
+                            <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
+                            <span className="text-[11px] md:text-sm font-bold">សរុប (Total)</span>
+                         </div>
+                         <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white">{totalUsers}</div>
+                      </div>
+                      
+                      <div className="space-y-3 md:space-y-4 pt-3 md:pt-4 border-t border-gray-100 dark:border-gray-700">
+                          {renderBarChart(active24h, totalUsers, "២៤ម៉ោងចុងក្រោយ", "blue")}
+                          {renderBarChart(active7d, totalUsers, "ប្រចាំសប្តាហ៍", "indigo")}
+                          {renderBarChart(active30d, totalUsers, "ប្រចាំខែ", "emerald")}
+                          {renderBarChart(active1y, totalUsers, "ប្រចាំឆ្នាំ", "amber")}
                       </div>
                   </div>
 
-                  <div className="mb-6">
-                      <h3 className="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2 border-b dark:border-gray-700 pb-2 text-sm">
-                         <ShieldAlert className="w-4 h-4 text-red-500" /> ការប៉ុនប៉ងចូលខុសច្បាប់ (Security)
+                  {/* Security Section */}
+                  <div className="mb-5 md:mb-6">
+                      <h3 className="font-bold text-gray-800 dark:text-white mb-2.5 md:mb-3 flex items-center gap-2 text-[13px] md:text-sm uppercase tracking-wide">
+                         <ShieldAlert className="w-4 h-4 text-red-500" /> កំណត់ត្រាសុវត្ថិភាព (Security)
                       </h3>
                       {securityLogs.length === 0 ? (
-                          <p className="text-xs text-gray-500 italic">មិនមានកំណត់ត្រាទេ (សុវត្ថិភាពល្អ)</p>
+                          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 md:p-4 rounded-xl text-center">
+                              <Shield className="w-6 h-6 md:w-8 md:h-8 text-green-500 mx-auto mb-1.5 md:mb-2 opacity-50" />
+                              <p className="text-[11px] md:text-sm text-green-700 dark:text-green-400 font-bold">មានសុវត្ថិភាពល្អ មិនមានការលួចចូលទេ</p>
+                          </div>
                       ) : (
-                          <div className="space-y-2">
+                          <div className="space-y-2 md:space-y-3">
                               {securityLogs.map(log => (
-                                  <div key={log.id} className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900 p-3 rounded-lg text-xs relative overflow-hidden">
-                                      <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                                      <p className="text-red-700 dark:text-red-400 font-bold mb-1 flex justify-between">
-                                          <span>{log.attemptedTime}</span>
-                                          <span className="text-[10px] bg-red-200 dark:bg-red-800 px-1.5 py-0.5 rounded text-red-800 dark:text-red-200">FAILED</span>
+                                  <div key={log.id} className="bg-white dark:bg-gray-800 border-l-4 border-l-red-500 border-y-red-100 border-r-red-100 dark:border-gray-700 p-2.5 md:p-3.5 rounded-xl shadow-sm relative overflow-hidden">
+                                      <p className="text-red-600 dark:text-red-400 font-bold text-[11px] md:text-xs mb-1.5 md:mb-2 flex items-center gap-1">
+                                          <AlertCircle className="w-3 h-3" /> ការប៉ុនប៉ងចូលខុសច្បាប់
                                       </p>
-                                      <p className="text-gray-700 dark:text-gray-300 mb-1">ទីតាំងចាប់បាន: <span className="font-mono bg-white dark:bg-gray-800 px-1 rounded border dark:border-gray-700">{log.lat ? `${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}` : 'Unknown GPS'}</span></p>
+                                      <p className="text-gray-700 dark:text-gray-300 text-[10px] md:text-xs mb-1"><span className="font-semibold">ម៉ោង:</span> {log.attemptedTime}</p>
+                                      <p className="text-gray-700 dark:text-gray-300 text-[10px] md:text-xs mb-1"><span className="font-semibold">IP Address:</span> <span className="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">{log.ipAddress || 'Unknown'}</span></p>
+                                      <p className="text-gray-700 dark:text-gray-300 text-[10px] md:text-xs mb-1"><span className="font-semibold">GPS:</span> <span className="font-mono">{log.lat ? `${log.lat.toFixed(4)}, ${log.lng.toFixed(4)}` : 'Unknown'}</span></p>
                                   </div>
                               ))}
                           </div>
                       )}
                   </div>
-
-                  <div>
-                      <h3 className="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2 border-b dark:border-gray-700 pb-2 text-sm">
-                         <Activity className="w-4 h-4 text-indigo-500" /> ស្ថិតិអ្នកចូលប្រើថ្មីៗ (Top 10)
-                      </h3>
-                      <div className="space-y-2">
-                          {visitorLogs.slice(0, 10).map(log => (
-                              <div key={log.id} className="bg-white dark:bg-gray-800 border dark:border-gray-700 p-3 rounded-lg text-xs shadow-sm flex flex-col">
-                                  <p className="text-indigo-600 dark:text-indigo-400 font-bold mb-1"><Clock className="w-3 h-3 inline mr-1" />{new Date(log.timestamp).toLocaleString()}</p>
-                                  <p className="text-gray-500 truncate" title={log.userAgent}>{log.userAgent}</p>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
               </div>
           )}
         </div>
 
-        {/* Map Container */}
-        <div className="flex-1 relative h-[60%] md:h-full border-t md:border-t-0 dark:border-gray-700">
+        {/* Map Container - Flex 1 handles taking the rest of space */}
+        <div className="flex-1 relative h-[55%] md:h-full bg-gray-100 dark:bg-gray-800 z-0">
           <div ref={mapRef} className="w-full h-full" />
           
-          <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
-            <button onClick={recenterMap} title="ត្រលប់មកទីតាំងខ្ញុំវិញ" className="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 p-3 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group relative border dark:border-gray-700">
-              <Crosshair className="w-6 h-6 group-hover:scale-110 transition-transform" />
+          {/* Target Button - Adjusted position to be clear from sidebar and map UI */}
+          <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex flex-col gap-2 z-10">
+            <button onClick={recenterMap} title="ត្រលប់មកទីតាំងខ្ញុំវិញ" className="bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 p-3 md:p-3.5 rounded-full shadow-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 group relative">
+              <Crosshair className="w-5 h-5 md:w-6 md:h-6 group-hover:animate-spin-slow" />
             </button>
           </div>
         </div>
+
       </div>
 
       {/* Clean Admin Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl border dark:border-gray-700">
-            <div className="flex items-center justify-center mb-4">
-              <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-full text-blue-600 dark:text-blue-400">
-                 <Shield className="w-8 h-8" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[100]">
+          <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center justify-center mb-5 md:mb-6">
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-3.5 md:p-4 rounded-full text-blue-600 dark:text-blue-400 mb-2.5 md:mb-3 shadow-inner">
+                 <Shield className="w-8 h-8 md:w-10 md:h-10" />
               </div>
+              <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">Admin Access</h3>
+              <p className="text-[11px] md:text-sm text-gray-500 dark:text-gray-400 mt-1">ទាមទារសិទ្ធិគ្រប់គ្រង</p>
             </div>
-            <h3 className="text-xl font-bold text-center mb-1 dark:text-white">Admin Access</h3>
-            <p className="text-xs text-center text-gray-500 mb-6 dark:text-gray-400">សូមបញ្ចូលលេខសម្ងាត់ ដើម្បីចូលគ្រប់គ្រងទិន្នន័យ។</p>
             
-            <div className="relative mb-6">
+            <div className="relative mb-5 md:mb-6">
                 <input
                   type="password"
-                  placeholder="វាយលេខសម្ងាត់ទីនេះ"
+                  placeholder="••••••••"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full px-4 py-3.5 border-2 border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 dark:text-white transition-all text-center tracking-widest text-lg font-bold shadow-inner"
+                  className="w-full px-4 py-3 md:py-4 border-2 border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 dark:text-white transition-all text-center tracking-[0.5em] text-xl md:text-2xl font-black shadow-inner"
                   onKeyDown={(e) => { if (e.key === 'Enter') handleAdminLogin(); }}
+                  autoFocus
                 />
             </div>
 
-            <div className="flex gap-3">
-              <button onClick={() => setShowPasswordModal(false)} className="flex-1 py-3 text-gray-600 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-xl font-bold transition-colors text-sm">បោះបង់</button>
-              <button onClick={handleAdminLogin} className="flex-1 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md font-bold transition-colors text-sm">បញ្ជាក់ចូល</button>
+            <div className="flex gap-2.5 md:gap-3">
+              <button onClick={() => setShowPasswordModal(false)} className="flex-1 py-3 md:py-3.5 text-gray-600 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-xl font-bold transition-colors shadow-sm text-sm">បោះបង់</button>
+              <button onClick={handleAdminLogin} className="flex-1 py-3 md:py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md font-bold transition-transform active:scale-95 text-sm">ចូលប្រព័ន្ធ</button>
             </div>
           </div>
         </div>
@@ -839,53 +823,63 @@ export default function App() {
 
       {/* Add Detail Modal */}
       {showAddModal && pendingLocation && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl my-8 border dark:border-gray-700">
-            <div className="flex justify-between items-center mb-5 pb-3 border-b dark:border-gray-700">
-              <h3 className="text-xl font-bold dark:text-white flex items-center gap-2">
-                <MapPin className="text-blue-500" /> បន្ថែមទិន្នន័យទីតាំងថ្មី
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 p-5 md:p-6 rounded-3xl w-full max-w-md shadow-2xl my-8 border border-gray-200 dark:border-gray-700 animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex justify-between items-center mb-5 md:mb-6 pb-3 md:pb-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <div className="bg-blue-100 dark:bg-blue-900/50 p-1.5 md:p-2 rounded-lg text-blue-600 dark:text-blue-400">
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                បន្ថែមព័ត៌មានទីតាំង
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                <X className="w-6 h-6" />
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 p-1.5 md:p-2 rounded-full transition-colors">
+                <X className="w-4 h-4 md:w-5 md:h-5" />
               </button>
             </div>
-            <div className="space-y-4">
+            
+            <div className="space-y-4 md:space-y-5">
               <div>
-                <label className="block text-sm font-semibold mb-1.5 dark:text-gray-300">ឈ្មោះស្ថាប័ន ឬបុគ្គល</label>
+                <label className="block text-[13px] md:text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 md:mb-2">ឈ្មោះស្ថាប័ន ឬបុគ្គល</label>
                 <input
                   type="text"
-                  placeholder="ឧ. សាលាបឋមសិក្សា..."
+                  placeholder="ឧ. សាលាបឋមសិក្សា ឬ លោកនាយក..."
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 dark:text-white"
+                  className="w-full p-3 md:p-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-shadow shadow-inner text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1.5 dark:text-gray-300">លេខទូរស័ព្ទទំនាក់ទំនង</label>
-                <input
-                  type="tel"
-                  placeholder="012 345 678"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 dark:text-white"
-                />
+                <label className="block text-[13px] md:text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 md:mb-2">លេខទូរស័ព្ទទំនាក់ទំនង</label>
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 md:pl-3.5 flex items-center pointer-events-none">
+                        <PhoneCall className="w-4 h-4 md:w-5 md:h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="tel"
+                      placeholder="012 345 678"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="w-full pl-10 md:pl-11 pr-3 md:pr-3.5 py-3 md:py-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-shadow shadow-inner font-mono font-medium text-sm"
+                    />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1.5 dark:text-gray-300">ប្រភេទស្ថាប័ន</label>
+                <label className="block text-[13px] md:text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5 md:mb-2">ប្រភេទស្ថាប័ន</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({...formData, type: e.target.value})}
-                  className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 dark:text-white"
+                  className="w-full p-3 md:p-3.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-shadow shadow-inner appearance-none cursor-pointer font-medium text-sm"
                 >
-                  <option value="សាលារៀន / នាយកសាលា">សាលារៀន / នាយកសាលា</option>
-                  <option value="មន្ទីរពេទ្យ / គ្លីនិក">មន្ទីរពេទ្យ / គ្លីនិក</option>
-                  <option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option>
-                  <option value="សាលាឃុំ / ផ្ទះមេភូមិ">សាលាឃុំ / ផ្ទះមេភូមិ</option>
+                  <option value="សាលារៀន / នាយកសាលា">🏫 សាលារៀន / នាយកសាលា</option>
+                  <option value="មន្ទីរពេទ្យ / គ្លីនិក">🏥 មន្ទីរពេទ្យ / គ្លីនិក</option>
+                  <option value="ប៉ុស្តិ៍ប៉ូលីស">👮 ប៉ុស្តិ៍ប៉ូលីស</option>
+                  <option value="សាលាឃុំ / ផ្ទះមេភូមិ">🏛️ សាលាឃុំ / ផ្ទះមេភូមិ</option>
                 </select>
               </div>
             </div>
-            <button onClick={saveLocation} className="w-full mt-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg flex justify-center items-center gap-2 transition-colors">
-              <Save className="w-5 h-5" /> រក្សាទុកទិន្នន័យ
+            
+            <button onClick={saveLocation} className="w-full mt-6 md:mt-8 py-3 md:py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-[0_4px_14px_rgba(37,99,235,0.39)] flex justify-center items-center gap-2 transition-all active:scale-95 text-[15px] md:text-lg">
+              <Save className="w-4 h-4 md:w-5 md:h-5" /> រក្សាទុកទិន្នន័យ
             </button>
           </div>
         </div>
@@ -893,8 +887,8 @@ export default function App() {
 
       {/* Toast Notification */}
       {toast.show && (
-        <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl text-white font-bold z-[100] flex items-center gap-2 transition-all ${toast.type === 'error' ? 'bg-red-500' : 'bg-gray-900 dark:bg-white dark:text-gray-900'}`}>
-          {toast.type === 'error' ? <AlertCircle className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+        <div className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-2.5 md:px-6 md:py-3.5 rounded-full shadow-2xl text-white font-bold z-[150] flex items-center gap-2 transition-all animate-in slide-in-from-bottom-5 text-xs md:text-sm ${toast.type === 'error' ? 'bg-red-600' : 'bg-gray-900 dark:bg-white dark:text-gray-900'}`}>
+          {toast.type === 'error' ? <AlertCircle className="w-4 h-4 md:w-5 md:h-5" /> : <Save className="w-4 h-4 md:w-5 md:h-5" />}
           {toast.message}
         </div>
       )}
