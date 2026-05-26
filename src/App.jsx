@@ -3,7 +3,7 @@ import {
   MapPin, Moon, Sun, Search, X, Shield, User, Info, Loader2, 
   Navigation, PhoneCall, Plus, Menu, Crosshair, BrainCircuit, 
   Users, AlertTriangle, WifiOff, Trash2, Globe, BarChart3, Lock,
-  Send, UserCircle, List, ChevronUp, ChevronDown, Layers
+  Send, UserCircle, Layers, LogOut
 } from 'lucide-react';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
@@ -39,7 +39,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c; 
 };
 
-// Fallback POIs (For safety if OSM is slow)
+// Fallback POIs
 const getFallbackPOIs = (lat, lng) => {
   return [
     { id: "fallback-1", name: "សាលាបឋមសិក្សា / វិទ្យាល័យ (គំរូ)", type: "សាលារៀន", lat: lat + 0.003, lng: lng - 0.002, isAdminData: false, keywords: ["សាលារៀន", "school"] },
@@ -57,7 +57,7 @@ export default function App() {
   const [language, setLanguage] = useState('kh');
   
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true); 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile sidebar default closed
   const [searchQuery, setSearchQuery] = useState(''); 
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -80,7 +80,7 @@ export default function App() {
 
   // Admin Dashboard States
   const [adminTab, setAdminTab] = useState('locations');
-  const [statPeriod, setStatPeriod] = useState('week'); // week, month, year
+  const [statPeriod, setStatPeriod] = useState('week');
   const [visitorLogs, setVisitorLogs] = useState([]);
   const [securityLogs, setSecurityLogs] = useState([]);
 
@@ -103,19 +103,18 @@ export default function App() {
   const isMapCenteredRef = useRef(false);
   const watchIdRef = useRef(null);
   const searchContainerRef = useRef(null);
-  const searchContainerMobileRef = useRef(null);
   const profileMenuRef = useRef(null);
   const autocompleteServiceRef = useRef(null);
   const placesServiceRef = useRef(null);
 
-  // Real-time Stats Calculations
+  // Real-time Stats
   const totalUsers = visitorLogs.length;
   const activeUsers = useMemo(() => {
     const now = Date.now();
     return visitorLogs.filter(log => (now - Number(log.timestamp)) < 86400000).length;
   }, [visitorLogs]);
 
-  // Handle Offline Status
+  // Handle Offline
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
@@ -141,13 +140,18 @@ export default function App() {
     window.location.href = `tel:${loc.phone}`;
   };
 
-  // Set Theme
+  // Set Theme (Ensures Tailwind 'dark' class is applied properly)
   useEffect(() => {
-    if (isDarkMode) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [isDarkMode]);
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      if (map) map.setOptions({ styles: darkMapStyle });
+    } else {
+      document.documentElement.classList.remove('dark');
+      if (map) map.setOptions({ styles: [] });
+    }
+  }, [isDarkMode, map]);
 
-  // Auth & Analytics Logging
+  // Auth & Logging
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -173,13 +177,17 @@ export default function App() {
     });
 
     const handleClickOutside = (e) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target) &&
-          searchContainerMobileRef.current && !searchContainerMobileRef.current.contains(e.target)) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
           setShowSearchDropdown(false);
       }
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) setShowProfileMenu(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
+
+    // Open sidebar by default on desktop
+    if (window.innerWidth >= 768) {
+        setIsSidebarOpen(true);
+    }
 
     return () => {
       unsubscribe();
@@ -218,7 +226,7 @@ export default function App() {
     }
   }, [authUser, isAdmin]);
 
-  // Fetch POIs from OpenStreetMap
+  // Fetch POIs from OSM
   const fetchNearbyPOIs = async (lat, lng) => {
       if (isOffline) return;
       setIsFetchingPois(true);
@@ -262,7 +270,7 @@ export default function App() {
       } finally { setIsFetchingPois(false); }
   };
 
-  // Google Maps Initialization (With proper API Key configuration)
+  // Google Maps Initialization
   useEffect(() => {
     let isMounted = true;
     window.__initGoogleMaps = () => { if (isMounted) initializeMap(); };
@@ -297,19 +305,14 @@ export default function App() {
       zoomControl: false,
       streetViewControl: false,
       gestureHandling: 'greedy', 
-      mapId: "450ae928a2c49128",
-      styles: isDarkMode ? [
-        { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-        { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-        { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-        { elementType: "road", stylers: [{ color: "#38414e" }] }
-      ] : []
+      mapId: "450ae928a2c49128", // Using standard mapId for AdvancedMarkerElement support
+      styles: isDarkMode ? darkMapStyle : []
     });
 
     infoWindowRef.current = new window.google.maps.InfoWindow();
     initialMap.addListener("click", () => { if (infoWindowRef.current) infoWindowRef.current.close(); });
 
-    // Initialize Places Services for Search
+    // Initialize Places Services
     autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
     placesServiceRef.current = new window.google.maps.places.PlacesService(initialMap);
 
@@ -344,7 +347,7 @@ export default function App() {
           }
         },
         (error) => { 
-            console.warn("GPS Tracking limited:", error.message);
+            console.warn("GPS tracking disabled or taking too long.");
             if (!isMapCenteredRef.current) {
                fetchNearbyPOIs(initialCenter.lat, initialCenter.lng);
                isMapCenteredRef.current = true;
@@ -356,16 +359,24 @@ export default function App() {
     setMap(initialMap);
   };
 
-  // Map Type Toggle (Satellite vs Roadmap)
+  const darkMapStyle = [
+    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+    { elementType: "road", stylers: [{ color: "#38414e" }] },
+    { featureType: "water", stylers: [{ color: "#17263c" }] }
+  ];
+
+  // Map Type Toggle
   const toggleMapType = () => {
     if (map) {
-      const newType = isSatellite ? 'roadmap' : 'hybrid'; // hybrid gives satellite + labels
+      const newType = isSatellite ? 'roadmap' : 'hybrid';
       map.setMapTypeId(newType);
       setIsSatellite(!isSatellite);
     }
   };
 
-  // Google Maps FAST Unified Search (Works perfectly for KH)
+  // Google Maps Search (Enter Support + Fast Search)
   const handleSearchChange = (e) => {
     const val = e.target.value;
     setSearchQuery(val);
@@ -375,8 +386,8 @@ export default function App() {
 
     autocompleteServiceRef.current.getPlacePredictions({ 
       input: val, 
-      componentRestrictions: { country: 'kh' }, // Restrict to Cambodia
-      language: 'km' // Request Khmer language results
+      componentRestrictions: { country: 'kh' },
+      language: 'km'
     }, (predictions, status) => {
       if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
         setSearchResults(predictions);
@@ -385,6 +396,13 @@ export default function App() {
         setSearchResults([]);
       }
     });
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      e.preventDefault();
+      handleSelectSearchResult(searchResults[0]); // Select first result on Enter
+    }
   };
 
   const handleSelectSearchResult = (prediction) => {
@@ -406,7 +424,7 @@ export default function App() {
             fetchNearbyPOIs(loc.lat(), loc.lng());
             setSearchQuery(place.name || prediction.description.split(',')[0]);
             setShowSearchDropdown(false);
-            if(window.innerWidth < 768) setIsSidebarOpen(false);
+            if(window.innerWidth < 768) setIsSidebarOpen(false); // Close sidebar on mobile
         }
     });
   };
@@ -420,11 +438,13 @@ export default function App() {
     return [...firebaseLocations, ...filteredOsm];
   }, [firebaseLocations, osmLocations]);
 
-  // Update Markers
+  // Update Markers optimized to avoid lag
   useEffect(() => {
     if (!map || !window.google?.maps?.marker?.AdvancedMarkerElement) return;
 
+    // Clear old markers
     markers.forEach(m => { if (m && m.marker) m.marker.map = null; });
+    
     const newMarkers = [];
 
     allLocationsForMap.forEach(loc => {
@@ -432,8 +452,7 @@ export default function App() {
       pinElement.className = "cursor-pointer transition-transform duration-200 hover:scale-110 hover:z-50";
       
       const pinBg = loc.isAdminData ? 'bg-emerald-500 ring-emerald-300' : 'bg-indigo-600 ring-indigo-300';
-      const iconSvg = loc.type === "សាលារៀន" 
-        ? `🏫` : loc.type === "មន្ទីរពេទ្យ / គ្លីនិក" ? `🏥` : `📍`;
+      const iconSvg = loc.type === "សាលារៀន" ? `🏫` : loc.type === "មន្ទីរពេទ្យ / គ្លីនិក" ? `🏥` : `📍`;
 
       pinElement.innerHTML = `
         <div class="flex flex-col items-center">
@@ -452,10 +471,12 @@ export default function App() {
     });
 
     setMarkers(newMarkers);
+    
+    // Cleanup on unmount
     return () => newMarkers.forEach(m => { if (m.marker) m.marker.map = null; });
-  }, [map, allLocationsForMap]);
+  }, [map, allLocationsForMap]); // Only re-render markers when map or location data actually changes
 
-  // Sidebar / Bottom Sheet Filtering
+  // Sidebar List Filtering
   const filteredAndSortedLocations = useMemo(() => {
       let mappedLocs = allLocationsForMap.map(loc => {
           let distance = null;
@@ -483,13 +504,13 @@ export default function App() {
       const btnId = `call-btn-${loc.id}`;
       const callContent = loc.phone 
         ? `<button id="${btnId}" class="mt-3 w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-md transition-colors"><span class="text-lg">📞</span> ចុចខល (${loc.phone})</button>`
-        : `<div class="mt-3 text-center text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 py-2 rounded-xl">មិនមានលេខទូរស័ព្ទ</div>`;
+        : `<div class="mt-3 text-center text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 py-2 rounded-xl border border-gray-200 dark:border-gray-700">មិនមានលេខទូរស័ព្ទ</div>`;
 
       const contentString = `
         <div class="p-2 min-w-[220px] font-sans">
             <h3 class="font-extrabold text-gray-900 dark:text-white text-base leading-tight">${loc.isAdminData ? '✅' : ''} ${loc.name}</h3>
             <p class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-1">${loc.type}</p>
-            ${loc.distance ? `<p class="text-xs text-gray-500 mt-1">📍 ចម្ងាយ៖ ${formatDistance(loc.distance)}</p>` : ''}
+            ${loc.distance ? `<p class="text-xs text-gray-500 mt-1 font-medium">📍 ចម្ងាយ៖ ${formatDistance(loc.distance)}</p>` : ''}
             ${callContent}
         </div>
       `;
@@ -542,7 +563,9 @@ export default function App() {
      try {
          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', locId));
          showToast("បានលុបទីតាំងជោគជ័យ", "success");
-     } catch (e) {}
+     } catch (e) {
+         showToast("មិនអាចលុបបានទេ មានបញ្ហា", "error");
+     }
   };
 
   const handleAdminLogin = async () => {
@@ -615,20 +638,20 @@ export default function App() {
       <header className="h-16 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm z-30 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex flex-col select-none cursor-default">
-            {/* Changed Title to Smart Map */}
             <h1 className="text-xl font-black bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight">Smart Map</h1>
             <p className="text-[10px] text-gray-500 font-bold -mt-0.5 uppercase tracking-wider">Community GPS</p>
           </div>
         </div>
 
-        {/* Google Maps Search Bar (Desktop) */}
-        <div ref={searchContainerRef} className="hidden md:flex relative flex-1 max-w-xl mx-6">
+        {/* Google Maps Search Bar (Desktop & Mobile Unified Box) */}
+        <div ref={searchContainerRef} className="flex-1 max-w-xl mx-4 relative hidden md:block">
           <input 
             type="text" 
             placeholder="ស្វែងរកប្រទេស ខេត្ត ស្រុក ឃុំ ភូមិ..." 
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full pl-11 pr-10 py-2.5 bg-gray-100 dark:bg-gray-800 border-none rounded-full focus:ring-2 focus:ring-blue-500 text-sm font-semibold transition-all outline-none shadow-inner"
+            onKeyDown={handleSearchKeyDown}
+            className="w-full pl-11 pr-10 py-2.5 bg-gray-100 dark:bg-gray-800 border-none rounded-full focus:ring-2 focus:ring-blue-500 text-sm font-semibold transition-all outline-none shadow-inner dark:text-white"
           />
           <Search className="absolute left-4 top-3 w-4.5 h-4.5 text-gray-400" />
           {searchQuery && <X onClick={() => { setSearchQuery(''); setSearchResults([]); }} className="absolute right-4 top-3 w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />}
@@ -649,20 +672,20 @@ export default function App() {
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-3">
-          {/* AI Icon Button Only */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* AI Chat Button */}
           <button onClick={() => setIsAiOpen(!isAiOpen)} className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-tr from-violet-500 to-indigo-500 text-white shadow-md hover:scale-105 transition-transform" title="សួរ AI">
-            <BrainCircuit className="w-5 h-5 animate-pulse" />
+            <BrainCircuit className="w-5 h-5" />
           </button>
 
-          {/* Theme Toggle */}
-          <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          {/* Theme Toggle Button */}
+          <button onClick={() => setIsDarkMode(!isDarkMode)} className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700">
             {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-gray-600" />}
           </button>
 
-          {/* User Profile Menu (Colorful Image placeholder) */}
+          {/* User Profile Menu */}
           <div className="relative" ref={profileMenuRef}>
-            <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="w-9 h-9 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 text-white font-black text-sm flex items-center justify-center shadow-md border-2 border-white dark:border-gray-800 hover:scale-105 transition-transform">
+            <button onClick={() => setShowProfileMenu(!showProfileMenu)} className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-sm flex items-center justify-center shadow-md hover:scale-105 transition-transform border-2 border-white dark:border-gray-700">
               <User className="w-5 h-5 text-white" />
             </button>
             {showProfileMenu && (
@@ -688,8 +711,8 @@ export default function App() {
                       <Lock className="w-4 h-4" /> ចូលជា Admin
                     </button>
                   ) : (
-                    <button onClick={() => { setIsAdmin(false); setShowProfileMenu(false); }} className="w-full text-left px-3 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl flex items-center gap-2 transition-colors">
-                      <Trash2 className="w-4 h-4" /> ចាកចេញពី Admin
+                    <button onClick={() => { setIsAdmin(false); setShowProfileMenu(false); setAdminTab('locations'); }} className="w-full text-left px-3 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl flex items-center gap-2 transition-colors">
+                      <LogOut className="w-4 h-4" /> ចាកចេញពី Admin
                     </button>
                   )}
                 </div>
@@ -699,16 +722,23 @@ export default function App() {
         </div>
       </header>
 
-      {/* Mobile Search */}
-      <div className="md:hidden p-3 bg-white dark:bg-gray-900 border-b dark:border-gray-800 z-30 shrink-0 shadow-sm" ref={searchContainerMobileRef}>
+      {/* Mobile Search Bar (Only visible on small screens) */}
+      <div className="md:hidden p-3 bg-white dark:bg-gray-900 border-b dark:border-gray-800 z-30 shrink-0">
          <div className="relative">
-            <input type="text" placeholder="ស្វែងរកស្រុក ឃុំ ភូមិ..." value={searchQuery} onChange={handleSearchChange} className="w-full pl-10 pr-10 py-2.5 bg-gray-100 dark:bg-gray-800 border-none rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+            <input 
+              type="text" 
+              placeholder="ស្វែងរកស្រុក ឃុំ ភូមិ..." 
+              value={searchQuery} 
+              onChange={handleSearchChange} 
+              onKeyDown={handleSearchKeyDown}
+              className="w-full pl-10 pr-10 py-2.5 bg-gray-100 dark:bg-gray-800 border-none rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 dark:text-white" 
+            />
             <Search className="absolute left-3.5 top-3 w-4 h-4 text-gray-400" />
-            {searchQuery && <X onClick={() => { setSearchQuery(''); setSearchResults([]); }} className="absolute right-3 top-3 w-4 h-4 text-gray-400" />}
+            {searchQuery && <X onClick={() => { setSearchQuery(''); setSearchResults([]); }} className="absolute right-3 top-3 w-4 h-4 text-gray-400 cursor-pointer" />}
          </div>
-         {/* Mobile search results */}
+         {/* Mobile Search Results */}
          {showSearchDropdown && searchResults.length > 0 && (
-            <div className="absolute top-16 left-3 right-3 bg-white dark:bg-gray-800 rounded-2xl shadow-xl z-50 overflow-hidden border dark:border-gray-700 max-h-60 overflow-y-auto">
+            <div className="absolute top-[110px] left-3 right-3 bg-white dark:bg-gray-800 rounded-2xl shadow-xl z-50 overflow-hidden border dark:border-gray-700 max-h-60 overflow-y-auto">
               {searchResults.map((res, idx) => (
                 <button key={idx} onClick={() => handleSelectSearchResult(res)} className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 flex items-center gap-3">
                   <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
@@ -722,15 +752,18 @@ export default function App() {
           )}
       </div>
 
-      {/* 2. MAIN CONTENT */}
+      {/* 2. MAIN CONTENT (Left Sidebar + Right Map) */}
       <div className="flex-1 flex relative overflow-hidden">
         
-        {/* LOCATION SIDEBAR (Desktop) / BOTTOM SHEET (Mobile) */}
-        <aside className={`fixed md:relative bottom-0 left-0 right-0 md:right-auto w-full md:w-[350px] h-[65vh] md:h-full bg-white dark:bg-gray-900 border-t md:border-t-0 md:border-r border-gray-200 dark:border-gray-800 z-40 flex flex-col transition-transform duration-300 ease-in-out shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:shadow-none rounded-t-3xl md:rounded-none ${isSidebarOpen ? 'translate-y-0 md:translate-x-0' : 'translate-y-full md:-translate-x-full'}`}>
+        {/* LEFT SIDEBAR (Mobile Slide-in / Desktop Fixed) */}
+        <aside className={`absolute md:relative top-0 bottom-0 left-0 w-[85%] max-w-[340px] md:w-[350px] bg-white dark:bg-gray-900 border-r dark:border-gray-800 z-40 flex flex-col shadow-2xl md:shadow-none transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
           
-          {/* Bottom Sheet Drag Handle (Mobile Only) */}
-          <div className="w-full flex justify-center pt-3 pb-1 md:hidden cursor-pointer" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+          {/* Close Sidebar Button on Mobile */}
+          <div className="md:hidden p-3 border-b dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex justify-between items-center">
+            <span className="font-bold text-sm text-gray-800 dark:text-gray-200">បញ្ជីទីតាំង</span>
+            <button onClick={() => setIsSidebarOpen(false)} className="p-1.5 bg-gray-200 dark:bg-gray-800 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
+              <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+            </button>
           </div>
 
           {isAdmin ? (
@@ -747,19 +780,18 @@ export default function App() {
                   <button onClick={() => setAdminTab('security')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors ${adminTab === 'security' ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>សុវត្ថិភាព</button>
                </div>
 
-               <div className="flex-1 overflow-y-auto p-4 pb-10">
+               <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                   {adminTab === 'locations' && (
                      <div className="space-y-4">
                         <button onClick={handleInitiateAddDetail} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-95">
                            <Plus className="w-4 h-4" /> បន្ថែមព័ត៌មានទីតាំងថ្មី
                         </button>
-                        <p className="text-[10px] text-gray-500 text-center px-4 leading-relaxed">រាល់ទីតាំងដែលអ្នកបន្ថែម វានឹងលោតបង្ហាញនៅខាងក្រោមទីតាំងគោល ឱ្យអ្នកប្រើប្រាស់ទូទៅងាយស្រួលទាក់ទង។</p>
+                        <p className="text-[10px] text-gray-500 text-center leading-relaxed">រាល់ទីតាំងដែលអ្នកបន្ថែម វានឹងលោតបង្ហាញនៅខាងក្រោមទីតាំងគោល ឱ្យអ្នកប្រើប្រាស់ទូទៅងាយស្រួលទាក់ទង។</p>
                      </div>
                   )}
 
                   {adminTab === 'reports' && (
                      <div className="space-y-4">
-                        {/* Time Period Filter */}
                         <div className="flex gap-2 mb-2 bg-gray-100 dark:bg-gray-800 p-1.5 rounded-xl">
                           <button onClick={()=>setStatPeriod('week')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg ${statPeriod==='week' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}>សប្តាហ៍</button>
                           <button onClick={()=>setStatPeriod('month')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-lg ${statPeriod==='month' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}>ខែ</button>
@@ -777,11 +809,9 @@ export default function App() {
                            </div>
                         </div>
 
-                        {/* CSS Bar Chart */}
-                        <div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border dark:border-gray-700 shadow-sm">
+                        <div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                            <h3 className="text-xs font-bold mb-4 flex items-center gap-2"><BarChart3 className="w-4 h-4 text-indigo-500" /> ស្ថិតិប្រចាំ{statPeriod === 'week' ? 'សប្តាហ៍' : statPeriod === 'month' ? 'ខែ' : 'ឆ្នាំ'}</h3>
                            <div className="flex items-end justify-between h-32 gap-2 mt-2">
-                              {/* Mock Data responsive to period selection */}
                               {[40, 70, 45, 90, 60, 100, activeUsers > 0 ? (activeUsers/totalUsers)*100 || 20 : 10].map((h, i) => (
                                  <div key={i} className="flex flex-col items-center flex-1 gap-2">
                                     <div className="w-full bg-blue-100 dark:bg-gray-700 rounded-t-sm relative flex items-end">
@@ -802,7 +832,7 @@ export default function App() {
                            <p className="text-xs font-bold">មានការប៉ុនប៉ងលួចចូល {securityLogs.length} ដង</p>
                         </div>
                         {securityLogs.map(log => (
-                           <div key={log.id} className="bg-gray-50 dark:bg-gray-800 p-3 rounded-xl border dark:border-gray-700">
+                           <div key={log.id} className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
                               <p className="text-xs font-black text-gray-800 dark:text-gray-200">{log.attemptedTime}</p>
                               <p className="text-[10px] text-gray-500 mt-1 truncate">{log.userAgent}</p>
                            </div>
@@ -814,126 +844,130 @@ export default function App() {
           ) : (
             // NORMAL USER VIEW (Location List)
             <div className="flex flex-col h-full overflow-hidden">
-               {/* Wrapped Filters (No Horizontal Scroll) */}
-               <div className="p-4 border-b dark:border-gray-800 flex flex-wrap gap-2 shrink-0 bg-white dark:bg-gray-900">
-               {['ទាំងអស់', 'សាលារៀន', 'មន្ទីរពេទ្យ / គ្លីនិក', 'ប៉ុស្តិ៍ប៉ូលីស'].map(cat => (
-                  <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all ${activeFilter === cat ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-800 border-transparent dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`}>
-                     {cat}
-                  </button>
-               ))}
+               {/* Quick Filters */}
+               <div className="p-3 border-b border-gray-100 dark:border-gray-800 flex flex-wrap gap-2 shrink-0 bg-white dark:bg-gray-900">
+                 {['ទាំងអស់', 'សាលារៀន', 'មន្ទីរពេទ្យ / គ្លីនិក', 'ប៉ុស្តិ៍ប៉ូលីស'].map(cat => (
+                    <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${activeFilter === cat ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                       {cat}
+                    </button>
+                 ))}
                </div>
 
                {/* Location List */}
-               <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-12">
+               <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3 pb-12">
                
-               {/* OFFLINE MODE WIDGET */}
-               {isOffline && offlineContacts.length > 0 && (
-                  <div className="mb-4 bg-rose-50 dark:bg-rose-950/30 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/50">
-                     <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-3">
-                     <WifiOff className="w-5 h-5" />
-                     <span className="font-extrabold text-sm">លេខសង្គ្រោះ (ពេលដាច់អ៊ីនធឺណិត)</span>
-                     </div>
-                     <div className="space-y-2">
-                     {offlineContacts.map((contact, idx) => (
-                        <div key={idx} className="bg-white dark:bg-gray-900 p-3 rounded-xl flex justify-between items-center shadow-sm border border-rose-50 dark:border-rose-900/20">
-                           <div>
-                              <p className="font-bold text-xs text-gray-800 dark:text-gray-200">{contact.name}</p>
-                              <p className="text-[10px] text-gray-500 mt-0.5">{contact.type}</p>
-                           </div>
-                           <a href={`tel:${contact.phone}`} className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-3 py-2 rounded-lg font-black text-xs flex gap-1.5 items-center">
-                              <PhoneCall className="w-3.5 h-3.5" /> ខល
-                           </a>
-                        </div>
-                     ))}
-                     </div>
-                  </div>
-               )}
+                 {isOffline && offlineContacts.length > 0 && (
+                    <div className="mb-4 bg-rose-50 dark:bg-rose-950/30 p-3 rounded-2xl border border-rose-100 dark:border-rose-900/50">
+                       <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 mb-3">
+                         <WifiOff className="w-4 h-4" />
+                         <span className="font-extrabold text-xs">លេខសង្គ្រោះ (ពេលដាច់អ៊ីនធឺណិត)</span>
+                       </div>
+                       <div className="space-y-2">
+                       {offlineContacts.map((contact, idx) => (
+                          <div key={idx} className="bg-white dark:bg-gray-900 p-2.5 rounded-xl flex justify-between items-center shadow-sm border border-rose-50 dark:border-rose-900/20">
+                             <div>
+                                <p className="font-bold text-xs text-gray-800 dark:text-gray-200">{contact.name}</p>
+                                <p className="text-[10px] text-gray-500 mt-0.5">{contact.type}</p>
+                             </div>
+                             <a href={`tel:${contact.phone}`} className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 px-3 py-1.5 rounded-lg font-black text-[10px] flex gap-1 items-center">
+                                <PhoneCall className="w-3 h-3" /> ខល
+                             </a>
+                          </div>
+                       ))}
+                       </div>
+                    </div>
+                 )}
 
-               {/* NORMAL LOCATIONS */}
-               {isFetchingPois && filteredAndSortedLocations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-                     <Loader2 className="w-6 h-6 animate-spin mb-3 text-blue-500" />
-                     <span className="text-xs font-bold">កំពុងស្កេនទីតាំងជុំវិញអ្នក...</span>
-                  </div>
-               ) : filteredAndSortedLocations.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-                     <MapPin className="w-8 h-8 mb-3 opacity-30" />
-                     <span className="text-xs font-bold">រកមិនឃើញទីតាំងនៅជិតនេះទេ</span>
-                  </div>
-               ) : filteredAndSortedLocations.map((loc) => (
-                  <div key={loc.id} onClick={() => focusLocation(loc)} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-4 rounded-2xl cursor-pointer hover:border-blue-500 hover:shadow-md transition-all group relative overflow-hidden">
-                     {loc.isAdminData && <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500 rounded-bl-full flex items-start justify-end p-1.5"><span className="text-white text-[10px] font-black">✔</span></div>}
-                     <div className="flex justify-between items-start pr-4">
-                     <div>
-                        <h4 className="font-extrabold text-sm text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 transition-colors pr-2">
-                           {loc.name}
-                        </h4>
-                        <p className="text-[10px] font-bold text-gray-500 mt-1.5 bg-gray-100 dark:bg-gray-700 inline-block px-2 py-0.5 rounded-md">{loc.type}</p>
-                        
-                        {/* Admin Details Snippet in List */}
-                        {loc.isAdminData && loc.phone && (
-                           <div className="mt-3 bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
-                              <p className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">ទិន្នន័យបានផ្ទៀងផ្ទាត់ដោយមន្ត្រី</p>
-                              <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
-                                 <PhoneCall className="w-3.5 h-3.5" /> {loc.phone}
-                              </p>
-                              <button onClick={(e) => { e.stopPropagation(); handleCall(loc); }} className="w-full mt-2.5 bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg text-xs font-extrabold transition-colors shadow-sm">
-                                 ចុចខលឥឡូវនេះ
-                              </button>
-                           </div>
-                        )}
-                     </div>
-                     </div>
-                     {loc.distance && (
-                        <div className="mt-3 pt-3 border-t border-gray-50 dark:border-gray-700 flex justify-between items-center">
-                           <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                           <Navigation className="w-3.5 h-3.5" /> {formatDistance(loc.distance)}
-                           </span>
-                        </div>
-                     )}
-                  </div>
-               ))}
+                 {/* POIs rendering */}
+                 {isFetchingPois && filteredAndSortedLocations.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                       <Loader2 className="w-6 h-6 animate-spin mb-3 text-blue-500" />
+                       <span className="text-xs font-bold">កំពុងស្កេនទីតាំងជុំវិញអ្នក...</span>
+                    </div>
+                 ) : filteredAndSortedLocations.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                       <MapPin className="w-8 h-8 mb-3 opacity-30" />
+                       <span className="text-xs font-bold">រកមិនឃើញទីតាំងនៅជិតនេះទេ</span>
+                    </div>
+                 ) : filteredAndSortedLocations.map((loc) => (
+                    <div key={loc.id} onClick={() => focusLocation(loc)} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-3.5 rounded-2xl cursor-pointer hover:border-blue-500 hover:shadow-md transition-all group relative overflow-hidden">
+                       {/* Badge Admin */}
+                       {loc.isAdminData && <div className="absolute top-0 right-0 w-8 h-8 bg-emerald-500 rounded-bl-full flex items-start justify-end p-1.5"><span className="text-white text-[10px] font-black">✔</span></div>}
+                       
+                       <div className="flex justify-between items-start pr-4">
+                         <div className="w-full">
+                            <h4 className="font-extrabold text-sm text-gray-900 dark:text-white leading-tight group-hover:text-blue-600 transition-colors pr-2">
+                               {loc.name}
+                            </h4>
+                            <p className="text-[10px] font-bold text-gray-500 mt-1.5 bg-gray-100 dark:bg-gray-700 inline-block px-2 py-0.5 rounded-md">{loc.type}</p>
+                            
+                            {/* Admin Data Snippet UI */}
+                            {loc.isAdminData && loc.phone && (
+                               <div className="mt-3 bg-emerald-50 dark:bg-emerald-900/20 p-2.5 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                                  <p className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300">ទិន្នន័យបានផ្ទៀងផ្ទាត់ដោយមន្ត្រី</p>
+                                  <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
+                                     <PhoneCall className="w-3.5 h-3.5" /> {loc.phone}
+                                  </p>
+                                  <button onClick={(e) => { e.stopPropagation(); handleCall(loc); }} className="w-full mt-2 bg-emerald-500 hover:bg-emerald-600 text-white py-1.5 rounded-lg text-xs font-extrabold transition-colors shadow-sm">
+                                     ចុចខលឥឡូវនេះ
+                                  </button>
+                               </div>
+                            )}
+
+                            {/* Show Delete Button explicitly to Admin even in standard list view, if it's admin data */}
+                            {isAdmin && loc.isAdminData && (
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteLocation(loc.id); }} className="w-full mt-2 bg-rose-100 hover:bg-rose-200 text-rose-600 py-1.5 rounded-lg text-xs font-bold flex justify-center items-center gap-1.5 transition-colors">
+                                  <Trash2 className="w-3.5 h-3.5"/> លុបទីតាំងនេះចោល
+                                </button>
+                            )}
+
+                         </div>
+                       </div>
+
+                       {loc.distance && (
+                          <div className="mt-2.5 pt-2 border-t border-gray-50 dark:border-gray-700 flex justify-between items-center">
+                             <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-lg flex items-center gap-1.5">
+                               <Navigation className="w-3 h-3" /> {formatDistance(loc.distance)}
+                             </span>
+                          </div>
+                       )}
+                    </div>
+                 ))}
                </div>
             </div>
           )}
         </aside>
-        
-        {/* Toggle Button for Desktop - When Sidebar is Closed */}
+
+        {/* Mobile Hamburger to open sidebar (only visible on mobile when sidebar is closed) */}
         {!isSidebarOpen && (
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="hidden md:flex absolute top-4 left-4 bg-white dark:bg-gray-900 p-2.5 rounded-xl shadow-xl z-30 hover:scale-105 border border-gray-100 dark:border-gray-800 transition-all items-center justify-center text-gray-700 dark:text-gray-200"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+           <button 
+             onClick={() => setIsSidebarOpen(true)}
+             className="md:hidden absolute top-4 left-4 z-30 bg-white dark:bg-gray-800 p-3 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:scale-105 transition-transform"
+           >
+             <Menu className="w-5 h-5" />
+           </button>
         )}
 
-        {/* MAP CANVAS */}
+        {/* MAP CANVAS (Takes up full remaining space) */}
         <div className="flex-1 h-full relative z-0">
           <div ref={mapRef} className="w-full h-full" />
 
-          {/* Floating Controls (Map specific) */}
-          <div className={`absolute right-4 flex flex-col gap-3 z-10 transition-all duration-300 ${isSidebarOpen ? 'bottom-[65vh] md:bottom-6' : 'bottom-6 md:bottom-6'}`}>
-            
-            {/* Satellite Toggle Button */}
-            <button onClick={toggleMapType} title="ប្តូរផ្ទាំងផែនទី (Satellite)" className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-[0_5px_15px_rgba(0,0,0,0.15)] flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:scale-105 active:scale-95 transition-transform border dark:border-gray-700">
+          {/* Floating Controls on Map */}
+          <div className="absolute bottom-6 right-4 flex flex-col gap-3 z-10">
+            {/* Map Type Toggle */}
+            <button onClick={toggleMapType} title="ប្តូរផ្ទាំងផែនទី (Satellite)" className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:scale-105 active:scale-95 transition-transform border border-gray-100 dark:border-gray-700">
               <Layers className="w-6 h-6" />
             </button>
 
-            {/* Recenter Button */}
-            <button onClick={recenterMap} title="ត្រឡប់ទៅទីតាំងខ្ញុំវិញ (Recenter)" className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-[0_5px_15px_rgba(0,0,0,0.15)] flex items-center justify-center text-blue-600 dark:text-blue-400 hover:scale-105 active:scale-95 transition-transform border dark:border-gray-700">
+            {/* Recenter GPS */}
+            <button onClick={recenterMap} title="ត្រឡប់ទៅទីតាំងខ្ញុំវិញ (Recenter)" className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-lg flex items-center justify-center text-blue-600 dark:text-blue-400 hover:scale-105 active:scale-95 transition-transform border border-gray-100 dark:border-gray-700">
               <Crosshair className="w-6 h-6" />
-            </button>
-
-            {/* Toggle Bottom Sheet Button (Mobile Only) */}
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden w-12 h-12 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl shadow-[0_5px_15px_rgba(0,0,0,0.2)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform">
-              {isSidebarOpen ? <ChevronDown className="w-6 h-6" /> : <List className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* AI Chat Drawer */}
-        <div className={`absolute top-0 bottom-0 right-0 w-full md:w-[350px] bg-white dark:bg-gray-900 border-l border-transparent dark:border-gray-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 ${isAiOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        {/* AI Chat Drawer (Slides in from Right) */}
+        <div className={`absolute top-0 bottom-0 right-0 w-[85%] max-w-[350px] bg-white dark:bg-gray-900 border-l border-transparent dark:border-gray-800 z-50 flex flex-col shadow-2xl transition-transform duration-300 ease-in-out ${isAiOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="p-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <BrainCircuit className="w-5 h-5" />
@@ -941,6 +975,7 @@ export default function App() {
             </div>
             <button onClick={() => setIsAiOpen(false)} className="p-1.5 hover:bg-white/20 rounded-lg"><X className="w-5 h-5" /></button>
           </div>
+          
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50">
             {chatMessages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -960,7 +995,7 @@ export default function App() {
             )}
           </div>
           <form onSubmit={handleAiChatSubmit} className="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2">
-            <input type="text" placeholder="សួរ AI ពីទីតាំងភូមិសាស្ត្រ..." value={aiInput} onChange={(e) => setAiInput(e.target.value)} className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" placeholder="សួរ AI ពីទីតាំង..." value={aiInput} onChange={(e) => setAiInput(e.target.value)} className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500 dark:text-white" />
             <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl transition-colors"><Send className="w-4.5 h-4.5" /></button>
           </form>
         </div>
@@ -971,8 +1006,8 @@ export default function App() {
       
       {/* Admin Login Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 w-full max-w-sm shadow-2xl relative overflow-hidden">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 w-full max-w-sm shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
             <button onClick={() => setShowPasswordModal(false)} className="absolute top-4 right-4 p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
               <X className="w-5 h-5" />
@@ -983,7 +1018,7 @@ export default function App() {
                 <Lock className="w-8 h-8" />
               </div>
               <h3 className="font-black text-lg text-gray-900 dark:text-white">ប្រព័ន្ធអ្នកគ្រប់គ្រង (Admin)</h3>
-              <p className="text-xs text-gray-500 mt-2 font-medium">បញ្ចូលលេខកូដដើម្បីទទួលបានសិទ្ធិកែប្រែ និងមើលរបាយការណ៍</p>
+              <p className="text-xs text-gray-500 mt-2 font-medium">បញ្ចូលលេខកូដដើម្បីទទួលបានសិទ្ធិកែប្រែ</p>
             </div>
             
             <div className="space-y-4">
@@ -993,7 +1028,7 @@ export default function App() {
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
                 onKeyDown={(e) => { if(e.key === 'Enter') handleAdminLogin(); }}
-                className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500 rounded-2xl text-center text-xl font-black tracking-[0.5em] transition-all outline-none"
+                className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-blue-500 rounded-2xl text-center text-xl font-black tracking-[0.5em] transition-all outline-none dark:text-white"
                 autoFocus
               />
               <button onClick={handleAdminLogin} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-2xl font-black text-sm shadow-lg shadow-blue-500/30 transition-all active:scale-95">
@@ -1006,27 +1041,27 @@ export default function App() {
 
       {/* Add New Location Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex justify-between items-center mb-5">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 w-full max-w-md shadow-2xl animate-in slide-in-from-bottom-4 duration-200">
+            <div className="flex justify-between items-center mb-5 border-b border-gray-100 dark:border-gray-800 pb-4">
               <h3 className="font-black text-lg text-gray-900 dark:text-white flex items-center gap-2">
                 <Plus className="text-emerald-500 w-5 h-5" /> បន្ថែមទីតាំងថ្មី
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowAddModal(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"><X className="w-5 h-5 text-gray-500" /></button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5">ឈ្មោះទីតាំងពិតប្រាកដ / ឈ្មោះមេភូមិ</label>
-                <input type="text" placeholder="ឧ. មន្ទីរពេទ្យបង្អែក ឬ ផ្ទះមេភូមិ..." value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold border-none outline-none" />
+                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1.5">ឈ្មោះទីតាំងពិតប្រាកដ / ឈ្មោះមេភូមិ</label>
+                <input type="text" placeholder="ឧ. មន្ទីរពេទ្យបង្អែក ឬ ផ្ទះមេភូមិ..." value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold border border-transparent outline-none dark:text-white" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5">លេខទូរស័ព្ទផ្លូវការ</label>
-                <input type="text" placeholder="012 345 678" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold border-none outline-none" />
+                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1.5">លេខទូរស័ព្ទផ្លូវការ</label>
+                <input type="text" placeholder="012 345 678" value={formData.phone} onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold border border-transparent outline-none dark:text-white font-mono" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5">ប្រភេទទីតាំង</label>
-                <select value={formData.type} onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold border-none outline-none">
+                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1.5">ប្រភេទទីតាំង</label>
+                <select value={formData.type} onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))} className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm font-bold border border-transparent outline-none dark:text-white cursor-pointer">
                   <option value="សាលារៀន">សាលារៀន</option>
                   <option value="មន្ទីរពេទ្យ / គ្លីនិក">មន្ទីរពេទ្យ / គ្លីនិក</option>
                   <option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option>
@@ -1035,16 +1070,16 @@ export default function App() {
               </div>
             </div>
 
-            <button onClick={saveLocation} className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-black text-sm transition-all shadow-lg active:scale-95">
-              រក្សាទុកទៅកាន់ ប្រព័ន្ធ
+            <button onClick={saveLocation} className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-black text-sm transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+              <Save className="w-4 h-4" /> រក្សាទុកទៅប្រព័ន្ធ
             </button>
           </div>
         </div>
       )}
 
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast.show && (
-        <div className={`fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl z-50 flex items-center gap-2 border animate-in slide-in-from-bottom-5 duration-300 ${toast.type === 'success' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-rose-500 text-white border-rose-600'}`}>
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl z-[200] flex items-center gap-2 border animate-in slide-in-from-bottom-5 duration-300 ${toast.type === 'success' ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-rose-500 text-white border-rose-600'}`}>
           <span className="font-extrabold text-sm">{toast.message}</span>
         </div>
       )}
