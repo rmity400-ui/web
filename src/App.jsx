@@ -3,7 +3,8 @@ import {
   Search, MapPin, Navigation, Building2, Store, GraduationCap, 
   ShieldAlert, Lock, User, Phone, Trash2, Activity, BarChart3, 
   Settings, AlertTriangle, X, Crosshair, Layers, 
-  Loader2, Moon, Sun, Globe, PhoneCall, Save, List
+  Loader2, Moon, Sun, Globe, PhoneCall, Save, List,
+  Home, Compass, Grid, UserCircle, ArrowLeft, Star, Share2, Map
 } from 'lucide-react';
 
 // ==========================================
@@ -30,7 +31,7 @@ try {
   const rawAppId = typeof __app_id !== 'undefined' ? String(__app_id) : 'smart-map-app-kh';
   appId = rawAppId.replace(/\//g, '_'); 
 } catch (e) {
-  // Console error removed as requested
+  // Console error removed
 }
 
 // Distance Calculator
@@ -67,134 +68,105 @@ const getFallbackPOIs = (lat, lng) => {
 };
 
 // ==========================================
-// 2. TRANSLATION DICTIONARY (ខ្មែរ 🇰🇭 / English 🇺🇸)
+// 2. TRANSLATION DICTIONARY
 // ==========================================
 const dict = {
   km: {
-    appTitle: "Smart Map",
-    searchBox: "ស្វែងរកប្រទេស ខេត្ត ស្រុក ឃុំ ភូមិ ឬទីតាំង...",
-    myLocation: "ត្រលប់មកទីតាំងខ្ញុំ",
-    nearbyPlaces: "បញ្ជីទីតាំងជុំវិញអ្នក",
-    noPlaces: "មិនមានទីតាំងសំខាន់ៗនៅក្បែរនេះទេ",
-    callBtn: "ខលទាក់ទងឥឡូវនេះ",
+    appTitle: "Smart Community Map",
+    searchBox: "ស្វែងរកទីតាំង...",
+    homeTab: "ទំព័រដើម",
+    mapTab: "ផែនទី",
+    categoriesTab: "ប្រភេទ",
+    profileTab: "គណនី",
+    exploreMap: "រុករកផែនទី",
+    findPlaces: "ស្វែងរកទីតាំង។ ទទួលបានព័ត៌មាន។",
+    buildCommunity: "កសាងសហគមន៍កាន់តែប្រសើរ។",
+    nearbyPlaces: "ទីតាំងក្បែរអ្នក",
+    seeAll: "មើលទាំងអស់",
+    school: "សាលារៀន",
+    hospital: "មន្ទីរពេទ្យ",
+    market: "ផ្សារ",
+    government: "ស្ថាប័នរដ្ឋ",
+    bank: "ធនាគារ",
+    police: "ប៉ុស្តិ៍ប៉ូលីស",
+    other: "ផ្សេងៗ",
+    directions: "ផ្លូវធ្វើដំណើរ",
+    share: "ចែករំលែក",
+    addressInfo: "អាសយដ្ឋាន",
+    phoneInfo: "លេខទូរស័ព្ទ",
+    hoursInfo: "ម៉ោងធ្វើការ",
+    myLocation: "ទីតាំងរបស់ខ្ញុំ",
     adminBtn: "ប្រព័ន្ធគ្រប់គ្រង",
-    offlineMode: "របៀបគ្មានអ៊ីនធឺណិត (Offline Mode)",
-    offlineNotice: "អ្នកកំពុងប្រើប្រាស់ក្រៅបណ្តាញ (Offline)។ ខាងក្រោមជាលេខទំនាក់ទំនងបន្ទាន់ដែលបានរក្សាទុក៖",
-    noInternet: "គ្មានអ៊ីនធឺណិតទេ (បង្ហាញទិន្នន័យក្នុងម៉ាស៊ីន)",
+    offlineNotice: "អ្នកកំពុងប្រើប្រាស់ក្រៅបណ្តាញ (Offline)",
+    noInternet: "គ្មានអ៊ីនធឺណិតទេ",
     adminLogin: "ផ្ទៀងផ្ទាត់សិទ្ធិជា Admin",
-    enterPass: "បញ្ចូលលេខសម្ងាត់អ្នកគ្រប់គ្រង...",
+    enterPass: "បញ្ចូលលេខសម្ងាត់...",
     loginBtn: "ចូលប្រើប្រាស់",
-    cancelBtn: "បោះបង់",
     saveBtn: "រក្សាទុកទិន្នន័យ",
     placeNameLabel: "ឈ្មោះស្ថាប័ន ឬបុគ្គល",
     phoneLabel: "លេខទូរស័ព្ទទំនាក់ទំនង",
     typeLabel: "ប្រភេទស្ថាប័ន",
-    locationAlert: "ទីតាំងនឹងត្រូវកំណត់យកកន្លែងដែលអ្នកកំពុងឈរផ្ទាល់ (GPS) ឬទីតាំងដែលអ្នកបានចង្អុលលើផែនទី។",
-    gpsActive: "ឡាយ GPS ដំណើរការធម្មតា",
     gpsSearching: "កំពុងស្វែងរកទីតាំងរបស់អ្នក...",
     gpsError: "សូមបើក GPS លើទូរស័ព្ទរបស់អ្នក",
     gpsUnsupported: "ទូរស័ព្ទមិនគាំទ្រ GPS ឡើយ",
     totalUsers: "អ្នកប្រើសរុប",
-    activeToday: "អ្នកប្រើថ្ងៃនេះ",
-    addedPlaces: "ទីតាំងបានបញ្ចូលព័ត៌មាន",
-    securityTitle: "កំណត់ត្រាសន្តិសុខ (Security Logs)",
-    noSecurityIssues: "គ្មានបញ្ហាសន្តិសុខទេ 🛡️",
-    timeLabel: "ម៉ោង/កាលបរិច្ឆេទ",
-    ipLabel: "IP Address / ឧបករណ៍",
-    wrongPassLabel: "Password ដែលវាយខុស",
-    clearLogsBtn: "លុបកំណត់ហេតុទាំងអស់",
-    localDataOnly: "NO ! មិនទាន់មានទិន្នន័យទំនាក់ទំនងផ្លូវការ",
-    verifyTitle: "ផ្ទៀងផ្ទាត់សិទ្ធិជា Admin",
-    verifyNotice: "សូមបញ្ចូលលេខសម្ងាត់គ្រប់គ្រង ដើម្បីទទួលបានសិទ្ធិបន្ថែមទីតាំង តួនាទី និងលេខទូរស័ព្ទផ្លូវការ។",
-    logoutBtn: "ចាកចេញពីគណនី",
-    adminTabLoc: "គ្រប់គ្រងទីតាំង",
-    adminTabRep: "របាយការណ៍ និងស្ថិតិ",
-    adminTabSec: "សន្តិសុខប្រព័ន្ធ",
-    addLocTitle: "➕ បន្ថែមទីតាំងថ្មីលើផែនទី",
-    placeHolderName: "ឧទាហរណ៍៖ សាលាបឋមសិក្សាវត្តភ្នំ",
-    placeholderPhone: "ឧទាហរណ៍៖ 012 345 678",
-    selectSchool: "សាលារៀន / នាយកសាលា",
-    selectHospital: "មន្ទីរពេទ្យ / គ្លីនិក",
-    selectPolice: "ប៉ុស្តិ៍ប៉ូលីស",
-    selectCommune: "សាលាឃុំ / ផ្ទះមេភូមិ",
+    addedPlaces: "ទីតាំងបានបញ្ចូល",
+    localDataOnly: "NO ! មិនទាន់មានទិន្នន័យទំនាក់ទំនង",
+    addLocTitle: "រាយការណ៍ / បន្ថែមទិន្នន័យ",
     recenterBtn: "ត្រលប់មកទីតាំងខ្ញុំវិញ",
-    analyticTitle: "របាយការណ៍ និងស្ថិតិអ្នកប្រើប្រាស់",
-    weekStat: "ស្ថិតិប្រចាំសប្តាហ៍",
-    monthStat: "ស្ថិតិប្រចាំខែ",
-    yearStat: "ស្ថិតិប្រចាំឆ្នាំ",
-    activeRate: "អត្រាសកម្មភាព",
-    userGrowth: "កំណើនអ្នកប្រើប្រាស់",
-    toastSaveSuccess: "រក្សាទុកទិន្នន័យជោគជ័យ!",
-    toastDeleteSuccess: "បានលុបទិន្នន័យជោគជ័យ",
-    toastLoginSuccess: "ចូលជា Admin ជោគជ័យ!",
-    toastLoginError: "លេខសម្ងាត់មិនត្រឹមត្រូវទេ!",
+    analyticTitle: "របាយការណ៍ និងស្ថិតិ",
     notSetLabel: "NO ! លេខ និងតួនាទីមិនទាន់បញ្ជាក់"
   },
   en: {
-    appTitle: "Smart Map",
-    searchBox: "Search countries, provinces, districts, villages...",
-    myLocation: "Recenter Map",
-    nearbyPlaces: "Nearby Locations Around You",
-    noPlaces: "No important places found nearby",
-    callBtn: "Call Now",
+    appTitle: "Smart Community Map",
+    searchBox: "Search location...",
+    homeTab: "Home",
+    mapTab: "Map",
+    categoriesTab: "Categories",
+    profileTab: "Profile",
+    exploreMap: "Explore Map",
+    findPlaces: "Find places. Get information.",
+    buildCommunity: "Build a better community.",
+    nearbyPlaces: "Nearby Places",
+    seeAll: "See all",
+    school: "School",
+    hospital: "Hospital",
+    market: "Market",
+    government: "Government",
+    bank: "Bank",
+    police: "Police",
+    other: "Other",
+    directions: "Directions",
+    share: "Share",
+    addressInfo: "Address",
+    phoneInfo: "Phone",
+    hoursInfo: "Hours",
+    myLocation: "Your location",
     adminBtn: "Admin System",
-    offlineMode: "Offline Mode (Saved Contacts)",
-    offlineNotice: "You are offline. Below are the saved emergency contacts:",
-    noInternet: "No Internet Connection (Offline Mode)",
-    adminLogin: "Verify Admin Access",
-    enterPass: "Enter admin password...",
-    loginBtn: "Login Access",
-    cancelBtn: "Cancel",
-    saveBtn: "Save Data",
+    offlineNotice: "You are offline. Showing saved contacts.",
+    noInternet: "No Internet Connection",
+    adminLogin: "Admin Login",
+    enterPass: "Enter password...",
+    loginBtn: "Login",
+    saveBtn: "Submit",
     placeNameLabel: "Institution / Name",
-    phoneLabel: "Contact Phone Number",
+    phoneLabel: "Contact Phone",
     typeLabel: "Institution Type",
-    locationAlert: "The location will be set to your current GPS position or where you tapped on the map.",
-    gpsActive: "Live GPS Active",
-    gpsSearching: "Searching for your location...",
-    gpsError: "Please enable your phone's GPS",
-    gpsUnsupported: "Device does not support GPS",
-    totalUsers: "Total Visitors",
-    activeToday: "Active Today",
-    addedPlaces: "Enriched Locations",
-    securityTitle: "Security & System Logs",
-    noSecurityIssues: "No security issues detected 🛡️",
-    timeLabel: "Time & Date",
-    ipLabel: "IP / Device",
-    wrongPassLabel: "Attempted Wrong Password",
-    clearLogsBtn: "Clear All Logs",
-    localDataOnly: "No official contact data yet",
-    verifyTitle: "Verify Admin Credentials",
-    verifyNotice: "Enter your administrator password to add authenticated locations, roles, and phones.",
-    logoutBtn: "Logout Admin",
-    adminTabLoc: "Manage Locations",
-    adminTabRep: "Analytics & Reports",
-    adminTabSec: "System Security",
-    addLocTitle: "➕ Add New Location",
-    placeHolderName: "e.g., Wat Phnom Primary School",
-    placeholderPhone: "e.g., 012 345 678",
-    selectSchool: "School / Principal",
-    selectHospital: "Hospital / Clinic",
-    selectPolice: "Police Station",
-    selectCommune: "Commune Hall / Village Head",
-    recenterBtn: "Recenter on Me",
-    analyticTitle: "User Reports & Traffic Statistics",
-    weekStat: "Weekly Stats",
-    monthStat: "Monthly Stats",
-    yearStat: "Yearly Stats",
-    activeRate: "Activity Rate",
-    userGrowth: "User Growth Rate",
-    toastSaveSuccess: "Data saved successfully!",
-    toastDeleteSuccess: "Data deleted successfully",
-    toastLoginSuccess: "Logged in as Admin successfully!",
-    toastLoginError: "Incorrect password! Please try again",
-    notSetLabel: "NO ! Contact & Role unassigned"
+    gpsSearching: "Searching location...",
+    gpsError: "Please enable GPS",
+    gpsUnsupported: "GPS not supported",
+    totalUsers: "Total Users",
+    addedPlaces: "Added Places",
+    localDataOnly: "No official contact data",
+    addLocTitle: "Report / Feedback",
+    recenterBtn: "Recenter",
+    analyticTitle: "Analytics & Reports",
+    notSetLabel: "Unassigned"
   }
 };
 
-// Deep Translation Function for Place Names & Custom Data
 const translateTextToEn = (text) => {
-    if (!text) return '';
+    if (!text || typeof text !== 'string') return String(text || '');
     return text
         .replace(/មន្ទីរពេទ្យ/g, 'Hospital')
         .replace(/មណ្ឌលសុខភាព/g, 'Health Center')
@@ -232,41 +204,47 @@ const getPlaceTypeName = (types, currentLang) => {
 const getPlaceName = (place, lang) => {
   if (!place) return '';
   let name = '';
-  if (place.displayName && typeof place.displayName === 'object') name = place.displayName.text || '';
+  if (place.displayName && place.displayName.text) name = place.displayName.text;
   else name = place.displayName || place.name || '';
-  
-  if (lang === 'en') {
-     name = translateTextToEn(name);
-  }
+  if (typeof name !== 'string') name = String(name);
+  if (lang === 'en') name = translateTextToEn(name);
   return name;
 };
 
+// Mock Categories
+const MAP_CATEGORIES = [
+  { id: 'school', icon: GraduationCap, color: 'bg-blue-100 text-blue-600', query: 'school OR university OR primary_school' },
+  { id: 'hospital', icon: Activity, color: 'bg-red-100 text-red-600', query: 'hospital OR clinic OR health' },
+  { id: 'market', icon: Store, color: 'bg-orange-100 text-orange-600', query: 'market OR supermarket OR mall' },
+  { id: 'government', icon: Building2, color: 'bg-green-100 text-green-600', query: 'local_government_office OR city_hall OR commune' },
+  { id: 'bank', icon: Building2, color: 'bg-indigo-100 text-indigo-600', query: 'bank OR atm' },
+  { id: 'police', icon: ShieldAlert, color: 'bg-blue-100 text-blue-800', query: 'police' },
+];
+
 export default function App() {
   const [user, setUser] = useState(null);
-  const [view, setView] = useState('user'); 
   const [isAdminUser, setIsAdminUser] = useState(false);
   
-  // Mobile Web App State: 'map' or 'list'
-  const [mobileTab, setMobileTab] = useState('map');
+  // App Navigation State (Mobile First Paradigm)
+  // 'home' | 'map' | 'categories' | 'profile' (admin) | 'place_detail'
+  const [activeTab, setActiveTab] = useState('home');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedPlaceDetail, setSelectedPlaceDetail] = useState(null);
 
   const isAdminRef = useRef(isAdminUser);
-  useEffect(() => {
-    isAdminRef.current = isAdminUser;
-  }, [isAdminUser]);
+  useEffect(() => { isAdminRef.current = isAdminUser; }, [isAdminUser]);
 
-  const [lang, setLang] = useState('km'); 
-  const [isDarkMode, setIsDarkMode] = useState(false); 
+  const [lang, setLang] = useState('en'); 
+  const [isDarkMode, setIsDarkMode] = useState(false); // Fixed missing isDarkMode variable
   const t = dict[lang];
 
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState('locations');
   
   const [isApiLoaded, setIsApiLoaded] = useState(false);
   const [places, setPlaces] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
-  const [trackingError, setTrackingError] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -276,15 +254,13 @@ export default function App() {
   const [enrichedData, setEnrichedData] = useState({});
   const [offlineContacts, setOfflineContacts] = useState([]); 
   const [securityLogs, setSecurityLogs] = useState([]);
-  const [editingPlace, setEditingPlace] = useState(null);
-  const [customInfo, setCustomInfo] = useState({ name: '', role: '', phone: '' });
+  const [visitorLogs, setVisitorLogs] = useState([]);
 
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  const [visitorLogs, setVisitorLogs] = useState([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
   const [gpsStatus, setGpsStatus] = useState('');
-  const [mapTheme, setMapTheme] = useState('roadmap'); // 'roadmap' or 'satellite'
+  const [mapTheme, setMapTheme] = useState('roadmap');
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [pendingLocation, setPendingLocation] = useState(null);
@@ -302,15 +278,12 @@ export default function App() {
   const API_KEY = "AIzaSyCYPYMqUNC3FYAuDoTBiJtCCzjZtQd7oCg"; 
   const ADMIN_PASS = "ict168mit";
 
-  // Global Toast function
   const showToast = useCallback((message, type = 'success') => {
-    setToast({ show: true, message, type });
+    setToast({ show: true, message: String(message), type }); // Fixed String cast
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
-  }, [setToast]);
+  }, []);
 
-  // ==========================================
-  // FIREBASE INITIALIZATION & SECURITY
-  // ==========================================
+  // FIREBASE INITIALIZATION
   useEffect(() => {
     if (!auth) return;
     const initAuth = async () => {
@@ -329,9 +302,7 @@ export default function App() {
       if (currentUser && !sessionStorage.getItem('hasLoggedVisit') && db) {
         try {
           const docId = Date.now().toString() + "-" + Math.floor(Math.random()*1000);
-          setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'visitor_stats', docId), { 
-            uid: currentUser.uid, timestamp: Date.now(), userAgent: navigator.userAgent 
-          }).catch(err => {});
+          setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'visitor_stats', docId), { uid: currentUser.uid, timestamp: Date.now() }).catch(err => {});
           sessionStorage.setItem('hasLoggedVisit', 'true');
         } catch(e) {}
       }
@@ -354,7 +325,6 @@ export default function App() {
 
   useEffect(() => {
     if (!user || !db) return;
-    
     const ramitRef = collection(db, 'artifacts', appId, 'public', 'data', 'ramit');
     const unsubRamit = onSnapshot(ramitRef, (snapshot) => {
       const data = {};
@@ -368,44 +338,31 @@ export default function App() {
       setOfflineContacts(contactsForOffline);
     }, (error) => {});
 
-    const securityRef = collection(db, 'artifacts', appId, 'public', 'data', 'security_logs');
-    const unsubSecurity = onSnapshot(securityRef, (snapshot) => {
-      const logs = [];
-      snapshot.forEach(doc => { logs.push({ id: doc.id, ...doc.data() }); });
-      setSecurityLogs(logs.sort((a, b) => b.timestamp - a.timestamp));
-    }, (error) => {});
+    const secRef = collection(db, 'artifacts', appId, 'public', 'data', 'security_logs');
+    const unsubSec = onSnapshot(secRef, (snap) => {
+        const logs = []; snap.forEach(d => logs.push({ id: d.id, ...d.data() })); setSecurityLogs(logs.sort((a, b) => b.timestamp - a.timestamp));
+    });
 
-    const visitorRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitor_stats');
-    const unsubVisitor = onSnapshot(visitorRef, (snapshot) => {
-      const logs = [];
-      snapshot.forEach(doc => { logs.push({ id: doc.id, ...doc.data() }); });
-      setVisitorLogs(logs.sort((a, b) => b.timestamp - a.timestamp));
-    }, (error) => {});
+    const visRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitor_stats');
+    const unsubVis = onSnapshot(visRef, (snap) => {
+        const logs = []; snap.forEach(d => logs.push({ id: d.id, ...d.data() })); setVisitorLogs(logs);
+    });
 
-    return () => { unsubRamit(); unsubSecurity(); unsubVisitor(); };
+    return () => { unsubRamit(); unsubSec(); unsubVis(); };
   }, [user]);
 
-  // ==========================================
   // GOOGLE MAPS LOADER
-  // ==========================================
   useEffect(() => {
-    if (window.google && window.google.maps) {
-      setIsApiLoaded(true);
-      return;
-    }
+    if (window.google && window.google.maps) { setIsApiLoaded(true); return; }
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,marker&v=beta`;
-    script.async = true;
-    script.defer = true;
+    script.async = true; script.defer = true;
     script.onload = () => setIsApiLoaded(true);
-    script.onerror = () => showToast("មិនអាចផ្ទុក Google Maps API បានទេ", "error");
+    script.onerror = () => showToast("Error loading Maps API", "error");
     document.head.appendChild(script);
-    return () => {
-      if (document.head.contains(script)) document.head.removeChild(script);
-    };
+    return () => { if (document.head.contains(script)) document.head.removeChild(script); };
   }, [showToast]);
 
-  // UPDATE PLACES MARKERS
   const updateMarkers = useCallback((newPlaces) => {
     markersRef.current.forEach(marker => { if (marker) marker.map = null; });
     markersRef.current = [];
@@ -413,128 +370,85 @@ export default function App() {
     newPlaces.forEach(place => {
       if (!place.location || !place.id) return;
       const isEnriched = enrichedData[place.id];
-      
-      const typeSuffix = getPlaceTypeName(place.types, lang);
-      const displayTitle = getPlaceName(place, lang) + typeSuffix;
+      const displayTitle = getPlaceName(place, lang);
 
       const markerElement = document.createElement('div');
-      markerElement.className = `p-2 rounded-full shadow-lg text-white flex items-center justify-center transition-all ${isEnriched ? 'bg-emerald-600 border-2 border-white scale-110' : 'bg-indigo-600 border-2 border-white'}`;
-      markerElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
+      let markerColor = 'bg-blue-500';
+      if (place.types?.includes('hospital')) markerColor = 'bg-red-500';
+      if (place.types?.includes('market')) markerColor = 'bg-orange-500';
+      if (isEnriched) markerColor = 'bg-emerald-600 scale-110';
+
+      markerElement.className = `w-6 h-6 rounded-full border-2 border-white shadow-md flex items-center justify-center transition-all ${markerColor}`;
+      markerElement.innerHTML = `<div class="w-2 h-2 bg-white rounded-full"></div>`;
 
       if (window.google && window.google.maps && window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
         const marker = new window.google.maps.marker.AdvancedMarkerElement({
-          map: mapRef.current,
-          position: place.location,
-          content: markerElement,
-          title: displayTitle,
-        });
-
-        // Resolve translations for InfoWindow
-        let infoWindowName = isEnriched ? isEnriched.customName : '';
-        let infoWindowRole = isEnriched ? isEnriched.role : '';
-        if (isEnriched && lang === 'en') {
-            infoWindowName = translateTextToEn(isEnriched.customName);
-            infoWindowRole = translateTextToEn(isEnriched.role);
-        }
-
-        const infowindow = new window.google.maps.InfoWindow({
-          content: `
-            <div style="padding: 5px; font-family: sans-serif; line-height: 1.4; max-width: 250px;">
-              <strong style="font-size: 14px; color: ${isEnriched ? '#10b981' : '#1e1b4b'}">${displayTitle}</strong><br>
-              <span style="font-size: 11px; color: gray;">${place.formattedAddress}</span>
-              ${isEnriched ? `
-                <hr style="margin: 6px 0;" />
-                <div style="font-size: 12px; background: #ecfdf5; padding: 8px; border-radius: 8px;">
-                  <b style="color: #047857;">🧑 ${infoWindowName}</b> (${infoWindowRole})<br>
-                  <b style="color: #047857;">📞 ${isEnriched.phone}</b>
-                </div>
-              ` : `
-                <hr style="margin: 6px 0;" />
-                <div style="font-size: 11px; background: #fffbeb; padding: 6px; border-radius: 6px; color: #b45309;">
-                  ⚠️ ${t.localDataOnly}
-                </div>
-              `}
-            </div>
-          `,
+          map: mapRef.current, position: place.location, content: markerElement, title: displayTitle,
         });
 
         marker.addListener("click", () => {
-          infowindow.open({ anchor: marker, map: mapRef.current });
+          let distance = 0;
+          if (userLocation) {
+             distance = calculateDistance(userLocation.lat, userLocation.lng, place.location.lat(), place.location.lng());
+          }
+          setSelectedPlaceDetail({ ...place, distance: distance.toFixed(1) });
+          setActiveTab('place_detail');
         });
-
         markersRef.current.push(marker);
       }
     });
-  }, [enrichedData, lang, t.localDataOnly]);
+  }, [enrichedData, lang, userLocation]);
 
-  // FETCH NEARBY PLACES FROM GOOGLE PLACES API
-  const fetchNearbyPlaces = useCallback(async (location) => {
+  // Custom fetch function with larger radius (30km = 30000m)
+  const fetchPlacesByQuery = useCallback(async (location, customQuery = null) => {
     if (!mapRef.current) return;
     setIsLoading(true);
     lastFetchedCenter.current = location; 
 
-    if (isOffline) {
-      const mockPlaces = getFallbackPOIs(location.lat, location.lng);
-      setPlaces(mockPlaces);
-      updateMarkers(mockPlaces);
-      setIsLoading(false);
-      return;
-    }
+    if (isOffline) { setPlaces(getFallbackPOIs(location.lat, location.lng)); setIsLoading(false); return; }
 
     try {
+      const q = customQuery || 'school OR hospital OR clinic OR police OR commune OR market OR bank';
       const request = {
-        textQuery: 'school OR hospital OR clinic OR police OR local_government_office OR commune OR village',
-        fields: ['id', 'displayName', 'location', 'formattedAddress', 'types'],
-        locationBias: { center: location, radius: 8000 },
+        textQuery: q,
+        fields: ['id', 'displayName', 'location', 'formattedAddress', 'types', 'rating', 'userRatingCount', 'regularOpeningHours', 'internationalPhoneNumber'],
+        locationBias: { center: location, radius: 30000 }, 
         language: lang
       };
       const { places: newPlaces } = await window.google.maps.places.Place.searchByText(request);
-      if (newPlaces) {
-        setPlaces(newPlaces);
-        updateMarkers(newPlaces);
-      }
+      if (newPlaces) { setPlaces(newPlaces); updateMarkers(newPlaces); }
     } catch (error) {
-      const mockPlaces = getFallbackPOIs(location.lat, location.lng);
-      setPlaces(mockPlaces);
-      updateMarkers(mockPlaces);
+      setPlaces(getFallbackPOIs(location.lat, location.lng));
     } finally { setIsLoading(false); }
   }, [isOffline, updateMarkers, lang]);
 
-  const handleMapIdle = useCallback(() => {
-    if (!mapRef.current || !lastFetchedCenter.current || trackingError) return;
-    const currentCenter = mapRef.current.getCenter();
-    const lat1 = lastFetchedCenter.current.lat; const lon1 = lastFetchedCenter.current.lng;
-    const lat2 = currentCenter.lat(); const lon2 = currentCenter.lng();
-    if (calculateDistance(lat1, lon1, lat2, lon2) >= 0.5) {
-      fetchNearbyPlaces({ lat: lat2, lng: lon2 });
-    }
-  }, [fetchNearbyPlaces, trackingError]);
-
-  // Initialize Map
+  // Initial Map Setup
   useEffect(() => {
-    if (!isApiLoaded || !mapElementRef.current || view !== 'user') return;
+    if (!isApiLoaded || !mapElementRef.current) return;
+    if (mapRef.current) return; 
 
     const initialLocation = { lat: 11.5564, lng: 104.9282 }; 
     const map = new window.google.maps.Map(mapElementRef.current, {
       center: initialLocation,
       zoom: 14,
       mapId: "450ae928a2c49128", 
-      mapTypeId: 'roadmap',
+      mapTypeId: mapTheme,
       mapTypeControl: false,
-      streetViewControl: false, 
+      streetViewControl: true, 
+      streetViewControlOptions: { position: window.google.maps.ControlPosition.RIGHT_CENTER },
       fullscreenControl: false,
       zoomControl: false,
-      gestureHandling: "greedy" // Better mobile interaction
+      gestureHandling: "greedy" 
     });
     mapRef.current = map;
 
-    // Admin Add Data by Clicking on Map directly
     map.addListener("click", (e) => {
-        if (infoWindowRef.current) infoWindowRef.current.close();
         if (isAdminRef.current) {
           setPendingLocation({ lat: e.latLng.lat(), lng: e.latLng.lng() });
-          setFormData({ name: '', phone: '', type: lang === 'km' ? 'សាលារៀន / នាយកសាលា' : 'School / Principal' });
+          setFormData({ name: '', phone: '', type: 'សាលារៀន / នាយកសាលា' });
           setShowAddModal(true);
+        } else {
+          setActiveTab(prev => prev === 'place_detail' ? 'map' : prev);
         }
     });
 
@@ -542,10 +456,8 @@ export default function App() {
       setGpsStatus(t.gpsSearching);
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
-          setTrackingError(false);
           const userPos = { lat: position.coords.latitude, lng: position.coords.longitude };
-          setUserLocation(userPos);
-          setGpsStatus(t.gpsActive);
+          setUserLocation(userPos); setGpsStatus('');
           
           if (userMarkerRef.current) {
             userMarkerRef.current.position = userPos;
@@ -554,52 +466,48 @@ export default function App() {
             userIcon.innerHTML = `
               <div class="relative flex items-center justify-center">
                 <div class="absolute w-12 h-12 bg-blue-500 rounded-full animate-ping opacity-30"></div>
-                <div class="w-8 h-8 bg-blue-600 border-2 border-white rounded-full flex items-center justify-center shadow-lg transform scale-110">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-white">
-                    <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
-                  </svg>
-                </div>
+                <div class="w-5 h-5 bg-blue-600 border-[3px] border-white rounded-full shadow-lg"></div>
               </div>`;
-            if (window.google && window.google.maps && window.google.maps.marker && window.google.maps.marker.AdvancedMarkerElement) {
+            if (window.google?.maps?.marker?.AdvancedMarkerElement) {
               userMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
-                position: userPos, map: map, content: userIcon, title: "ទីតាំងរបស់អ្នក", zIndex: 9999
+                position: userPos, map: map, content: userIcon, zIndex: 9999
               });
             }
             map.setCenter(userPos); 
-            fetchNearbyPlaces(userPos); 
+            fetchPlacesByQuery(userPos, selectedCategory?.query); 
           }
         },
-        (error) => {
-          setTrackingError(true);
-          setGpsStatus(t.gpsError);
-          if (!lastFetchedCenter.current) fetchNearbyPlaces(initialLocation);
-        },
+        (error) => { setGpsStatus(t.gpsError); if (!lastFetchedCenter.current) fetchPlacesByQuery(initialLocation); },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
       );
     } else {
-      setGpsStatus(t.gpsUnsupported);
-      fetchNearbyPlaces(initialLocation);
+      setGpsStatus(t.gpsUnsupported); fetchPlacesByQuery(initialLocation);
     }
 
-    map.addListener('idle', handleMapIdle);
+    map.addListener('idle', () => {
+       if (!mapRef.current || !lastFetchedCenter.current) return;
+       const c = mapRef.current.getCenter();
+       if (calculateDistance(lastFetchedCenter.current.lat, lastFetchedCenter.current.lng, c.lat(), c.lng()) >= 2.0) { 
+          fetchPlacesByQuery({lat: c.lat(), lng: c.lng()}, selectedCategory?.query);
+       }
+    });
 
-    return () => {
-      if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-    };
-  }, [isApiLoaded, view]); 
+    return () => { if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current); };
+  }, [isApiLoaded]); 
 
-  // Toggle Map Theme (Roadmap vs Satellite)
+  useEffect(() => {
+     if (activeTab === 'map' && mapRef.current && userLocation) {
+        fetchPlacesByQuery(userLocation, selectedCategory?.query);
+     }
+  }, [selectedCategory, activeTab, fetchPlacesByQuery, userLocation]);
+
   const toggleMapTheme = () => {
      if (mapRef.current) {
         const newTheme = mapTheme === 'roadmap' ? 'satellite' : 'roadmap';
-        mapRef.current.setMapTypeId(newTheme);
-        setMapTheme(newTheme);
+        mapRef.current.setMapTypeId(newTheme); setMapTheme(newTheme);
      }
   };
 
-  // ==========================================
-  // SEARCH FUNCTIONALITY
-  // ==========================================
   const handleSearchSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -609,27 +517,19 @@ export default function App() {
       const { places: searchResults } = await window.google.maps.places.Place.searchByText(request);
       if (searchResults && searchResults.length > 0 && searchResults[0].location) {
         const topResult = searchResults[0];
-        mapRef.current.setCenter(topResult.location); mapRef.current.setZoom(16);
-        fetchNearbyPlaces({ lat: topResult.location.lat(), lng: topResult.location.lng() });
-        setMobileTab('map'); // Return to map view on mobile
-      } else { showToast(lang === 'km' ? "រកមិនឃើញទីតាំងនេះទេ" : "Place not found", "error"); }
+        mapRef.current?.setCenter(topResult.location); mapRef.current?.setZoom(16);
+        fetchPlacesByQuery({ lat: topResult.location.lat(), lng: topResult.location.lng() });
+        setActiveTab('map');
+      } else { showToast("Place not found", "error"); }
     } catch (error) {} finally { setIsSearching(false); }
   };
 
   const handleInputChange = async (e) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (!val.trim()) {
-      setSuggestions([]); setShowSuggestions(false); return;
-    }
+    const val = e.target.value; setSearchQuery(val);
+    if (!val.trim()) { setSuggestions([]); setShowSuggestions(false); return; }
     setShowSuggestions(true);
     try {
-      const request = {
-        textQuery: val,
-        fields: ['displayName', 'location', 'formattedAddress'],
-        maxResultCount: 5,
-        language: lang
-      };
+      const request = { textQuery: val, fields: ['displayName', 'location', 'formattedAddress'], maxResultCount: 5, language: lang };
       const { places: searchSuggestions } = await window.google.maps.places.Place.searchByText(request);
       if (searchSuggestions) setSuggestions(searchSuggestions);
     } catch (error) {}
@@ -638,65 +538,31 @@ export default function App() {
   const selectSuggestion = (place) => {
     if (!place.location) return;
     setSearchQuery(getPlaceName(place, lang)); setShowSuggestions(false);
-    mapRef.current.panTo(place.location); mapRef.current.setZoom(16);
-    fetchNearbyPlaces({ lat: place.location.lat(), lng: place.location.lng() });
-    setMobileTab('map'); // Switch back to map on mobile
+    mapRef.current?.panTo(place.location); mapRef.current?.setZoom(16);
+    fetchPlacesByQuery({ lat: place.location.lat(), lng: place.location.lng() });
+    setActiveTab('map');
   };
 
-  // ==========================================
-  // ANALYTICS CALCULATIONS (ស្ថិតិភាគរយ %)
-  // ==========================================
-  const totalUsersCount = visitorLogs.length;
+  const clearSearch = () => {
+     setSearchQuery(''); setSuggestions([]); setShowSuggestions(false);
+  }
 
-  const stats = useMemo(() => {
-    const now = Date.now();
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
-    const monthMs = 30 * 24 * 60 * 60 * 1000;
-    const yearMs = 365 * 24 * 60 * 60 * 1000;
-
-    const lastWeek = visitorLogs.filter(log => (now - log.timestamp) < weekMs).length;
-    const lastMonth = visitorLogs.filter(log => (now - log.timestamp) < monthMs).length;
-    const lastYear = visitorLogs.filter(log => (now - log.timestamp) < yearMs).length;
-
-    const weekPercent = totalUsersCount > 0 ? Math.round((lastWeek / totalUsersCount) * 100) : 0;
-    const monthPercent = totalUsersCount > 0 ? Math.round((lastMonth / totalUsersCount) * 100) : 0;
-    const yearPercent = totalUsersCount > 0 ? Math.round((lastYear / totalUsersCount) * 100) : 0;
-
-    return { lastWeek, lastMonth, lastYear, weekPercent, monthPercent, yearPercent };
-  }, [visitorLogs, totalUsersCount]);
-
-  // ==========================================
-  // ACTIONS
-  // ==========================================
   const recenterMap = () => {
     if (mapRef.current && userLocation) {
-      mapRef.current.panTo(userLocation);
-      mapRef.current.setZoom(16);
-    } else {
-      showToast(t.gpsSearching, "info");
-    }
+      mapRef.current.panTo(userLocation); mapRef.current.setZoom(16);
+    } else { showToast(t.gpsSearching, "info"); }
   };
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     if (adminPassword === ADMIN_PASS) {
-      setView('admin_dashboard');
-      setIsAdminUser(true); 
-      setLoginError('');
-      showToast(t.toastLoginSuccess, 'success');
+      setIsAdminUser(true); setLoginError(''); showToast(t.toastLoginSuccess, 'success');
     } else {
       setLoginError(t.toastLoginError);
       if (db && user) {
         try {
-          let ip = 'Unknown';
-          try {
-            const res = await fetch('https://api.ipify.org?format=json');
-            const data = await res.json();
-            ip = data.ip;
-          } catch(e){}
-          // Fixed Security Logging Document ID to be unique and correctly structured
           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', Date.now().toString()), {
-            ip, device: navigator.userAgent, attemptedPass: adminPassword, timestamp: Date.now()
+            ip: 'Unknown', device: navigator.userAgent, attemptedPass: adminPassword, timestamp: Date.now()
           });
         } catch (err) {}
       }
@@ -705,592 +571,432 @@ export default function App() {
 
   const saveEnrichedData = async () => {
     if (!user || !db) return;
-    
     try {
-      if (pendingLocation && formData.name) {
+      if (activeTab === 'place_detail' && selectedPlaceDetail) {
+          if (!formData.name.trim()) return showToast("បញ្ចូលឈ្មោះ / Enter name", "error");
+          let pLat = typeof selectedPlaceDetail.location.lat === 'function' ? selectedPlaceDetail.location.lat() : selectedPlaceDetail.location.lat;
+          let pLng = typeof selectedPlaceDetail.location.lng === 'function' ? selectedPlaceDetail.location.lng() : selectedPlaceDetail.location.lng;
+          
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', selectedPlaceDetail.id), {
+             placeId: selectedPlaceDetail.id, 
+             googleName: getPlaceName(selectedPlaceDetail, 'km'),
+             customName: formData.name, 
+             role: formData.type, 
+             phone: formData.phone, 
+             lat: pLat, lng: pLng, timestamp: Date.now()
+          });
+          setShowAddModal(false); showToast(t.toastSaveSuccess, "success");
+      }
+      else if (pendingLocation && formData.name) {
          const newId = `loc-${Date.now()}`;
          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', newId), {
             placeId: newId, googleName: formData.name, customName: formData.name, role: formData.type, phone: formData.phone, lat: pendingLocation.lat, lng: pendingLocation.lng, timestamp: Date.now()
          });
-         setShowAddModal(false);
-         showToast(t.toastSaveSuccess, "success");
+         setShowAddModal(false); showToast(t.toastSaveSuccess, "success");
       }
-      else if (editingPlace) {
-         if (!editingPlace.location) {
-             showToast("ទីតាំងនេះមិនមានកូអរដោនេត្រឹមត្រូវទេ", "error");
-             return;
-         }
-         
-         if (!customInfo.name.trim()) {
-             showToast("សូមបញ្ចូលឈ្មោះស្ថាប័ន ឬបុគ្គល", "error");
-             return;
-         }
-
-         // Robust Lat/Lng extraction for Google Places API
-         let editLat = typeof editingPlace.location.lat === 'function' ? editingPlace.location.lat() : editingPlace.location.lat;
-         let editLng = typeof editingPlace.location.lng === 'function' ? editingPlace.location.lng() : editingPlace.location.lng;
-         
-         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', editingPlace.id), {
-            placeId: editingPlace.id, 
-            googleName: getPlaceName(editingPlace, 'km'), // Store original Khmer name for base
-            customName: customInfo.name, 
-            role: customInfo.role, 
-            phone: customInfo.phone, 
-            lat: editLat,
-            lng: editLng,
-            timestamp: Date.now()
-         });
-         setEditingPlace(null); setCustomInfo({ name: '', role: '', phone: '' });
-         showToast(t.toastSaveSuccess, "success");
-      }
-    } catch (e) { 
-        showToast("មានបញ្ហាក្នុងការរក្សាទុក (Error saving)", "error"); 
-    }
+    } catch (e) { showToast("Error saving", "error"); }
   };
 
   const deleteEnrichedData = async (placeId) => {
-    try { 
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', placeId)); 
-      showToast(t.toastDeleteSuccess, "success");
-    } catch (e) {}
+    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', placeId)); showToast(t.toastDeleteSuccess, "success"); } catch (e) {}
   };
 
-  const clearSecurityLogs = async () => {
-    if (!window.confirm("លុបកំណត់ហេតុទាំងអស់មែនទេ? (Clear all logs?)")) return;
-    securityLogs.forEach(async (log) => {
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', log.id));
-      } catch (e) {}
-    });
-    showToast("បានលុបកំណត់ហេតុសន្តិសុខទាំងអស់", "success");
-  };
 
-  const deleteSingleSecurityLog = async (logId) => {
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', logId));
-        showToast("បានលុបកំណត់ហេតុដោយជោគជ័យ", "success");
-      } catch (e) {}
-  };
+  // =========================================================================
+  // RENDER HELPERS
+  // =========================================================================
 
-  // ==========================================
-  // UI RENDER: USER (Smart Map) Web App
-  // ==========================================
-  if (view === 'user') {
-    return (
-      <div className={`flex h-[100dvh] w-full transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-800'} overflow-hidden relative overscroll-none`}>
-        
-        {/* Offline Banner */}
-        {isOffline && (
-          <div className="absolute top-0 left-0 right-0 z-[60] bg-red-600 text-white text-center py-2 text-[13px] font-bold shadow-md animate-pulse">
-             {t.noInternet}
-          </div>
-        )}
-
-        {/* Global Toast */}
-        {toast.show && (
-          <div className="absolute top-10 left-1/2 transform -translate-x-1/2 z-[70] animate-bounce w-[90%] md:w-auto max-w-sm text-center">
-            <div className={`px-6 py-3.5 rounded-full shadow-2xl text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`}>
-               {toast.message}
-            </div>
-          </div>
-        )}
-
-        {/* Left Sidebar (List/Search) - Absolute on Mobile, Relative on Desktop */}
-        <div className={`absolute inset-0 z-40 md:relative md:z-30 w-full md:w-[350px] lg:w-[400px] flex-col shadow-2xl ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} md:border-r pb-[68px] md:pb-0 ${mobileTab === 'list' ? 'flex' : 'hidden md:flex'}`}>
-          <div className="p-4 md:p-5 border-b border-gray-200 dark:border-gray-700 relative shrink-0 z-10 bg-inherit">
-            <div className="flex justify-between items-center mb-4 mt-1 md:mt-2">
-              <h1 className={`text-[19px] md:text-xl font-black flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <MapPin className="mr-2 text-emerald-500 w-6 h-6 animate-bounce" /> {t.appTitle}
-              </h1>
-              
-              {/* Top Right Tool Bar */}
-              <div className="flex items-center space-x-1.5 md:space-x-2">
-                <button 
-                  onClick={() => setLang(lang === 'km' ? 'en' : 'km')} 
-                  className={`flex items-center px-2 md:px-2.5 py-1.5 rounded-full font-bold text-[11px] md:text-[12px] transition-all shadow-sm border ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-emerald-400 border-gray-600' : 'bg-white hover:bg-gray-50 text-emerald-600 border-emerald-200'}`}
-                >
-                  <span className="mr-1 md:mr-1.5">{lang === 'km' ? '🇰🇭' : '🇺🇸'}</span>
-                  {lang === 'km' ? 'EN' : 'KH'}
-                </button>
-                <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full transition ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`} title="បិទ/បើកពន្លឺ">
-                  {isDarkMode ? <Sun className="w-[18px] h-[18px] md:w-4 md:h-4"/> : <Moon className="w-[18px] h-[18px] md:w-4 md:h-4"/>}
-                </button>
-                <button onClick={() => setView('admin_login')} className={`hidden md:block p-2 rounded-full transition ${isAdminUser ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200')}`} title="Admin Panel">
-                  <ShieldAlert className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Search Box */}
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <input
-                type="text" value={searchQuery} onChange={handleInputChange} onFocus={() => setShowSuggestions(true)}
-                placeholder={t.searchBox}
-                className={`w-full pl-11 pr-10 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-400' : 'bg-white border-gray-200 text-gray-900 focus:border-emerald-500'} shadow-sm text-base md:text-sm font-medium`}
-              />
-              <Search className="absolute left-4 top-[15px] text-gray-400 w-5 h-5 cursor-pointer" onClick={handleSearchSubmit} />
-              {isSearching && <div className="absolute right-4 top-[15px] animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500"></div>}
-            </form>
-
-            {/* Suggestions Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className={`absolute left-4 right-4 mt-2 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-20 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                {suggestions.map((place, idx) => (
-                  <div key={idx} onClick={() => selectSuggestion(place)} className={`px-4 py-3.5 cursor-pointer border-b last:border-b-0 flex items-center ${isDarkMode ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50 border-gray-50'}`}>
-                    <MapPin className="w-4 h-4 text-gray-400 mr-3 shrink-0" />
-                    <div className="overflow-hidden">
-                      <p className={`font-bold text-[14px] md:text-sm truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
-                      <p className={`text-[12px] truncate mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
-            {isOffline ? (
-              <div className="space-y-4">
-                <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-800 text-sm">
-                  <AlertTriangle className="w-5 h-5 mb-2 text-red-600" />
-                  <p>{t.offlineNotice}</p>
-                </div>
-                <h2 className={`text-[11px] md:text-xs font-black uppercase tracking-wider mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.offlineMode}</h2>
-                <ul className="space-y-3">
-                  {offlineContacts.map((contact, idx) => {
-                     const displayCustomName = lang === 'en' ? translateTextToEn(contact.customName) : contact.customName;
-                     const displayRole = lang === 'en' ? translateTextToEn(contact.role) : contact.role;
-                     const displayGoogleName = lang === 'en' ? translateTextToEn(contact.googleName) : contact.googleName;
-                     
-                     return (
-                        <li key={idx} className={`p-4 rounded-xl border flex flex-col ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow-sm`}>
-                           <h3 className="font-bold text-[14px] mb-1">{displayGoogleName}</h3>
-                           <p className="text-[13px] font-semibold flex items-center text-emerald-600"><User className="w-[14px] h-[14px] mr-1.5"/> {displayCustomName} ({displayRole})</p>
-                           <a href={`tel:${contact.phone}`} className="mt-3.5 bg-emerald-600 text-white py-2.5 rounded-lg text-center font-bold text-[13px] flex items-center justify-center">
-                             <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn} : {contact.phone}
-                           </a>
-                        </li>
-                     )
-                  })}
-                  {offlineContacts.length === 0 && <p className="text-gray-500 text-sm text-center py-6">{t.noPlaces}</p>}
-                </ul>
-              </div>
-            ) : (
-              <>
-                <h2 className={`text-[11px] md:text-xs font-black uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t.nearbyPlaces} ({places.length})
-                </h2>
-                {isLoading ? (
-                  <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>
-                ) : places.length === 0 ? (
-                  <p className={`text-center py-8 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.noPlaces}</p>
-                ) : (
-                  <ul className="space-y-3 md:pb-20">
-                    {places.map((place) => {
-                      const types = place.types || [];
-                      let Icon = Building2;
-                      if (types.includes('school') || types.includes('university') || types.includes('primary_school')) Icon = GraduationCap;
-                      if (types.includes('hospital') || types.includes('doctor') || types.includes('health') || types.includes('pharmacy')) Icon = Activity;
-                      if (types.includes('police')) Icon = ShieldAlert;
-                      if (types.includes('local_government_office') || types.includes('city_hall')) Icon = Globe;
-
-                      const isEnriched = enrichedData[place.id]; 
-                      const typeSuffix = getPlaceTypeName(types, lang);
-                      const displayTitle = getPlaceName(place, lang) + typeSuffix;
-                      
-                      let displayCustomName = isEnriched ? isEnriched.customName : '';
-                      let displayRole = isEnriched ? isEnriched.role : '';
-                      if (isEnriched && lang === 'en') {
-                          displayCustomName = translateTextToEn(isEnriched.customName);
-                          displayRole = translateTextToEn(isEnriched.role);
-                      }
-
-                      return (
-                        <li 
-                          key={place.id} 
-                          className={`p-4 md:p-3.5 border rounded-xl transition-all flex flex-col shadow-sm cursor-pointer hover:shadow-md
-                            ${isDarkMode 
-                              ? (isEnriched ? 'bg-gray-700 border-emerald-500' : 'bg-gray-800 border-gray-700 hover:border-emerald-500')
-                              : (isEnriched ? 'bg-emerald-50 border-emerald-300' : 'bg-white border-gray-200 hover:border-emerald-300')
-                            }
-                          `}
-                        >
-                          <div className="flex items-start" onClick={() => { 
-                             mapRef.current?.panTo(place.location); 
-                             mapRef.current?.setZoom(17); 
-                             setMobileTab('map'); // Return to map on click
-                          }}>
-                            <div className={`p-2.5 rounded-xl mr-3 shrink-0 ${isEnriched ? (isDarkMode ? 'bg-emerald-900 text-emerald-400' : 'bg-emerald-100 text-emerald-700') : (isDarkMode ? 'bg-gray-700 text-emerald-400' : 'bg-gray-100 text-gray-600')}`}>
-                              <Icon className="w-[18px] h-[18px] md:w-5 md:h-5" />
-                            </div>
-                            <div className="flex-1 overflow-hidden pt-0.5">
-                              <h3 className={`font-bold text-[14.5px] md:text-[14px] leading-tight truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{displayTitle}</h3>
-                              <p className={`text-[12px] mt-1.5 md:mt-1 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
-                            </div>
-                          </div>
-                          
-                          {isEnriched ? (
-                            <div className={`mt-3.5 pt-3.5 border-t ${isDarkMode ? 'border-gray-600' : 'border-emerald-200/60'} flex flex-col`}>
-                              <div className="flex justify-between items-start mb-2.5">
-                                <div>
-                                  <p className={`text-[13.5px] md:text-[13px] font-bold flex items-center mb-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-800'}`}>
-                                    <User className="w-[14px] h-[14px] mr-1.5"/> {displayCustomName} ({displayRole})
-                                  </p>
-                                  <p className={`text-[12.5px] md:text-[12px] font-bold flex items-center ${isDarkMode ? 'text-emerald-500' : 'text-emerald-700'}`}>
-                                    <Phone className="w-[14px] h-[14px] mr-1.5"/> {isEnriched.phone}
-                                  </p>
-                                </div>
-                                {isAdminUser && (
-                                  <button onClick={(e) => { e.stopPropagation(); deleteEnrichedData(place.id); }} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="លុបទិន្នន័យនេះ">
-                                    <Trash2 className="w-[18px] h-[18px]" />
-                                  </button>
-                                )}
-                              </div>
-                              <a href={`tel:${isEnriched.phone}`} onClick={e => e.stopPropagation()} className={`mt-1 py-2.5 w-full rounded-xl text-center font-bold text-[13.5px] flex items-center justify-center transition-colors bg-emerald-600 hover:bg-emerald-700 text-white shadow-md active:scale-[0.98]`}>
-                                <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn}
-                              </a>
-                            </div>
-                          ) : (
-                            <div className="mt-3 text-center py-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                               <span className="text-[11px] font-bold text-red-500">{t.notSetLabel}</span>
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Right Map Area (Full screen on mobile) */}
-        <div className={`absolute inset-0 z-10 md:relative md:z-0 flex-1 h-[100dvh] w-full pb-[68px] md:pb-0`}>
-          <div ref={mapElementRef} className="w-full h-full" />
-          
-          {/* Floating Actions on Map */}
-          <div className="absolute bottom-[84px] md:bottom-6 right-4 z-20 flex flex-col gap-3">
-            <button 
-              onClick={toggleMapTheme} 
-              className="w-[52px] h-[52px] md:w-14 md:h-14 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center active:scale-95 hover:scale-105 transition transform text-emerald-600 dark:text-emerald-400" 
-              title="ប្តូរទម្រង់ផែនទី (ផែនទីធម្មតា ឬ ផែនទីផ្កាយរណបបៃតង)"
-            >
-              <Layers className="w-6 h-6 md:w-6 md:h-6" />
-            </button>
-            <button onClick={recenterMap} className="w-[52px] h-[52px] md:w-14 md:h-14 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center active:scale-95 hover:scale-105 transition transform" title="ត្រឡប់មកទីតាំងខ្ញុំវិញ (Recenter)">
-              <Crosshair className="w-6 h-6 md:w-6 md:h-6" />
-            </button>
-          </div>
-
-          {/* Floating Live GPS Status */}
-          {gpsStatus && (
-            <div className="absolute bottom-[84px] md:bottom-6 left-4 md:left-6 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-2.5 md:py-2 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 flex items-center gap-2 text-[11px] md:text-xs font-bold text-gray-700 dark:text-gray-200">
-              <div className={`w-2.5 h-2.5 md:w-2 md:h-2 rounded-full ${userLocation ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`}></div>
-              {gpsStatus}
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Bottom Navigation Bar */}
-        <div className="md:hidden absolute bottom-0 left-0 right-0 h-[68px] bg-white dark:bg-gray-900 border-t dark:border-gray-800 flex z-50 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] pb-safe">
-            <button onClick={() => setMobileTab('map')} className={`flex-1 flex flex-col items-center justify-center ${mobileTab==='map' ? 'text-emerald-600' : 'text-gray-400 dark:text-gray-500'}`}>
-                <MapPin className={`w-[22px] h-[22px] ${mobileTab==='map' ? 'fill-emerald-100 dark:fill-emerald-900/30' : ''}`} />
-                <span className="text-[11px] font-bold mt-1.5">ផែនទី</span>
-            </button>
-            <button onClick={() => setMobileTab('list')} className={`flex-1 flex flex-col items-center justify-center ${mobileTab==='list' ? 'text-emerald-600' : 'text-gray-400 dark:text-gray-500'}`}>
-                <Search className="w-[22px] h-[22px]" />
-                <span className="text-[11px] font-bold mt-1.5">ស្វែងរក</span>
-            </button>
-            <button onClick={() => setView('admin_login')} className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 hover:text-emerald-600">
-                <ShieldAlert className="w-[22px] h-[22px]" />
-                <span className="text-[11px] font-bold mt-1.5">Admin</span>
-            </button>
-        </div>
-
-        {/* Modal for Admin clicking on map to add data */}
-        {showAddModal && pendingLocation && isAdminUser && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[80] overflow-y-auto">
-            <div className={`p-6 rounded-2xl w-full max-w-md shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'}`}>
-              <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <MapPin className="text-emerald-500" /> {t.addLocTitle}
-                </h3>
-                <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.placeNameLabel}</label>
-                  <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-base md:text-sm outline-none" />
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.phoneLabel}</label>
-                  <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-base md:text-sm outline-none" />
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.typeLabel}</label>
-                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-base md:text-sm outline-none">
-                    <option value="សាលារៀន / នាយកសាលា">{t.selectSchool}</option>
-                    <option value="មន្ទីរពេទ្យ / គ្លីនិក">{t.selectHospital}</option>
-                    <option value="ប៉ុស្តិ៍ប៉ូលីស">{t.selectPolice}</option>
-                    <option value="សាលាឃុំ / ផ្ទះមេភូមិ">{t.selectCommune}</option>
-                  </select>
-                </div>
-              </div>
-              <button onClick={saveEnrichedData} className="w-full mt-6 py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg flex justify-center items-center gap-2 text-[15px] transition active:scale-95">
-                <Save className="w-5 h-5" /> {t.saveBtn}
-              </button>
-            </div>
-          </div>
-        )}
+  const FloatingSearchBar = () => (
+    <div className="absolute top-12 left-4 right-4 z-30 pointer-events-auto">
+      <div className="bg-white rounded-full shadow-lg flex items-center px-4 py-3 border border-gray-100">
+         <Search className="w-5 h-5 text-gray-400 mr-3" />
+         <input 
+            type="text" value={searchQuery} onChange={handleInputChange} onFocus={() => setShowSuggestions(true)}
+            placeholder={t.searchBox}
+            className="flex-1 bg-transparent outline-none text-sm font-medium text-gray-800"
+         />
+         {searchQuery && <X onClick={clearSearch} className="w-5 h-5 text-gray-400 ml-2 cursor-pointer hover:text-gray-600" />}
+         <div className="w-px h-5 bg-gray-200 mx-3"></div>
+         <Settings className="w-5 h-5 text-gray-600 cursor-pointer" onClick={() => setActiveTab('categories')} />
       </div>
-    );
-  }
-
-  // ==========================================
-  // UI RENDER: ADMIN LOGIN
-  // ==========================================
-  if (view === 'admin_login') {
-    return (
-      <div className={`h-[100dvh] w-full flex items-center justify-center px-4 ${isDarkMode ? 'bg-gray-950' : 'bg-gray-50'}`}>
-        {toast.show && (
-          <div className="absolute top-10 z-50 animate-bounce">
-            <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`}>{toast.message}</div>
-          </div>
-        )}
-        <div className={`max-w-md w-full rounded-3xl shadow-2xl p-8 relative border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'}`}>
-          <button onClick={() => setView('user')} className={`absolute top-4 right-4 p-2 rounded-full transition ${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'}`}><X className="w-6 h-6" /></button>
-          
-          <div className="flex justify-center mb-6 mt-4">
-            <div className="bg-gradient-to-br from-emerald-100 to-emerald-50 p-5 rounded-full shadow-inner border border-emerald-100">
-              <Lock className="w-10 h-10 text-emerald-600" />
-            </div>
-          </div>
-          <h2 className={`text-2xl font-black text-center mb-2 tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{t.adminLogin}</h2>
-          <p className="text-center text-gray-500 mb-8 text-[13px] px-2">{t.verifyNotice}</p>
-          
-          <form onSubmit={handleAdminLogin} className="space-y-4">
-            <div className="relative">
-              <Lock className="absolute left-4 top-[15px] w-5 h-5 text-gray-400" />
-              <input 
-                type="password" 
-                placeholder={t.enterPass} 
-                className={`w-full pl-11 pr-4 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all font-medium text-base ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-emerald-500' : 'bg-gray-50 border-gray-200 focus:border-emerald-500 text-gray-900'}`}
-                value={adminPassword} 
-                onChange={(e) => setAdminPassword(e.target.value)} 
-              />
-            </div>
-            {loginError && <p className="text-red-500 text-sm text-center font-bold animate-pulse">{loginError}</p>}
-            <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-lg transform transition active:scale-[0.98] text-[15px]">
-              {t.loginBtn}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // UI RENDER: ADMIN DASHBOARD
-  // ==========================================
-  if (view === 'admin_dashboard') {
-    return (
-      <div className="h-[100dvh] w-full bg-gray-50 md:bg-gray-100 flex flex-col md:flex-row relative">
-        {toast.show && (
-          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
-            <div className={`px-6 py-3 rounded-full shadow-lg text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`}>{toast.message}</div>
-          </div>
-        )}
-        
-        {/* Admin Navigation Sidebar (Top Nav on Mobile) */}
-        <div className="w-full md:w-64 bg-gray-900 text-white flex flex-col shrink-0 z-20 shadow-lg">
-          <div className="p-4 md:p-6 border-b border-gray-800 flex justify-between items-center">
-            <h2 className="text-lg md:text-xl font-bold flex items-center"><ShieldAlert className="mr-2 text-red-500 w-5 h-5"/> Admin Panel</h2>
-            <button onClick={() => { setView('user'); setAdminPassword(''); }} className="md:hidden p-2 bg-gray-800 rounded-full text-gray-300 hover:text-white"><X className="w-5 h-5"/></button>
-          </div>
-          <nav className="flex overflow-x-auto md:flex-col p-3 md:p-4 space-x-2 md:space-x-0 md:space-y-2 border-b md:border-b-0 border-gray-800 custom-scrollbar shrink-0">
-            <button onClick={() => setActiveTab('locations')} className={`whitespace-nowrap flex items-center px-4 py-2 md:p-3 rounded-lg text-[13px] md:text-sm font-bold transition ${activeTab === 'locations' ? 'bg-emerald-600' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><MapPin className="w-4 h-4 md:w-5 md:h-5 mr-2"/> {t.adminTabLoc}</button>
-            <button onClick={() => setActiveTab('reports')} className={`whitespace-nowrap flex items-center px-4 py-2 md:p-3 rounded-lg text-[13px] md:text-sm font-bold transition ${activeTab === 'reports' ? 'bg-emerald-600' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><BarChart3 className="w-4 h-4 md:w-5 md:h-5 mr-2"/> {t.adminTabRep}</button>
-            <button onClick={() => setActiveTab('security')} className={`whitespace-nowrap flex items-center px-4 py-2 md:p-3 rounded-lg text-[13px] md:text-sm font-bold transition ${activeTab === 'security' ? 'bg-emerald-600' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}><AlertTriangle className="w-4 h-4 md:w-5 md:h-5 mr-2"/> {t.adminTabSec}</button>
-          </nav>
-          <div className="hidden md:block p-4 border-t border-gray-800 mt-auto">
-            <button onClick={() => { setView('user'); setAdminPassword(''); }} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-lg text-sm font-bold flex items-center justify-center mb-3 transition active:scale-95"><MapPin className="w-4 h-4 mr-2"/> ត្រឡប់ទៅផែនទី</button>
-            <button onClick={() => { setIsAdminUser(false); setView('user'); setAdminPassword(''); }} className="w-full bg-gray-800 border border-gray-700 hover:bg-red-600 hover:border-red-600 py-3 rounded-lg text-sm font-bold text-gray-300 transition active:scale-95">{t.logoutBtn}</button>
-          </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 animate-fade-in relative flex flex-col pb-20 md:pb-8">
-          
-          {/* TAB: LOCATIONS */}
-          {activeTab === 'locations' && (
-            <div className="flex-1">
-              <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-800">គ្រប់គ្រងទិន្នន័យទីតាំង</h1>
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-                <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-5">
-                  <h3 className="font-bold mb-3 md:mb-4 border-b pb-2 text-[14px] md:text-base">១. ទីតាំងជុំវិញអ្នក (រង្វង់ ៨ គ.ម)</h3>
-                  <div className="h-[300px] md:h-[400px] overflow-y-auto space-y-2.5 custom-scrollbar pr-2">
-                    {places.map(place => (
-                      <div key={place.id} onClick={() => setEditingPlace(place)} className={`p-3 md:p-3.5 border rounded-xl cursor-pointer transition active:scale-[0.98] ${enrichedData[place.id] ? 'border-emerald-300 bg-emerald-50' : 'hover:border-emerald-400 bg-gray-50 hover:bg-white'}`}>
-                        <p className={`font-bold text-[13px] md:text-sm ${enrichedData[place.id] ? 'text-emerald-800' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
-                        <p className="text-[11px] md:text-xs text-gray-500 mt-1 truncate">{place.formattedAddress}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-4 md:space-y-6">
-                  <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-5 border-l-4 border-l-blue-500">
-                    <h3 className="font-bold mb-3 md:mb-4 border-b pb-2 text-[14px] md:text-base">២. បន្ថែមព័ត៌មានលម្អិត</h3>
-                    {editingPlace ? (
-                      <div className="space-y-3">
-                        <p className="text-[12px] md:text-sm font-bold bg-blue-50 text-blue-800 p-2.5 rounded-lg border border-blue-100">កំពុងរៀបចំ៖ {getPlaceName(editingPlace, lang)}</p>
-                        <input type="text" placeholder="ឈ្មោះស្ថាប័ន ឬបុគ្គល (ឧ. លោក សុខ)" className="w-full border-2 border-gray-200 focus:border-blue-500 p-3.5 rounded-xl outline-none font-medium text-base md:text-sm bg-gray-50" value={customInfo.name} onChange={e => setCustomInfo({...customInfo, name: e.target.value})} />
-                        <input type="text" placeholder="តួនាទី (ឧ. មេភូមិ / នាយកសាលា)" className="w-full border-2 border-gray-200 focus:border-blue-500 p-3.5 rounded-xl outline-none font-medium text-base md:text-sm bg-gray-50" value={customInfo.role} onChange={e => setCustomInfo({...customInfo, role: e.target.value})} />
-                        <input type="tel" placeholder="លេខទូរស័ព្ទ (ឧ. 012 345 678)" className="w-full border-2 border-gray-200 focus:border-blue-500 p-3.5 rounded-xl outline-none font-medium text-base md:text-sm bg-gray-50" value={customInfo.phone} onChange={e => setCustomInfo({...customInfo, phone: e.target.value})} />
-                        <button onClick={saveEnrichedData} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 shadow-md transition active:scale-[0.98]">រក្សាទុកទិន្នន័យនេះ</button>
-                      </div>
-                    ) : (<p className="text-[13px] md:text-sm text-gray-500 italic py-10 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">សូមជ្រើសរើសទីតាំងណាមួយពីបញ្ជីខាងឆ្វេងសិន...</p>)}
-                  </div>
-                  <div className="bg-white rounded-2xl shadow-sm border p-4 md:p-5 border-l-4 border-l-emerald-500">
-                    <h3 className="font-bold mb-3 md:mb-4 border-b pb-2 text-[14px] md:text-base">៣. ទិន្នន័យបានបញ្ចូលរួច</h3>
-                    <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
-                      {Object.values(enrichedData).map(data => (
-                        <div key={data.placeId} className="flex justify-between items-center p-3.5 bg-gray-50 border rounded-xl">
-                          <div className="overflow-hidden pr-2">
-                             <p className="font-bold text-[13px] md:text-[14px] text-emerald-800 truncate">{data.googleName}</p>
-                             <p className="text-[11px] md:text-xs font-semibold mt-1 text-gray-600 truncate">{data.customName} - {data.phone}</p>
-                          </div>
-                          <button onClick={() => deleteEnrichedData(data.placeId)} className="text-red-500 p-2.5 bg-white border shadow-sm hover:bg-red-50 rounded-lg transition active:scale-95 shrink-0"><Trash2 className="w-4 h-4 md:w-5 md:h-5"/></button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+      {showSuggestions && suggestions.length > 0 && (
+         <div className="mt-2 bg-white rounded-2xl shadow-xl max-h-60 overflow-y-auto border border-gray-100 p-2">
+            {suggestions.map((p, i) => (
+              <div key={i} onClick={() => selectSuggestion(p)} className="px-3 py-3 hover:bg-gray-50 rounded-xl cursor-pointer flex items-center">
+                 <MapPin className="w-4 h-4 text-gray-400 mr-3 shrink-0" />
+                 <div className="overflow-hidden">
+                    <p className="font-bold text-sm text-gray-800 truncate">{getPlaceName(p, lang)}</p>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">{p.formattedAddress}</p>
+                 </div>
               </div>
-            </div>
-          )}
+            ))}
+         </div>
+      )}
+    </div>
+  );
 
-          {/* TAB: REPORTS (ស្ថិតិភាគរយ % តាមសប្តាហ៍ ខែ ឆ្នាំ) */}
-          {activeTab === 'reports' && (
-            <div className="flex-1 flex flex-col">
-               <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-gray-800">{t.analyticTitle}</h1>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-                  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-blue-500 relative overflow-hidden">
-                    <p className="text-gray-400 text-[11px] md:text-xs font-black uppercase tracking-wider">{t.weekStat}</p>
-                    <h2 className="text-3xl md:text-4xl font-black mt-1.5 md:mt-2 text-gray-900">{stats.lastWeek} <span className="text-[13px] md:text-sm text-gray-400 font-normal">នាក់</span></h2>
-                    
-                    <div className="mt-4">
-                      <div className="flex justify-between text-[11px] md:text-xs font-bold text-blue-600 mb-1.5">
-                        <span>{t.activeRate}</span>
-                        <span>{stats.weekPercent}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2.5 md:h-3">
-                        <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${stats.weekPercent}%` }}></div>
-                      </div>
-                    </div>
-                  </div>
+  const renderHomeTab = () => (
+    <div className="absolute inset-0 z-20 bg-gray-50 flex flex-col items-center pt-16 px-6 overflow-y-auto pb-[90px]">
+       <div className="w-full max-w-sm mx-auto flex flex-col items-center">
+          <div className="w-full flex justify-between items-center mb-8">
+             <div className="flex items-center text-emerald-600 font-bold">
+                <MapPin className="w-6 h-6 mr-1" />
+                <span className="text-lg">Smart Map</span>
+             </div>
+             <button onClick={() => setLang(lang === 'km' ? 'en' : 'km')} className="bg-white border shadow-sm px-3 py-1.5 rounded-full text-xs font-bold text-emerald-600">
+                {lang === 'km' ? 'EN' : 'KH'}
+             </button>
+          </div>
 
-                  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-emerald-500 relative overflow-hidden">
-                    <p className="text-gray-400 text-[11px] md:text-xs font-black uppercase tracking-wider">{t.monthStat}</p>
-                    <h2 className="text-3xl md:text-4xl font-black mt-1.5 md:mt-2 text-gray-900">{stats.lastMonth} <span className="text-[13px] md:text-sm text-gray-400 font-normal">នាក់</span></h2>
-                    
-                    <div className="mt-4">
-                      <div className="flex justify-between text-[11px] md:text-xs font-bold text-emerald-600 mb-1.5">
-                        <span>{t.activeRate}</span>
-                        <span>{stats.monthPercent}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2.5 md:h-3">
-                        <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${stats.monthPercent}%` }}></div>
-                      </div>
-                    </div>
-                  </div>
+          <div className="w-full h-48 bg-emerald-100 rounded-3xl mb-8 relative overflow-hidden flex items-center justify-center border-4 border-white shadow-sm">
+             <div className="absolute inset-0 bg-gradient-to-b from-emerald-50 to-emerald-200 opacity-50"></div>
+             <Building2 className="w-24 h-24 text-emerald-500 opacity-80" />
+             <div className="absolute bottom-4 left-4 right-4 bg-white/80 backdrop-blur rounded-xl p-3 text-center">
+                <p className="font-bold text-emerald-800 text-sm">{t.findPlaces}</p>
+             </div>
+          </div>
 
-                  <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-purple-500 relative overflow-hidden">
-                    <p className="text-gray-400 text-[11px] md:text-xs font-black uppercase tracking-wider">{t.yearStat}</p>
-                    <h2 className="text-3xl md:text-4xl font-black mt-1.5 md:mt-2 text-gray-900">{stats.lastYear} <span className="text-[13px] md:text-sm text-gray-400 font-normal">នាក់</span></h2>
-                    
-                    <div className="mt-4">
-                      <div className="flex justify-between text-[11px] md:text-xs font-bold text-purple-600 mb-1.5">
-                        <span>{t.activeRate}</span>
-                        <span>{stats.yearPercent}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2.5 md:h-3">
-                        <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${stats.yearPercent}%` }}></div>
-                      </div>
-                    </div>
+          <h2 className="text-xl font-black text-gray-800 text-center mb-2">{t.findPlaces}</h2>
+          <p className="text-sm text-gray-500 text-center mb-8">{t.buildCommunity}</p>
+
+          <button onClick={() => setActiveTab('map')} className="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition active:scale-[0.98] mb-10">
+             {t.exploreMap}
+          </button>
+
+          <div className="w-full flex justify-between px-2">
+             {MAP_CATEGORIES.slice(0, 4).map(cat => {
+                const Icon = cat.icon;
+                return (
+                  <div key={cat.id} onClick={() => { setSelectedCategory(cat); setActiveTab('map'); }} className="flex flex-col items-center cursor-pointer active:scale-95 transition">
+                     <div className={`w-14 h-14 rounded-full ${cat.color} flex items-center justify-center mb-2 shadow-sm border border-white`}>
+                        <Icon className="w-6 h-6" />
+                     </div>
+                     <span className="text-[11px] font-semibold text-gray-600">{t[cat.id]}</span>
                   </div>
+               )
+             })}
+          </div>
+       </div>
+    </div>
+  );
+
+  const renderCategoriesTab = () => (
+     <div className="absolute inset-0 z-20 bg-gray-50 flex flex-col pt-12">
+        <div className="flex items-center px-4 py-4 bg-white border-b border-gray-100 shrink-0">
+           <button onClick={() => setActiveTab('home')} className="p-2 -ml-2"><ArrowLeft className="w-6 h-6 text-gray-800" /></button>
+           <h2 className="flex-1 text-center font-bold text-lg text-gray-800 pr-8">{t.categoriesTab}</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 pb-[90px]">
+           <div className="grid grid-cols-2 gap-4">
+              {MAP_CATEGORIES.map(cat => {
+                 const Icon = cat.icon;
+                 return (
+                 <div key={cat.id} onClick={() => { setSelectedCategory(cat); setActiveTab('map'); }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
+                    <div className={`w-14 h-14 rounded-full ${cat.color} flex items-center justify-center mb-3`}>
+                       <Icon className="w-6 h-6" />
+                    </div>
+                    <span className="font-bold text-gray-700 text-sm">{t[cat.id]}</span>
+                 </div>
+              )})}
+              <div onClick={() => { setSelectedCategory(null); setActiveTab('map'); }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center active:scale-95 transition cursor-pointer">
+                  <div className={`w-14 h-14 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center mb-3`}>
+                     <List className="w-6 h-6" />
+                  </div>
+                  <span className="font-bold text-gray-700 text-sm">{t.other}</span>
                </div>
+           </div>
+        </div>
+     </div>
+  );
 
-               {/* General Overview Card */}
-               <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-200 flex-1">
-                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-[15px] md:text-base"><Activity className="text-emerald-500 w-5 h-5"/> ស្ថិតិទូទៅ</h3>
-                 <div className="grid grid-cols-2 gap-3 md:gap-4">
-                   <div className="p-4 md:p-5 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
-                     <div>
-                       <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase">{t.totalUsers}</p>
-                       <p className="text-xl md:text-2xl font-black mt-1 text-gray-800">{totalUsersCount}</p>
+  const renderPlaceDetailTab = () => {
+     if (!selectedPlaceDetail) return null;
+     const p = selectedPlaceDetail;
+     const enriched = enrichedData[p.id];
+     const name = getPlaceName(p, lang);
+     
+     let customName = enriched?.customName || '';
+     let customRole = enriched?.role || '';
+     if (lang === 'en' && enriched) {
+         customName = translateTextToEn(enriched.customName);
+         customRole = translateTextToEn(enriched.role);
+     }
+
+     return (
+        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-end">
+           <div className="flex-1 flex flex-col h-[100dvh] pointer-events-auto bg-gray-50 pb-[70px]">
+              <div className="h-64 bg-gray-200 relative shrink-0">
+                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent z-10"></div>
+                 <button onClick={() => setActiveTab('map')} className="absolute top-12 left-4 z-20 w-10 h-10 bg-white/30 backdrop-blur rounded-full flex items-center justify-center text-white"><ArrowLeft className="w-6 h-6" /></button>
+                 <button className="absolute top-12 right-4 z-20 w-10 h-10 bg-white/30 backdrop-blur rounded-full flex items-center justify-center text-white"><Share2 className="w-5 h-5" /></button>
+                 <div className="w-full h-full object-cover opacity-80 flex items-center justify-center bg-blue-100">
+                    <Building2 className="w-32 h-32 text-blue-300" />
+                 </div>
+              </div>
+
+              <div className="flex-1 bg-white rounded-t-3xl -mt-6 z-20 relative px-6 pt-6 overflow-y-auto custom-scrollbar">
+                 <div className="flex items-start justify-between mb-2">
+                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0 mr-4">
+                       <MapPin className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                       <h1 className="text-xl font-black text-gray-900 leading-tight mb-1">{name}</h1>
+                       <p className="text-sm text-gray-500 capitalize">{p.types?.[0]?.replace('_', ' ')}</p>
+                    </div>
+                 </div>
+
+                 <div className="flex items-center mt-3 mb-6">
+                    <div className="flex items-center text-amber-400 text-sm font-bold mr-4"><Star className="w-4 h-4 fill-current mr-1"/> 4.5 <span className="text-gray-400 font-normal ml-1">(128)</span></div>
+                    <div className="text-sm font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">{p.distance > 0 ? `${p.distance} km` : 'Near'}</div>
+                 </div>
+
+                 <div className="flex gap-3 mb-8">
+                    <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.location.lat()},${p.location.lng()}`)} className="flex-1 bg-emerald-600 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200 active:scale-95 transition">
+                       <Navigation className="w-5 h-5 mr-2" /> {t.directions}
+                    </button>
+                    {isAdminUser && (
+                        <button onClick={() => { setFormData({...formData, name: name}); setShowAddModal(true); }} className="flex-1 border-2 border-emerald-600 text-emerald-600 font-bold py-3.5 rounded-2xl flex items-center justify-center active:bg-emerald-50 transition">
+                           <Save className="w-5 h-5 mr-2" /> Report/Add
+                        </button>
+                    )}
+                 </div>
+
+                 <div className="flex border-b mb-6">
+                    <button className="pb-3 px-4 border-b-2 border-emerald-600 font-bold text-emerald-600 text-sm">INFO</button>
+                    <button className="pb-3 px-4 font-bold text-gray-400 text-sm">PHOTOS</button>
+                    <button className="pb-3 px-4 font-bold text-gray-400 text-sm">REVIEWS</button>
+                 </div>
+
+                 <div className="space-y-5 pb-8">
+                    <div className="flex items-start">
+                       <MapPin className="w-5 h-5 text-gray-400 mr-4 shrink-0 mt-0.5" />
+                       <div><p className="text-xs font-bold text-gray-400 mb-0.5">{t.addressInfo}</p><p className="text-sm text-gray-800 font-medium">{p.formattedAddress}</p></div>
+                    </div>
+                    
+                    {enriched ? (
+                       <div className="flex items-start bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                          <User className="w-5 h-5 text-emerald-600 mr-4 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                             <p className="text-xs font-bold text-emerald-600 mb-0.5">Official Contact ({customRole})</p>
+                             <p className="text-base text-gray-900 font-bold">{customName}</p>
+                             <a href={`tel:${enriched.phone}`} className="text-emerald-700 font-bold text-lg block mt-1">{enriched.phone}</a>
+                          </div>
+                          <a href={`tel:${enriched.phone}`} className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center text-white"><PhoneCall className="w-5 h-5"/></a>
+                       </div>
+                    ) : (
+                       <div className="flex items-start">
+                          <Phone className="w-5 h-5 text-gray-400 mr-4 shrink-0 mt-0.5" />
+                          <div><p className="text-xs font-bold text-gray-400 mb-0.5">{t.phoneInfo}</p><p className="text-sm text-gray-800 font-medium">{p.internationalPhoneNumber || t.localDataOnly}</p></div>
+                       </div>
+                    )}
+                    
+                    <div className="flex items-start">
+                       <Activity className="w-5 h-5 text-gray-400 mr-4 shrink-0 mt-0.5" />
+                       <div><p className="text-xs font-bold text-gray-400 mb-0.5">{t.hoursInfo}</p><p className="text-sm text-gray-800 font-medium">Mon - Fri: 7:00 AM - 5:00 PM</p></div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+     )
+  };
+
+  const renderProfileTab = () => {
+     if (!isAdminUser) {
+        return (
+           <div className="absolute inset-0 z-20 bg-gray-50 flex flex-col pt-16 px-6">
+              <div className="w-full max-w-sm mx-auto bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                 <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6"><Lock className="w-8 h-8"/></div>
+                 <h2 className="text-2xl font-black text-center mb-2 text-gray-800">{t.adminLogin}</h2>
+                 <p className="text-center text-gray-500 mb-8 text-sm">{t.verifyNotice}</p>
+                 <form onSubmit={handleAdminLogin} className="space-y-4">
+                   <input type="password" placeholder={t.enterPass} className="w-full bg-gray-50 border-2 border-gray-100 px-4 py-4 rounded-2xl focus:border-blue-500 outline-none text-center font-bold tracking-widest" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
+                   {loginError && <p className="text-red-500 text-sm text-center font-bold">{loginError}</p>}
+                   <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition">{t.loginBtn}</button>
+                 </form>
+              </div>
+           </div>
+        )
+     }
+
+     return (
+        <div className="absolute inset-0 z-20 bg-gray-50 flex flex-col pt-12 pb-[90px] overflow-y-auto">
+           <div className="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-100">
+              <h2 className="font-black text-xl text-gray-800">{t.adminBtn}</h2>
+              <button onClick={() => { setIsAdminUser(false); setAdminPassword(''); }} className="text-sm font-bold text-red-500">{t.logoutBtn}</button>
+           </div>
+           
+           <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-white p-4 rounded-2xl border shadow-sm">
+                    <p className="text-xs font-bold text-gray-400 mb-1">{t.addedPlaces}</p>
+                    <p className="text-3xl font-black text-emerald-600">{Object.keys(enrichedData).length}</p>
+                 </div>
+                 <div className="bg-white p-4 rounded-2xl border shadow-sm">
+                    <p className="text-xs font-bold text-gray-400 mb-1">{t.totalUsers}</p>
+                    <p className="text-3xl font-black text-blue-600">{visitorLogs.length}</p>
+                 </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border shadow-sm p-4">
+                 <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 className="font-bold text-gray-800">Database (Ramit)</h3>
+                 </div>
+                 <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+                     {Object.values(enrichedData).length === 0 && <p className="text-sm text-gray-400">No data</p>}
+                     {Object.values(enrichedData).map(data => (
+                        <div key={data.placeId} className="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+                          <div className="overflow-hidden pr-2">
+                             <p className="font-bold text-[13px] text-emerald-800 truncate">{data.googleName}</p>
+                             <p className="text-[11px] font-semibold text-gray-600 truncate">{data.customName} - {data.phone}</p>
+                          </div>
+                          <button onClick={() => deleteEnrichedData(data.placeId)} className="text-red-500 p-2 bg-white rounded-lg shadow-sm"><Trash2 className="w-4 h-4"/></button>
+                        </div>
+                     ))}
+                 </div>
+              </div>
+           </div>
+        </div>
+     )
+  }
+
+  // ==========================================
+  // MAIN RENDER (Mobile App Container)
+  // ==========================================
+  return (
+    <div className={`flex h-[100dvh] w-full justify-center bg-gray-100 text-gray-800 overflow-hidden relative overscroll-none`}>
+       {/* Mobile Constraint Wrapper */}
+       <div className="w-full h-full max-w-[480px] bg-white relative shadow-2xl flex flex-col overflow-hidden">
+          
+          <div className="flex-1 relative w-full h-full">
+             
+             {/* MAP ALWAYS RENDERED, visibility toggled via CSS */}
+             <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'map' || activeTab === 'place_detail' ? 'z-10 opacity-100 pointer-events-auto' : '-z-10 opacity-0 pointer-events-none'}`}>
+                {activeTab === 'map' && <FloatingSearchBar />}
+                
+                <div ref={mapElementRef} className="absolute inset-0" />
+                
+                {/* Map Controls */}
+                {activeTab === 'map' && (
+                  <div className="absolute right-4 top-32 flex flex-col gap-3 z-20 pointer-events-auto">
+                     <button onClick={toggleMapTheme} className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-600 active:scale-95"><Layers className="w-5 h-5"/></button>
+                     <button onClick={recenterMap} className="w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-blue-600 active:scale-95"><Crosshair className="w-5 h-5"/></button>
+                  </div>
+                )}
+
+                {/* Nearby Places Bottom Sheet */}
+                {activeTab === 'map' && (
+                  <div className="absolute bottom-[70px] left-0 right-0 bg-white rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.1)] z-20 max-h-[40vh] flex flex-col pb-safe pointer-events-auto">
+                     <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 shrink-0"></div>
+                     <div className="px-5 pb-3 flex justify-between items-center shrink-0">
+                        <h3 className="font-bold text-gray-800">{t.nearbyPlaces}</h3>
+                        <button onClick={() => setActiveTab('categories')} className="text-emerald-600 text-sm font-semibold">{t.seeAll}</button>
                      </div>
-                     <User className="w-6 h-6 md:w-8 md:h-8 text-blue-500 opacity-50" />
-                   </div>
-                   <div className="p-4 md:p-5 bg-gray-50 rounded-xl border border-gray-100 flex justify-between items-center">
-                     <div>
-                       <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase">{t.addedPlaces}</p>
-                       <p className="text-xl md:text-2xl font-black mt-1 text-gray-800">{Object.keys(enrichedData).length}</p>
+                     
+                     <div className="flex-1 overflow-y-auto px-5 pb-5 custom-scrollbar">
+                        {isLoading ? (
+                           <div className="flex justify-center py-4"><Loader2 className="w-6 h-6 animate-spin text-emerald-500"/></div>
+                        ) : places.length === 0 ? (
+                           <p className="text-center text-sm text-gray-400 py-4">{t.noPlaces}</p>
+                        ) : (
+                           places.slice(0, 10).map((p, i) => {
+                              let d = 0; if (userLocation) d = calculateDistance(userLocation.lat, userLocation.lng, p.location.lat(), p.location.lng());
+                              const enriched = enrichedData[p.id];
+                              let Icon = Building2;
+                              let color = 'bg-gray-100 text-gray-500';
+                              if (p.types?.includes('school')) { Icon = GraduationCap; color = 'bg-blue-100 text-blue-600'; }
+                              if (p.types?.includes('hospital')) { Icon = Activity; color = 'bg-red-100 text-red-600'; }
+                              if (p.types?.includes('market')) { Icon = Store; color = 'bg-orange-100 text-orange-600'; }
+                              if (enriched) color = 'bg-emerald-100 text-emerald-600';
+
+                              return (
+                                 <div key={i} onClick={() => { setSelectedPlaceDetail({...p, distance: d.toFixed(1)}); setActiveTab('place_detail'); }} className="flex items-center p-3 border-b border-gray-100 last:border-0 active:bg-gray-50 transition cursor-pointer">
+                                    <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center mr-3 shrink-0`}>
+                                       <Icon className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                       <h4 className="font-bold text-sm text-gray-800 truncate">{getPlaceName(p, lang)}</h4>
+                                       <p className="text-xs text-gray-500 truncate flex items-center">
+                                          {p.types?.[0]?.replace('_', ' ')} • {d > 0 ? `${d.toFixed(1)} km` : ''}
+                                       </p>
+                                    </div>
+                                    <ArrowLeft className="w-4 h-4 text-gray-300 rotate-180" />
+                                 </div>
+                              )
+                           })
+                        )}
                      </div>
-                     <MapPin className="w-6 h-6 md:w-8 md:h-8 text-emerald-500 opacity-50" />
+                  </div>
+                )}
+             </div>
+
+             {/* OTHER TABS */}
+             {activeTab === 'home' && renderHomeTab()}
+             {activeTab === 'categories' && renderCategoriesTab()}
+             {activeTab === 'profile' && renderProfileTab()}
+             {activeTab === 'place_detail' && renderPlaceDetailTab()}
+          </div>
+
+          {/* Bottom Navigation Bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-[70px] bg-white border-t border-gray-100 flex z-40 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] pb-safe rounded-t-3xl">
+              <button onClick={() => setActiveTab('home')} className={`flex-1 flex flex-col items-center justify-center ${activeTab==='home' ? 'text-emerald-600' : 'text-gray-400'}`}>
+                  <Home className={`w-[24px] h-[24px] ${activeTab==='home' ? 'fill-emerald-100' : ''}`} />
+                  <span className="text-[10px] font-bold mt-1">{t.homeTab}</span>
+              </button>
+              <button onClick={() => setActiveTab('map')} className={`flex-1 flex flex-col items-center justify-center ${activeTab==='map' || activeTab==='place_detail' ? 'text-emerald-600' : 'text-gray-400'}`}>
+                  <Map className={`w-[24px] h-[24px] ${activeTab==='map' || activeTab==='place_detail' ? 'fill-emerald-100' : ''}`} />
+                  <span className="text-[10px] font-bold mt-1">{t.mapTab}</span>
+              </button>
+              <button onClick={() => setActiveTab('categories')} className={`flex-1 flex flex-col items-center justify-center ${activeTab==='categories' ? 'text-emerald-600' : 'text-gray-400'}`}>
+                  <Grid className={`w-[24px] h-[24px] ${activeTab==='categories' ? 'fill-emerald-100' : ''}`} />
+                  <span className="text-[10px] font-bold mt-1">{t.categoriesTab}</span>
+              </button>
+              <button onClick={() => setActiveTab('profile')} className={`flex-1 flex flex-col items-center justify-center ${activeTab==='profile' ? 'text-emerald-600' : 'text-gray-400'}`}>
+                  <UserCircle className={`w-[24px] h-[24px] ${activeTab==='profile' ? 'fill-emerald-100' : ''}`} />
+                  <span className="text-[10px] font-bold mt-1">{t.profileTab}</span>
+              </button>
+          </div>
+
+          {/* Add Data Modal (Admin) */}
+          {showAddModal && isAdminUser && (
+             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[80]">
+               <div className="bg-white p-6 rounded-3xl w-full shadow-2xl animate-fade-in">
+                 <div className="flex justify-between items-center mb-4 border-b pb-3">
+                   <h3 className="text-lg font-black flex items-center"><MapPin className="text-emerald-500 mr-2"/> {t.addLocTitle}</h3>
+                   <button onClick={() => setShowAddModal(false)} className="bg-gray-100 p-2 rounded-full"><X className="w-5 h-5"/></button>
+                 </div>
+                 <div className="space-y-4">
+                   <div>
+                     <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">{t.placeNameLabel}</label>
+                     <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-emerald-500 outline-none text-sm font-medium" />
                    </div>
+                   <div>
+                     <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">{t.phoneLabel}</label>
+                     <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-emerald-500 outline-none text-sm font-medium" />
+                   </div>
+                   <div>
+                     <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase">{t.typeLabel}</label>
+                     <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-emerald-500 outline-none text-sm font-medium">
+                       <option value="school">{t.school}</option>
+                       <option value="hospital">{t.hospital}</option>
+                       <option value="police">{t.police}</option>
+                       <option value="government">{t.government}</option>
+                     </select>
+                   </div>
+                   <button onClick={saveEnrichedData} className="w-full bg-emerald-600 text-white font-bold py-4 rounded-2xl mt-4 active:scale-95 transition shadow-lg shadow-emerald-200">{t.saveBtn}</button>
                  </div>
                </div>
+             </div>
+          )}
 
-               {/* Custom Footer */}
-               <div className="mt-8 md:mt-12 mb-4 md:mb-6 text-center text-gray-600 bg-gray-200 p-4 rounded-xl max-w-sm mx-auto shadow-sm">
-                  <p className="font-black text-[12px] md:text-sm uppercase tracking-wider mb-1">បង្កើតឡើងដោយយុវជនVMC វិ.ស.ស-2026</p>
-                  <p className="text-[11px] md:text-xs font-semibold">@យុវជន VMC វិទ្យាល័យ ស្ដៅសន្តិភាព</p>
-               </div>
+          {/* Global Toast */}
+          {toast.show && (
+            <div className="absolute top-12 left-0 right-0 flex justify-center z-[90] animate-bounce px-4">
+              <div className={`px-6 py-3 rounded-full shadow-2xl text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-600'}`}>{toast.message}</div>
             </div>
           )}
 
-          {/* TAB: SECURITY */}
-          {activeTab === 'security' && (
-            <div className="flex-1">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
-                 <h1 className="text-xl md:text-2xl font-bold flex items-center text-red-600"><AlertTriangle className="mr-2"/> សន្តិសុខប្រព័ន្ធ</h1>
-                 <button onClick={clearSecurityLogs} className="bg-gray-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-black transition active:scale-95 shadow-md w-full md:w-auto">លុបកំណត់ហេតុទាំងអស់</button>
-               </div>
-               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto custom-scrollbar">
-                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-red-50">
-                      <tr>
-                        <th className="px-4 md:px-6 py-3 md:py-4 text-left text-[11px] md:text-xs font-bold text-red-800 whitespace-nowrap">ម៉ោង/កាលបរិច្ឆេទ</th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 text-left text-[11px] md:text-xs font-bold text-red-800 whitespace-nowrap">IP Address</th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 text-left text-[11px] md:text-xs font-bold text-red-800 whitespace-nowrap">Password វាយខុស</th>
-                        <th className="px-4 md:px-6 py-3 md:py-4 text-right text-[11px] md:text-xs font-bold text-red-800 whitespace-nowrap">ប្រតិបត្តិការ</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                      {securityLogs.map(log => (
-                        <tr key={log.id} className="hover:bg-gray-50 transition">
-                          <td className="px-4 md:px-6 py-3.5 md:py-4 text-[12px] md:text-sm font-medium text-gray-800 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('km-KH')}</td>
-                          <td className="px-4 md:px-6 py-3.5 md:py-4 text-[12px] md:text-sm text-red-600 font-bold whitespace-nowrap">{log.ip}</td>
-                          <td className="px-4 md:px-6 py-3.5 md:py-4 text-[12px] md:text-sm text-gray-600 whitespace-nowrap">{log.attemptedPass}</td>
-                          <td className="px-4 md:px-6 py-3.5 md:py-4 text-right whitespace-nowrap">
-                             <button onClick={() => deleteSingleSecurityLog(log.id)} className="text-red-500 hover:text-red-700 bg-white border shadow-sm hover:bg-red-50 p-2 rounded-lg transition active:scale-95"><Trash2 className="w-4 h-4 md:w-5 md:h-5"/></button>
-                          </td>
-                        </tr>
-                      ))}
-                      {securityLogs.length === 0 && (
-                        <tr><td colSpan="4" className="px-6 py-12 text-center text-emerald-600 font-bold text-base bg-emerald-50/50">គ្មានការប៉ុនប៉ងចូលដោយខុសច្បាប់ទេ 🛡️ មានសុវត្ថិភាពខ្ពស់!</td></tr>
-                      )}
-                    </tbody>
-                 </table>
-               </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+       </div>
+    </div>
+  );
 }
