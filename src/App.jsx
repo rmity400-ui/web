@@ -291,7 +291,6 @@ export default function App() {
   const watchIdRef = useRef(null);
 
   // Google Maps API Key
-  const API_KEY = "AIzaSyCYPYMqUNC3FYAuDoTBiJtCCzjZtQd7oCg"; 
   const ADMIN_PASS = "ict168mit";
 
   const showToast = useCallback((message, type = 'success') => {
@@ -389,6 +388,7 @@ export default function App() {
   useEffect(() => {
     if (window.google && window.google.maps) { setIsApiLoaded(true); return; }
     const script = document.createElement('script');
+    const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,marker&v=beta`;
     script.async = true; script.defer = true;
     script.onload = () => setIsApiLoaded(true);
