@@ -1,8 +1,10 @@
 import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite'; // ត្រូវប្រាកដថាបាន install package នេះ
+import tailwindcss from '@tailwindcss/vite'; 
 import react from '@vitejs/plugin-react';
+
 export default defineConfig({
   plugins: [
-    tailwindcss(), // ដាក់វាចូលត្រង់នេះ
+    react(),        // ត្រូវដាក់មួយនេះផង
+    tailwindcss(), 
   ],
 });

@@ -2,13 +2,10 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { 
   Search, MapPin, Navigation, Building2, Store, GraduationCap, 
   ShieldAlert, Lock, User, Phone, Trash2, Activity, BarChart3, 
-  Settings, AlertTriangle, X, BrainCircuit, Crosshair, Layers, Send, Bot, 
-  Loader2, Moon, Sun, Globe, PhoneCall
+  Settings, AlertTriangle, X, Crosshair, Layers, 
+  Loader2, Moon, Sun, Globe, PhoneCall, Save, CheckCircle
 } from 'lucide-react';
 
-// ==========================================
-// 1. FIREBASE SETUP
-// ==========================================
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
@@ -67,7 +64,7 @@ const getFallbackPOIs = (lat, lng) => {
 };
 
 // ==========================================
-// 2. TRANSLATION DICTIONARY (ខ្មែរ 🇰🇭 / English 🇺🇸)
+// TRANSLATION DICTIONARY (ខ្មែរ 🇰🇭 / English 🇺🇸)
 // ==========================================
 const dict = {
   km: {
@@ -103,14 +100,11 @@ const dict = {
     ipLabel: "IP Address / ឧបករណ៍",
     wrongPassLabel: "Password ដែលវាយខុស",
     clearLogsBtn: "លុបកំណត់ហេតុទាំងអស់",
-    aiTitle: "Smart Map AI Assistant",
-    aiWelcome: "សួស្តី! ខ្ញុំជា Smart Map AI Assistant។ តើអ្នកចង់ដឹងអ្វីខ្លះអំពីទីតាំង ឬមានអ្វីឱ្យខ្ញុំជួយទេ?",
-    aiInputPlaceholder: "សួរអ្វីមួយទៅកាន់ AI...",
     localDataOnly: "NO ! មិនទាន់មានទិន្នន័យទំនាក់ទំនងផ្លូវការ",
     verifyTitle: "ផ្ទៀងផ្ទាត់សិទ្ធិជា Admin",
     verifyNotice: "សូមបញ្ចូលលេខសម្ងាត់គ្រប់គ្រង ដើម្បីទទួលបានសិទ្ធិបន្ថែមទីតាំង តួនាទី និងលេខទូរស័ព្ទផ្លូវការ។",
     logoutBtn: "ចាកចេញពីគណនី",
-    adminTabLoc: "គ្រប់គ្រងទីតាំង (ramit)",
+    adminTabLoc: "គ្រប់គ្រងទីតាំង",
     adminTabRep: "របាយការណ៍ និងស្ថិតិ",
     adminTabSec: "សន្តិសុខប្រព័ន្ធ",
     addLocTitle: "➕ បន្ថែមទីតាំងថ្មីលើផែនទី",
@@ -132,10 +126,10 @@ const dict = {
     toastLoginSuccess: "ចូលជា Admin ជោគជ័យ!",
     toastLoginError: "លេខសម្ងាត់មិនត្រឹមត្រូវទេ!",
     notSetLabel: "NO ! លេខ និងតួនាទីមិនទាន់បញ្ជាក់",
-    btnAnalyze: "✨ វិភាគទីតាំងដោយ AI",
-    fallbackSisowath: "វិទ្យាល័យព្រះស៊ីសុវត្ថិ",
-    fallbackCalmette: "មន្ទីរពេទ្យកាល់ម៉ែត",
-    fallbackChatomuk: "ប៉ុស្តិ៍នគរបាលរដ្ឋបាលចតុមុខ"
+    confirmClearTitle: "បញ្ជាក់ការលុប",
+    confirmClearMsg: "តើអ្នកពិតជាចង់លុបកំណត់ហេតុសន្តិសុខទាំងអស់មែនទេ?",
+    confirmYes: "យល់ព្រមលុប",
+    confirmNo: "បោះបង់"
   },
   en: {
     appTitle: "Smart Map",
@@ -170,14 +164,11 @@ const dict = {
     ipLabel: "IP / Device",
     wrongPassLabel: "Attempted Wrong Password",
     clearLogsBtn: "Clear All Logs",
-    aiTitle: "Smart Map AI Assistant",
-    aiWelcome: "Hello! I am Smart Map AI Assistant. How can I help you find places today?",
-    aiInputPlaceholder: "Ask AI something...",
     localDataOnly: "No official contact data yet",
     verifyTitle: "Verify Admin Credentials",
     verifyNotice: "Enter your administrator password to add authenticated locations, roles, and phones.",
     logoutBtn: "Logout Admin",
-    adminTabLoc: "Manage Locations (ramit)",
+    adminTabLoc: "Manage Locations",
     adminTabRep: "Analytics & Reports",
     adminTabSec: "System Security",
     addLocTitle: "➕ Add New Location",
@@ -199,11 +190,39 @@ const dict = {
     toastLoginSuccess: "Logged in as Admin successfully!",
     toastLoginError: "Incorrect password! Please try again",
     notSetLabel: "NO ! Contact & Role unassigned",
-    btnAnalyze: "✨ Analyze Location with AI",
-    fallbackSisowath: "Sisowath High School",
-    fallbackCalmette: "Calmette Hospital",
-    fallbackChatomuk: "Chatomuk Commune Police"
+    confirmClearTitle: "Confirm Deletion",
+    confirmClearMsg: "Are you sure you want to clear all security logs?",
+    confirmYes: "Yes, clear them",
+    confirmNo: "Cancel"
   }
+};
+
+// Deep Translation Function for Place Names & Custom Data
+const translateTextToEn = (text) => {
+    if (!text) return '';
+    return text
+        .replace(/មន្ទីរពេទ្យ/g, 'Hospital')
+        .replace(/មណ្ឌលសុខភាព/g, 'Health Center')
+        .replace(/គ្លីនិក/g, 'Clinic')
+        .replace(/សាលាបឋមសិក្សា/g, 'Primary School')
+        .replace(/អនុវិទ្យាល័យ/g, 'Secondary School')
+        .replace(/វិទ្យាល័យ/g, 'High School')
+        .replace(/សាកលវិទ្យាល័យ/g, 'University')
+        .replace(/សាលារៀន/g, 'School')
+        .replace(/នាយកសាលា/g, 'School Principal')
+        .replace(/ប៉ុស្តិ៍នគរបាលរដ្ឋបាល/g, 'Commune Police')
+        .replace(/ប៉ុស្តិ៍នគរបាល/g, 'Police Station')
+        .replace(/ប៉ុស្តិ៍ប៉ូលីស/g, 'Police Post')
+        .replace(/សាលាឃុំ/g, 'Commune Hall')
+        .replace(/សាលាសង្កាត់/g, 'Sangkat Hall')
+        .replace(/ផ្ទះមេភូមិ/g, 'Village Head House')
+        .replace(/មេភូមិ/g, 'Village Head')
+        .replace(/សង្កាត់/g, 'Sangkat')
+        .replace(/ឃុំ/g, 'Commune')
+        .replace(/ស្រុក/g, 'District')
+        .replace(/ខណ្ឌ/g, 'Khan')
+        .replace(/ខេត្ត/g, 'Province')
+        .replace(/ភូមិ/g, 'Village');
 };
 
 const getPlaceTypeName = (types, currentLang) => {
@@ -221,16 +240,8 @@ const getPlaceName = (place, lang) => {
   if (place.displayName && typeof place.displayName === 'object') name = place.displayName.text || '';
   else name = place.displayName || place.name || '';
   
-  // Basic Translation Override for common words when switched to English
   if (lang === 'en') {
-     name = name.replace(/មន្ទីរពេទ្យ/g, 'Hospital')
-                .replace(/សាលាបឋមសិក្សា/g, 'Primary School')
-                .replace(/វិទ្យាល័យ/g, 'High School')
-                .replace(/សាលារៀន/g, 'School')
-                .replace(/ប៉ុស្តិ៍នគរបាល/g, 'Police Station')
-                .replace(/ប៉ុស្តិ៍រដ្ឋបាល/g, 'Police Post')
-                .replace(/សាលាឃុំ/g, 'Commune Hall')
-                .replace(/សង្កាត់/g, 'Sangkat');
+     name = translateTextToEn(name);
   }
   return name;
 };
@@ -274,17 +285,15 @@ export default function App() {
   const [visitorLogs, setVisitorLogs] = useState([]);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
-  const [isAiOpen, setIsAiOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [aiInput, setAiInput] = useState('');
-  const [isAiTyping, setIsAiTyping] = useState(false);
-  
   const [gpsStatus, setGpsStatus] = useState('');
-  const [mapTheme, setMapTheme] = useState('roadmap'); // 'roadmap' or 'hybrid'
+  const [mapTheme, setMapTheme] = useState('roadmap'); 
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [pendingLocation, setPendingLocation] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', type: 'សាលារៀន / នាយកសាលា' });
+  
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const mapRef = useRef(null);          
   const mapElementRef = useRef(null);   
@@ -292,8 +301,9 @@ export default function App() {
   const markersRef = useRef([]);        
   const lastFetchedCenter = useRef(null); 
   const watchIdRef = useRef(null);
-  const chatEndRef = useRef(null);
+  const infoWindowRef = useRef(null);
 
+  // NOTE: This API Key should ideally be restricted and provided via environment variables in production.
   const API_KEY = "AIzaSyCYPYMqUNC3FYAuDoTBiJtCCzjZtQd7oCg";
   const ADMIN_PASS = "ict168mit";
 
@@ -304,13 +314,6 @@ export default function App() {
   }, [setToast]);
 
   useEffect(() => {
-    setChatMessages([{ role: 'ai', text: t.aiWelcome }]);
-  }, [lang, t.aiWelcome]);
-
-  // ==========================================
-  // FIREBASE INITIALIZATION & SECURITY
-  // ==========================================
-  useEffect(() => {
     if (!auth) return;
     const initAuth = async () => {
       try {
@@ -319,7 +322,7 @@ export default function App() {
         } else {
           await signInAnonymously(auth);
         }
-      } catch (e) { console.error("Auth init warning"); }
+      } catch (e) { console.error("Auth init warning", e); }
     };
     initAuth();
     
@@ -365,45 +368,52 @@ export default function App() {
       setEnrichedData(data);
       localStorage.setItem('smartmap_offline_contacts', JSON.stringify(contactsForOffline));
       setOfflineContacts(contactsForOffline);
-    }, (error) => console.warn("Firestore snapshot loading issue"));
+    }, (error) => console.warn("Firestore snapshot loading issue", error));
 
     const securityRef = collection(db, 'artifacts', appId, 'public', 'data', 'security_logs');
     const unsubSecurity = onSnapshot(securityRef, (snapshot) => {
       const logs = [];
       snapshot.forEach(doc => { logs.push({ id: doc.id, ...doc.data() }); });
       setSecurityLogs(logs.sort((a, b) => b.timestamp - a.timestamp));
-    });
+    }, (error) => console.warn("Error loading security logs", error));
 
     const visitorRef = collection(db, 'artifacts', appId, 'public', 'data', 'visitor_stats');
     const unsubVisitor = onSnapshot(visitorRef, (snapshot) => {
       const logs = [];
       snapshot.forEach(doc => { logs.push({ id: doc.id, ...doc.data() }); });
       setVisitorLogs(logs.sort((a, b) => b.timestamp - a.timestamp));
-    });
+    }, (error) => console.warn("Error loading visitor logs", error));
 
     return () => { unsubRamit(); unsubSecurity(); unsubVisitor(); };
   }, [user]);
 
-  // ==========================================
-  // GOOGLE MAPS LOADER
-  // ==========================================
   useEffect(() => {
     if (window.google && window.google.maps) {
       setIsApiLoaded(true);
       return;
     }
+
+    // Handle Google Maps Authentication Error gracefully
+    window.gm_authFailure = () => {
+       showToast("Google Maps API Key មិនត្រឹមត្រូវ (InvalidKeyMapError)។", "error");
+       setIsApiLoaded(false);
+    };
+
     const script = document.createElement('script');
-    const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places,marker&v=beta`;
     script.async = true;
     script.defer = true;
     script.onload = () => setIsApiLoaded(true);
-    script.onerror = () => showToast("មិនអាចផ្ទុក Google Maps API បានទេ", "error");
+    script.onerror = () => {
+       showToast("មិនអាចផ្ទុក Google Maps API បានទេ", "error");
+       setIsApiLoaded(false);
+    };
     document.head.appendChild(script);
     return () => {
       if (document.head.contains(script)) document.head.removeChild(script);
+      delete window.gm_authFailure;
     };
-  }, [showToast]);
+  }, [API_KEY, showToast]);
 
   // UPDATE PLACES MARKERS
   const updateMarkers = useCallback((newPlaces) => {
@@ -429,15 +439,33 @@ export default function App() {
           title: displayTitle,
         });
 
+        // Resolve translations for InfoWindow
+        let infoWindowName = isEnriched ? isEnriched.customName : '';
+        let infoWindowRole = isEnriched ? isEnriched.role : '';
+        if (isEnriched && lang === 'en') {
+            infoWindowName = translateTextToEn(isEnriched.customName);
+            infoWindowRole = translateTextToEn(isEnriched.role);
+        }
+        
+        // Extract Place Photo URI if available
+        let photoHtml = '';
+        if (place.photos && place.photos.length > 0) {
+            try {
+                const photoUri = place.photos[0].getURI({ maxWidth: 400 });
+                photoHtml = `<img src="${photoUri}" alt="Location" style="width:100%; height:130px; object-fit:cover; border-radius:8px; margin-bottom:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"/>`;
+            } catch (e) { console.warn("Photo format issue", e); }
+        }
+
         const infowindow = new window.google.maps.InfoWindow({
           content: `
-            <div style="padding: 5px; font-family: sans-serif; line-height: 1.4;">
+            <div style="padding: 5px; font-family: sans-serif; line-height: 1.4; max-width: 250px;">
+              ${photoHtml}
               <strong style="font-size: 14px; color: ${isEnriched ? '#10b981' : '#1e1b4b'}">${displayTitle}</strong><br>
               <span style="font-size: 11px; color: gray;">${place.formattedAddress}</span>
               ${isEnriched ? `
                 <hr style="margin: 6px 0;" />
                 <div style="font-size: 12px; background: #ecfdf5; padding: 8px; border-radius: 8px;">
-                  <b>🧑 ${isEnriched.customName}</b> (${isEnriched.role})<br>
+                  <b>🧑 ${infoWindowName}</b> (${infoWindowRole})<br>
                   <b>📞 ${isEnriched.phone}</b>
                 </div>
               ` : `
@@ -476,8 +504,8 @@ export default function App() {
     try {
       const request = {
         textQuery: 'school OR hospital OR clinic OR police OR local_government_office OR commune OR village',
-        fields: ['id', 'displayName', 'location', 'formattedAddress', 'types'],
-        locationBias: { center: location, radius: 8000 },
+        fields: ['id', 'displayName', 'location', 'formattedAddress', 'types', 'photos'],
+        locationBias: { center: location, radius: 25000 }, // Increased Radius to 25km (20-40km range)
         language: lang
       };
       const { places: newPlaces } = await window.google.maps.places.Place.searchByText(request);
@@ -512,10 +540,10 @@ export default function App() {
       zoom: 14,
       mapId: "450ae928a2c49128", 
       mapTypeId: 'roadmap',
-      mapTypeControl: false,
-      streetViewControl: false, 
-      fullscreenControl: false,
-      zoomControl: false
+      mapTypeControl: true, // Enable native map type control
+      streetViewControl: true, // Enable native Street View (Pegman)
+      fullscreenControl: true, // Enable native Fullscreen
+      zoomControl: true
     });
     mapRef.current = map;
 
@@ -582,15 +610,12 @@ export default function App() {
   // Toggle Map Theme (Roadmap vs Satellite)
   const toggleMapTheme = () => {
      if (mapRef.current) {
-        const newTheme = mapTheme === 'roadmap' ? 'hybrid' : 'roadmap';
+        const newTheme = mapTheme === 'roadmap' ? 'satellite' : 'roadmap';
         mapRef.current.setMapTypeId(newTheme);
         setMapTheme(newTheme);
      }
   };
 
-  // ==========================================
-  // SEARCH FUNCTIONALITY
-  // ==========================================
   const handleSearchSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -632,9 +657,7 @@ export default function App() {
     fetchNearbyPlaces({ lat: place.location.lat(), lng: place.location.lng() });
   };
 
-  // ==========================================
-  // ANALYTICS CALCULATIONS (ស្ថិតិភាគរយ %)
-  // ==========================================
+  // ANALYTICS CALCULATIONS
   const totalUsersCount = visitorLogs.length;
 
   const stats = useMemo(() => {
@@ -654,9 +677,7 @@ export default function App() {
     return { lastWeek, lastMonth, lastYear, weekPercent, monthPercent, yearPercent };
   }, [visitorLogs, totalUsersCount]);
 
-  // ==========================================
   // ACTIONS
-  // ==========================================
   const recenterMap = () => {
     if (mapRef.current && userLocation) {
       mapRef.current.panTo(userLocation);
@@ -672,6 +693,7 @@ export default function App() {
       setView('admin_dashboard');
       setIsAdminUser(true); 
       setLoginError('');
+      setAdminPassword(''); // clear it
       showToast(t.toastLoginSuccess, 'success');
     } else {
       setLoginError(t.toastLoginError);
@@ -682,17 +704,23 @@ export default function App() {
             const res = await fetch('https://api.ipify.org?format=json');
             const data = await res.json();
             ip = data.ip;
-          } catch(e){}
-          await setDoc(doc(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), Date.now().toString()), {
-            ip, device: navigator.userAgent, attemptedPass: adminPassword, timestamp: Date.now()
+          } catch(e){ /* silent */ }
+          
+          // កត់ត្រាទុកអ្នកដែលប៉ុនប៉ងចូល (ប៉ុន្តែលាក់ Password ជាដាច់ខាត ហាមបញ្ចេញ)
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', Date.now().toString()), {
+            ip, 
+            device: navigator.userAgent, 
+            attemptedPass: "លាក់សុវត្ថិភាព (Hidden)", 
+            timestamp: Date.now() 
           });
-        } catch (err) {}
+        } catch (err) { /* no console logging */ }
       }
     }
   };
 
   const saveEnrichedData = async () => {
     if (!user || !db) return;
+    
     try {
       if (pendingLocation && formData.name) {
          const newId = `loc-${Date.now()}`;
@@ -703,11 +731,22 @@ export default function App() {
          showToast(t.toastSaveSuccess, "success");
       }
       else if (editingPlace) {
+         if (!editingPlace.location) {
+             showToast("ទីតាំងនេះមិនមានកូអរដោនេត្រឹមត្រូវទេ", "error");
+             return;
+         }
+         
+         if (!customInfo.name.trim()) {
+             showToast("សូមបញ្ចូលឈ្មោះស្ថាប័ន ឬបុគ្គល", "error");
+             return;
+         }
+
          let editLat = typeof editingPlace.location.lat === 'function' ? editingPlace.location.lat() : editingPlace.location.lat;
          let editLng = typeof editingPlace.location.lng === 'function' ? editingPlace.location.lng() : editingPlace.location.lng;
+         
          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', editingPlace.id), {
             placeId: editingPlace.id, 
-            googleName: getPlaceName(editingPlace, lang), 
+            googleName: getPlaceName(editingPlace, 'km'), 
             customName: customInfo.name, 
             role: customInfo.role, 
             phone: customInfo.phone, 
@@ -718,345 +757,204 @@ export default function App() {
          setEditingPlace(null); setCustomInfo({ name: '', role: '', phone: '' });
          showToast(t.toastSaveSuccess, "success");
       }
-    } catch (e) { showToast("Error saving", "error"); }
+    } catch (e) { showToast("មានបញ្ហាក្នុងការរក្សាទុក (Error saving)", "error"); console.error(e); }
   };
 
   const deleteEnrichedData = async (placeId) => {
-    if (!user || !db || !window.confirm(lang === 'km' ? "តើអ្នកចង់លុបទិន្នន័យនេះមែនទេ?" : "Are you sure you want to delete this?")) return;
     try { 
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', placeId)); 
       showToast(t.toastDeleteSuccess, "success");
     } catch (e) { console.error(e); }
   };
 
-  const clearSecurityLogs = async () => {
-    if (!window.confirm("Clear all logs?")) return;
-    securityLogs.forEach(async (log) => {
-      try {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', log.id));
-      } catch (e) {}
-    });
-    showToast("Deleted all security logs", "success");
-  };
-
-  const handleAiChatSubmit = async (e) => {
-    e.preventDefault();
-    if (!aiInput.trim()) return;
-    const userInput = aiInput;
-    setAiInput('');
-    setChatMessages(prev => [...prev, { role: 'user', text: userInput }]);
-    setIsAiTyping(true);
-
-    try {
-      const apiKey = ""; // Canvas runtime provides this
-      const systemPrompt = "អ្នកគឺជាជំនួយការ AI របស់កម្មវិធី Smart Map។ អ្នកត្រូវឆ្លើយតបជាភាសាខ្មែរឲ្យបានពីរោះ សមរម្យ។ ឆ្លើយតបស្របតាមវ័យ ដោយចៀសវាងប្រធានបទដែលបង្កគ្រោះថ្នាក់ និងផ្តោតលើភូមិសាស្ត្រ។";
-      
-      const contents = chatMessages.map(m => ({
-        role: m.role === 'ai' ? 'model' : 'user',
-        parts: [{ text: m.text }]
-      }));
-      contents.push({ role: 'user', parts: [{ text: userInput }] });
-
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: systemPrompt }] } })
-      });
-
-      if (!res.ok) throw new Error("API Connection Failed");
-      const result = await res.json();
-      const aiResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (aiResponse) {
-        setChatMessages(prev => [...prev, { role: 'ai', text: aiResponse }]);
+  // Replaced window.confirm with custom modal interaction
+  const requestClearSecurityLogs = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: t.confirmClearTitle,
+      message: t.confirmClearMsg,
+      onConfirm: async () => {
+        for (const log of securityLogs) {
+          try {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', log.id));
+          } catch (e) { console.warn("Failed to delete log item", e); }
+        }
+        setConfirmDialog({ isOpen: false, message: '', onConfirm: null, title: '' });
+        showToast("បានលុបកំណត់ហេតុសន្តិសុខទាំងអស់", "success");
       }
-    } catch (error) {
-      setChatMessages(prev => [...prev, { role: 'ai', text: "សូមអភ័យទោស ប្រព័ន្ធមានភាពមមាញឹកបន្តិច។ សូមព្យាយាមម្តងទៀត។" }]);
-    } finally {
-      setIsAiTyping(false);
-    }
+    });
   };
 
-  // ==========================================
-  // UI RENDER: USER (Smart Map)
-  // ==========================================
+  const deleteSingleSecurityLog = async (logId) => {
+      try {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', logId));
+        showToast("បានលុបកំណត់ហេតុដោយជោគជ័យ", "success");
+      } catch (e) { /* silent */ }
+  };
+
   if (view === 'user') {
     return (
-      <div className={`flex flex-col md:flex-row h-[100dvh] w-full transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-800'} overflow-hidden relative overscroll-none`}>
+      <div className={`h-[100dvh] w-full relative overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         
-        {/* Offline Banner */}
+        {/* Offline Alert */}
         {isOffline && (
-          <div className="absolute top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm font-bold shadow-md animate-pulse">
+          <div className="absolute top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm font-bold shadow-md">
              {t.noInternet}
           </div>
         )}
 
         {/* Global Toast */}
         {toast.show && (
-          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
-            <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
+          <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-[60] animate-bounce">
+            <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
+               {toast.type === 'success' && <CheckCircle className="w-4 h-4"/>}
                {toast.message}
             </div>
           </div>
         )}
 
-        {/* Left Sidebar */}
-        <div className={`w-full md:w-[350px] lg:w-[400px] ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex flex-col shadow-2xl z-30 relative border-r`}>
-          <div className="p-5 border-b border-gray-200 relative">
-            <div className="flex justify-between items-center mb-5 mt-2">
-              <h1 className={`text-xl font-black flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <MapPin className="mr-2 text-emerald-500 w-6 h-6 animate-bounce" /> {t.appTitle}
-              </h1>
-              
-              {/* Top Right Tool Bar */}
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={() => setLang(lang === 'km' ? 'en' : 'km')} 
-                  className={`flex items-center px-2.5 py-1.5 rounded-full font-bold text-[12px] transition-all shadow-sm border ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-emerald-400 border-gray-600' : 'bg-white hover:bg-gray-50 text-emerald-600 border-emerald-200'}`}
-                >
-                  <span className="mr-1.5">{lang === 'km' ? '🇰🇭' : '🇺🇸'}</span>
-                  {lang === 'km' ? 'English' : 'ខ្មែរ'}
-                </button>
-                <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full transition ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`} title="បិទ/បើកពន្លឺ">
-                  {isDarkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
-                </button>
-                <button onClick={() => setView('admin_login')} className={`p-2 rounded-full transition ${isAdminUser ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200')}`} title="Admin Panel">
-                  <ShieldAlert className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Search Box */}
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <input
-                type="text" value={searchQuery} onChange={handleInputChange} onFocus={() => setShowSuggestions(true)}
-                placeholder={t.searchBox}
-                className={`w-full pl-11 pr-10 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-400' : 'bg-white border-gray-200 text-gray-900 focus:border-emerald-500'} shadow-sm text-sm font-medium`}
-              />
-              <Search className="absolute left-4 top-4 text-gray-400 w-5 h-5 cursor-pointer" onClick={handleSearchSubmit} />
-              {isSearching && <div className="absolute right-4 top-4 animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500"></div>}
-            </form>
-
-            {/* Suggestions Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className={`absolute left-5 right-5 mt-2 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-20 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                {suggestions.map((place, idx) => (
-                  <div key={idx} onClick={() => selectSuggestion(place)} className={`px-4 py-3 cursor-pointer border-b last:border-b-0 flex items-center ${isDarkMode ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50 border-gray-50'}`}>
-                    <MapPin className="w-4 h-4 text-gray-400 mr-3 shrink-0" />
-                    <div className="overflow-hidden">
-                      <p className={`font-bold text-sm truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
-                      <p className={`text-xs truncate mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
-            {isOffline ? (
-              <div className="space-y-4">
-                <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-800 text-sm">
-                  <AlertTriangle className="w-5 h-5 mb-2 text-red-600" />
-                  <p>{t.offlineNotice}</p>
+        {/* TOP SEARCH BAR (Floating on Mobile) */}
+        <div className={`absolute top-4 left-4 right-4 md:w-[400px] z-40 transition-all`}>
+           <div className={`flex flex-col gap-2 p-3 rounded-2xl shadow-lg border backdrop-blur-md ${isDarkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white/90 border-gray-100'}`}>
+              <div className="flex justify-between items-center px-1">
+                <h1 className={`font-black flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <MapPin className="mr-1 text-emerald-500 w-5 h-5" /> Smart Map VMC
+                </h1>
+                <div className="flex space-x-1">
+                  <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-300 transition">
+                    {isDarkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
+                  </button>
+                  <button onClick={() => setView('admin_login')} className="p-2 rounded-full hover:bg-emerald-100 text-emerald-600 transition">
+                    <ShieldAlert className="w-4 h-4" />
+                  </button>
                 </div>
-                <h2 className={`text-xs font-black uppercase tracking-wider mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.offlineMode}</h2>
-                <ul className="space-y-3">
-                  {offlineContacts.map((contact, idx) => (
-                    <li key={idx} className={`p-4 rounded-xl border flex flex-col ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow-sm`}>
-                       <h3 className="font-bold text-sm mb-1">{contact.googleName}</h3>
-                       <p className="text-sm font-semibold flex items-center text-emerald-600"><User className="w-4 h-4 mr-1"/> {contact.customName} ({contact.role})</p>
-                       <a href={`tel:${contact.phone}`} className="mt-3 bg-emerald-600 text-white py-2 rounded-lg text-center font-bold text-sm flex items-center justify-center">
-                         <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn} : {contact.phone}
-                       </a>
-                    </li>
-                  ))}
-                  {offlineContacts.length === 0 && <p className="text-gray-500 text-sm">{t.noPlaces}</p>}
-                </ul>
               </div>
-            ) : (
-              <>
-                <h2 className={`text-xs font-black uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t.nearbyPlaces} ({places.length})
-                </h2>
-                {isLoading ? (
-                  <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>
-                ) : places.length === 0 ? (
-                  <p className={`text-center py-8 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.noPlaces}</p>
-                ) : (
-                  <ul className="space-y-3 pb-20">
-                    {places.map((place) => {
-                      const types = place.types || [];
-                      let Icon = Building2;
-                      if (types.includes('school') || types.includes('university') || types.includes('primary_school')) Icon = GraduationCap;
-                      if (types.includes('hospital') || types.includes('doctor') || types.includes('health') || types.includes('pharmacy')) Icon = Activity;
-                      if (types.includes('police')) Icon = ShieldAlert;
-                      if (types.includes('local_government_office') || types.includes('city_hall')) Icon = Globe;
-
-                      const isEnriched = enrichedData[place.id]; 
-                      const typeSuffix = getPlaceTypeName(types, lang);
-                      const displayTitle = getPlaceName(place, lang) + typeSuffix;
-
-                      return (
-                        <li 
-                          key={place.id} 
-                          className={`p-3.5 border rounded-xl transition-all flex flex-col shadow-sm cursor-pointer hover:shadow-md
-                            ${isDarkMode 
-                              ? (isEnriched ? 'bg-gray-700 border-emerald-500' : 'bg-gray-800 border-gray-700 hover:border-emerald-500')
-                              : (isEnriched ? 'bg-emerald-50/50 border-emerald-300' : 'bg-white border-gray-200 hover:border-emerald-300')
-                            }
-                          `}
-                        >
-                          <div className="flex items-start" onClick={() => { mapRef.current?.panTo(place.location); mapRef.current?.setZoom(17); }}>
-                            <div className={`p-2.5 rounded-lg mr-3 shrink-0 ${isEnriched ? (isDarkMode ? 'bg-emerald-900 text-emerald-400' : 'bg-emerald-100 text-emerald-700') : (isDarkMode ? 'bg-gray-700 text-emerald-400' : 'bg-emerald-50 text-emerald-600')}`}>
-                              <Icon className="w-5 h-5" />
-                            </div>
-                            <div className="flex-1 overflow-hidden pt-1">
-                              <h3 className={`font-bold text-[14px] leading-tight truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{displayTitle}</h3>
-                              <p className={`text-[12px] mt-1 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
-                            </div>
-                          </div>
-                          
-                          {isEnriched ? (
-                            <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-emerald-200'} flex flex-col`}>
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <p className={`text-[13px] font-bold flex items-center mb-0.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-800'}`}>
-                                    <User className="w-3.5 h-3.5 mr-1.5"/> {isEnriched.customName} ({isEnriched.role})
-                                  </p>
-                                  <p className={`text-[12px] font-bold flex items-center ${isDarkMode ? 'text-emerald-500' : 'text-emerald-700'}`}>
-                                    <Phone className="w-3.5 h-3.5 mr-1.5"/> {isEnriched.phone}
-                                  </p>
-                                </div>
-                                {isAdminUser && (
-                                  <button onClick={(e) => { e.stopPropagation(); deleteEnrichedData(place.id); }} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="លុបទិន្នន័យនេះ">
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                              <a href={`tel:${isEnriched.phone}`} onClick={e => e.stopPropagation()} className={`mt-1 py-2 w-full rounded-lg text-center font-bold text-[13px] flex items-center justify-center transition-colors bg-emerald-600 hover:bg-emerald-700 text-white shadow-md`}>
-                                <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn}
-                              </a>
-                            </div>
-                          ) : (
-                            <div className="mt-2 text-center py-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                               <span className="text-[10px] font-bold text-red-500">{t.notSetLabel}</span>
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </>
-            )}
-          </div>
+              <form onSubmit={handleSearchSubmit} className="relative mt-1">
+                <input
+                  type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t.searchBox}
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl outline-none border transition-colors ${isDarkMode ? 'bg-gray-700/80 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-emerald-500'}`}
+                />
+                <Search className="absolute left-3.5 top-3.5 text-gray-400 w-5 h-5" onClick={handleSearchSubmit} />
+                {isSearching && <div className="absolute right-3.5 top-3.5 animate-spin rounded-full h-4 w-4 border-2 border-t-emerald-500"></div>}
+              </form>
+           </div>
         </div>
 
-        {/* Right Map Area */}
-        <div className="flex-1 relative h-[50vh] md:h-full z-0">
-          <div ref={mapElementRef} className="w-full h-full" />
-          
-          {/* Floating Actions */}
-          <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-3">
-            <button 
-              onClick={toggleMapTheme} 
-              className="w-14 h-14 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition transform text-emerald-600 dark:text-emerald-400" 
-              title="ប្តូរទម្រង់ផែនទី (Map Style)"
-            >
-              <Layers className="w-6 h-6" />
-            </button>
-            <button onClick={() => setIsAiOpen(true)} className="w-14 h-14 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition transform">
-              <BrainCircuit className="w-6 h-6" />
-            </button>
-            <button onClick={recenterMap} className="w-14 h-14 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition transform" title="ត្រឡប់មកទីតាំងខ្ញុំវិញ (Recenter)">
-              <Crosshair className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Floating Live GPS Status */}
-          {gpsStatus && (
-            <div className="absolute bottom-6 left-6 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-gray-100 dark:border-gray-750 flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-200">
-              <div className={`w-2 h-2 rounded-full ${userLocation ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`}></div>
-              {gpsStatus}
-            </div>
-          )}
+        {/* FULLSCREEN LEAFLET MAP (Only ONE Map now) */}
+        <div ref={mapElementRef} className="absolute inset-0 z-0 bg-gray-100" />
+        
+        {/* Floating Map Actions (Right Side - Only ONE set of buttons) */}
+        <div className="absolute top-1/3 right-4 z-20 flex flex-col gap-3">
+          <button onClick={toggleMapTheme} className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border ${mapTheme === 'satellite' ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700'}`} title="ប្តូរទម្រង់ផែនទី (Map View)">
+            <Layers className="w-5 h-5" />
+          </button>
+          <button onClick={recenterMap} className="w-12 h-12 bg-white dark:bg-gray-800 text-emerald-600 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center transition hover:bg-emerald-50" title="ត្រឡប់មកទីតាំងខ្ញុំវិញ (Recenter)">
+            <Crosshair className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Modal for Admin clicking on map to add data */}
-        {showAddModal && pendingLocation && isAdminUser && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className={`p-6 rounded-2xl w-full max-w-md shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'}`}>
-              <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <MapPin className="text-emerald-500" /> {t.addLocTitle}
-                </h3>
-                <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.placeNameLabel}</label>
-                  <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none" />
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.phoneLabel}</label>
-                  <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none" />
-                </div>
-                <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.typeLabel}</label>
-                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none">
-                    <option value="សាលារៀន / នាយកសាលា">{t.selectSchool}</option>
-                    <option value="មន្ទីរពេទ្យ / គ្លីនិក">{t.selectHospital}</option>
-                    <option value="ប៉ុស្តិ៍ប៉ូលីស">{t.selectPolice}</option>
-                    <option value="សាលាឃុំ / ផ្ទះមេភូមិ">{t.selectCommune}</option>
-                  </select>
-                </div>
-              </div>
-              <button onClick={saveEnrichedData} className="w-full mt-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg flex justify-center items-center gap-2 text-sm transition">
-                <Save className="w-4 h-4" /> {t.saveBtn}
-              </button>
-            </div>
+        {/* Live GPS Status */}
+        {gpsStatus && (
+          <div className="absolute top-[130px] right-4 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-700 flex items-center gap-2 text-[10px] font-bold text-gray-600 dark:text-gray-300">
+            <div className={`w-2 h-2 rounded-full ${userLocation ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></div>
+            {gpsStatus}
           </div>
         )}
 
-        {/* AI Chat Bot */}
-        {isAiOpen && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className={`rounded-2xl w-full max-w-md h-[80vh] flex flex-col shadow-2xl overflow-hidden ${isDarkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
-              <div className="p-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex justify-between items-center shadow-md z-10">
-                <h3 className="font-bold flex items-center"><Bot className="mr-2 w-6 h-6" /> {t.aiTitle}</h3>
-                <button onClick={() => setIsAiOpen(false)} className="hover:bg-white/20 p-1.5 rounded-full transition"><X className="w-5 h-5"/></button>
+        {/* BOTTOM SHEET FOR PLACES (Mobile Friendly) */}
+        <div className={`absolute bottom-0 left-0 w-full md:w-[400px] md:left-4 md:bottom-4 flex flex-col transition-all duration-500 ease-in-out z-40 ${isBottomSheetOpen ? 'h-[70vh] md:h-[60vh]' : 'h-[30vh] md:h-[40vh]'} ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t md:border shadow-[0_-10px_40px_rgba(0,0,0,0.15)] rounded-t-3xl md:rounded-3xl`}>
+          {/* Handle to open/close sheet on mobile */}
+          <div className="w-full flex justify-center pt-3 pb-2 md:hidden" onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)}>
+            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full cursor-pointer"></div>
+          </div>
+          
+          <div className="px-5 pb-3 pt-2 md:pt-5 border-b dark:border-gray-700 flex justify-between items-center">
+             <h2 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t.nearbyPlaces} ({places.length})</h2>
+             <button onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)} className="md:hidden text-emerald-600 font-bold text-xs">
+                {isBottomSheetOpen ? 'បង្រួម' : 'ពង្រីក'}
+             </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            {isLoading ? (
+              <div className="flex justify-center py-6"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>
+            ) : places.length === 0 ? (
+              <p className="text-center py-6 text-sm text-gray-500">{t.noPlaces}</p>
+            ) : (
+              <ul className="space-y-3 pb-10">
+                {places.map((place) => {
+                  const types = place.types || [];
+                  let Icon = Building2;
+                  if (types.includes('school') || types.includes('college')) Icon = GraduationCap;
+                  if (types.includes('hospital') || types.includes('clinic')) Icon = Activity;
+                  if (types.includes('police')) Icon = ShieldAlert;
+                  if (types.includes('townhall')) Icon = Globe;
+
+                  const isEnriched = enrichedData[place.id]; 
+                  const typeSuffix = getPlaceTypeName(types, lang);
+                  
+                  return (
+                    <li key={place.id} className={`p-3.5 border rounded-2xl flex flex-col shadow-sm cursor-pointer transition ${isEnriched ? 'bg-emerald-50/50 border-emerald-300 dark:bg-gray-700 dark:border-emerald-500' : 'bg-white border-gray-100 hover:border-emerald-200 dark:bg-gray-800 dark:border-gray-700'}`}>
+                      <div className="flex items-start" onClick={() => { if(mapRef.current && window.google) { mapRef.current.panTo(place.location); mapRef.current.setZoom(16); setIsBottomSheetOpen(false); } }}>
+                        <div className={`p-2.5 rounded-xl mr-3 ${isEnriched ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 overflow-hidden pt-0.5">
+                          <h3 className="font-bold text-[14px] leading-tight truncate dark:text-gray-100">{getPlaceName(place, lang)}{typeSuffix}</h3>
+                          <p className="text-[11px] mt-1 truncate text-gray-500 dark:text-gray-400">{place.formattedAddress}</p>
+                        </div>
+                      </div>
+                      
+                      {isEnriched ? (
+                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-col">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="text-[13px] font-bold flex items-center mb-1 text-emerald-700 dark:text-emerald-400"><User className="w-3.5 h-3.5 mr-1"/> {isEnriched.customName} ({isEnriched.role})</p>
+                              <p className="text-[12px] font-bold flex items-center text-emerald-600"><Phone className="w-3.5 h-3.5 mr-1"/> {isEnriched.phone}</p>
+                            </div>
+                            {isAdminUser && (
+                              <button onClick={(e) => { e.stopPropagation(); deleteEnrichedData(place.id); }} className="p-1.5 bg-red-100 text-red-600 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                            )}
+                          </div>
+                          <a href={`tel:${isEnriched.phone}`} className="mt-1 py-2 w-full rounded-xl text-center font-bold text-[13px] flex items-center justify-center bg-emerald-600 text-white shadow-md">
+                            <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn}
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-center py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                           <span className="text-[10px] font-bold text-amber-600">{t.localDataOnly}</span>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        {/* Modal for Admin Adding Data via Map Click */}
+        {showAddModal && pendingLocation && isAdminUser && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+            <div className="p-6 rounded-3xl w-full max-w-sm bg-white shadow-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold flex items-center text-gray-900"><MapPin className="text-emerald-500 mr-2" /> បន្ថែមទីតាំងថ្មី</h3>
+                <button onClick={() => setShowAddModal(false)} className="text-gray-400 p-1 bg-gray-100 rounded-full hover:text-red-500"><X className="w-5 h-5" /></button>
               </div>
-              <div className={`flex-1 p-4 overflow-y-auto space-y-4 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-                {chatMessages.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-2xl p-3.5 text-[14px] leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-none' : (isDarkMode ? 'bg-gray-700 text-gray-100 rounded-tl-none border-gray-600' : 'bg-white text-gray-800 border rounded-tl-none')}`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))}
-                {isAiTyping && (
-                  <div className="flex justify-start">
-                    <div className={`shadow-sm rounded-2xl rounded-tl-none p-4 flex space-x-1.5 ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border'}`}>
-                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0.15s'}}></div>
-                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay:'0.3s'}}></div>
-                    </div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
+              <div className="space-y-4">
+                <input type="text" placeholder="ឈ្មោះស្ថាប័ន / បុគ្គល" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-emerald-500 outline-none text-sm font-semibold" />
+                <input type="tel" placeholder="លេខទូរស័ព្ទ" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-emerald-500 outline-none text-sm font-semibold" />
+                <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-emerald-500 outline-none text-sm font-semibold">
+                  <option value="សាលារៀន / នាយកសាលា">សាលារៀន / នាយកសាលា</option>
+                  <option value="មន្ទីរពេទ្យ / គ្លីនិក">មន្ទីរពេទ្យ / គ្លីនិក</option>
+                  <option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option>
+                  <option value="សាលាឃុំ / ផ្ទះមេភូមិ">សាលាឃុំ / ផ្ទះមេភូមិ</option>
+                </select>
               </div>
-              <form onSubmit={handleAiChatSubmit} className={`p-3 border-t flex gap-2 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
-                <input 
-                  type="text" value={aiInput} onChange={e => setAiInput(e.target.value)}
-                  placeholder={t.aiInputPlaceholder}
-                  className={`flex-1 rounded-full px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow ${isDarkMode ? 'bg-gray-700 text-white placeholder-gray-400' : 'bg-gray-100 text-gray-900'}`}
-                />
-                <button type="submit" disabled={isAiTyping} className="bg-emerald-600 text-white w-12 h-12 rounded-full hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center shrink-0 shadow-md">
-                  <Send className="w-5 h-5 ml-1"/>
-                </button>
-              </form>
+              <button onClick={saveEnrichedData} className="w-full mt-6 py-3.5 bg-emerald-600 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2">
+                <Save className="w-5 h-5" /> រក្សាទុកទិន្នន័យ
+              </button>
             </div>
           </div>
         )}
@@ -1064,19 +962,19 @@ export default function App() {
     );
   }
 
-  // ==========================================
-  // UI RENDER: ADMIN LOGIN
-  // ==========================================
   if (view === 'admin_login') {
     return (
       <div className={`h-screen w-full flex items-center justify-center px-4 ${isDarkMode ? 'bg-gray-950' : 'bg-gray-900'}`}>
         {toast.show && (
           <div className="absolute top-6 z-50 animate-bounce">
-            <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>
+            <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
+               {toast.type === 'success' && <CheckCircle className="w-4 h-4"/>}
+               {toast.message}
+            </div>
           </div>
         )}
         <div className={`max-w-md w-full rounded-3xl shadow-2xl p-8 relative border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'}`}>
-          <button onClick={() => setView('user')} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-2"><X className="w-6 h-6" /></button>
+          <button onClick={() => setView('user')} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-2 transition-colors"><X className="w-6 h-6" /></button>
           
           <div className="flex justify-center mb-6 mt-4">
             <div className="bg-gradient-to-br from-emerald-100 to-emerald-50 p-5 rounded-full shadow-inner border border-emerald-100">
@@ -1107,73 +1005,97 @@ export default function App() {
     );
   }
 
-  // ==========================================
-  // UI RENDER: ADMIN DASHBOARD
-  // ==========================================
   if (view === 'admin_dashboard') {
     return (
       <div className="h-screen w-full bg-gray-100 flex flex-col md:flex-row relative">
-        {toast.show && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
-            <div className={`px-6 py-3 rounded-full shadow-lg text-white font-bold text-sm ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>{toast.message}</div>
+        
+        {/* Custom Confirmation Dialog for Admin Actions */}
+        {confirmDialog.isOpen && (
+          <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center backdrop-blur-sm px-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+               <h3 className="text-xl font-bold text-gray-900 mb-2">{confirmDialog.title}</h3>
+               <p className="text-gray-600 mb-6">{confirmDialog.message}</p>
+               <div className="flex gap-3 justify-end">
+                  <button onClick={() => setConfirmDialog({...confirmDialog, isOpen: false})} className="px-4 py-2 font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
+                    {t.confirmNo}
+                  </button>
+                  <button onClick={confirmDialog.onConfirm} className="px-4 py-2 font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-md">
+                    {t.confirmYes}
+                  </button>
+               </div>
+            </div>
           </div>
         )}
-        <div className="w-full md:w-64 bg-gray-900 text-white flex flex-col shrink-0">
-          <div className="p-6 border-b border-gray-800"><h2 className="text-xl font-bold flex items-center"><ShieldAlert className="mr-2 text-red-500"/> Admin Panel</h2></div>
+
+        {toast.show && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+            <div className={`px-6 py-3 rounded-full shadow-lg text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
+               {toast.type === 'success' && <CheckCircle className="w-4 h-4"/>}
+               {toast.message}
+            </div>
+          </div>
+        )}
+        <div className="w-full md:w-64 bg-gray-900 text-white flex flex-col shrink-0 overflow-y-auto">
+          <div className="p-6 border-b border-gray-800"><h2 className="text-xl font-bold flex items-center"><ShieldAlert className="mr-2 text-emerald-500"/> Admin Panel</h2></div>
           <nav className="flex-1 p-4 space-y-2">
-            <button onClick={() => setActiveTab('locations')} className={`w-full flex items-center p-3 rounded-lg ${activeTab === 'locations' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><MapPin className="w-5 h-5 mr-3"/> {t.adminTabLoc}</button>
-            <button onClick={() => setActiveTab('reports')} className={`w-full flex items-center p-3 rounded-lg ${activeTab === 'reports' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><BarChart3 className="w-5 h-5 mr-3"/> {t.adminTabRep}</button>
-            <button onClick={() => setActiveTab('security')} className={`w-full flex items-center p-3 rounded-lg ${activeTab === 'security' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><AlertTriangle className="w-5 h-5 mr-3"/> {t.adminTabSec}</button>
+            <button onClick={() => setActiveTab('locations')} className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'locations' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><MapPin className="w-5 h-5 mr-3"/> {t.adminTabLoc}</button>
+            <button onClick={() => setActiveTab('reports')} className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'reports' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><BarChart3 className="w-5 h-5 mr-3"/> {t.adminTabRep}</button>
+            <button onClick={() => setActiveTab('security')} className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'security' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><AlertTriangle className="w-5 h-5 mr-3"/> {t.adminTabSec}</button>
           </nav>
-          <div className="p-4 border-t border-gray-800">
-            <button onClick={() => { setView('user'); setAdminPassword(''); }} className="w-full bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center mb-2"><MapPin className="w-4 h-4 mr-2"/> ត្រឡប់ទៅផែនទី</button>
-            <button onClick={() => { setIsAdminUser(false); setView('user'); setAdminPassword(''); }} className="w-full bg-gray-700 hover:bg-red-600 py-2.5 rounded-lg text-sm font-bold text-gray-200">{t.logoutBtn}</button>
+          <div className="p-4 border-t border-gray-800 mt-auto">
+            <button onClick={() => { setView('user'); setAdminPassword(''); }} className="w-full bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center mb-2 transition"><MapPin className="w-4 h-4 mr-2"/> ត្រឡប់ទៅផែនទី</button>
+            <button onClick={() => { setIsAdminUser(false); setView('user'); setAdminPassword(''); }} className="w-full bg-gray-700 hover:bg-red-600 py-2.5 rounded-lg text-sm font-bold text-gray-200 transition">{t.logoutBtn}</button>
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 animate-fade-in relative flex flex-col">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 animate-fade-in relative flex flex-col bg-gray-50">
           
           {/* TAB: LOCATIONS */}
           {activeTab === 'locations' && (
             <div className="flex-1">
-              <h1 className="text-2xl font-bold mb-6">គ្រប់គ្រងទិន្នន័យទីតាំង (ramit)</h1>
+              <h1 className="text-2xl font-bold mb-6 text-gray-800">គ្រប់គ្រងទិន្នន័យទីតាំង</h1>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl shadow p-5">
-                  <h3 className="font-bold mb-4 border-b pb-2">១. ទីតាំងជុំវិញអ្នក (រង្វង់ ១០ គ.ម)</h3>
+                <div className="bg-white rounded-xl shadow-sm border p-5">
+                  <h3 className="font-bold mb-4 border-b pb-2 text-gray-800 flex items-center"><MapPin className="w-5 h-5 text-emerald-500 mr-2"/> ១. ទីតាំងជុំវិញអ្នក (រង្វង់ ២៥ គ.ម)</h3>
                   <div className="h-[400px] overflow-y-auto space-y-2 custom-scrollbar pr-2">
                     {places.map(place => (
-                      <div key={place.id} onClick={() => setEditingPlace(place)} className={`p-3 border rounded-lg cursor-pointer transition ${enrichedData[place.id] ? 'border-green-400 bg-green-50' : 'hover:border-emerald-500 hover:bg-emerald-50'}`}>
-                        <p className={`font-bold text-sm ${enrichedData[place.id] ? 'text-green-800' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
+                      <div key={place.id} onClick={() => setEditingPlace(place)} className={`p-3 border rounded-lg cursor-pointer transition ${enrichedData[place.id] ? 'border-emerald-400 bg-emerald-50' : 'hover:border-emerald-500 hover:bg-emerald-50'}`}>
+                        <p className={`font-bold text-sm ${enrichedData[place.id] ? 'text-emerald-800' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
                         <p className="text-xs text-gray-500 mt-1 truncate">{place.formattedAddress}</p>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="space-y-6">
-                  <div className="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
-                    <h3 className="font-bold mb-4 border-b pb-2">២. បន្ថែមព័ត៌មានលម្អិត</h3>
+                  <div className="bg-white rounded-xl shadow-sm border p-5 border-l-4 border-l-blue-500">
+                    <h3 className="font-bold mb-4 border-b pb-2 text-gray-800">២. បន្ថែមព័ត៌មានលម្អិត</h3>
                     {editingPlace ? (
                       <div className="space-y-3">
-                        <p className="text-sm font-semibold bg-gray-100 p-2 rounded-lg text-blue-800">ទីតាំងកំពុងរៀបចំ៖ {getPlaceName(editingPlace, lang)}</p>
-                        <input type="text" placeholder="ឈ្មោះ (ឧ. លោក សុខ)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium" value={customInfo.name} onChange={e => setCustomInfo({...customInfo, name: e.target.value})} />
-                        <input type="text" placeholder="តួនាទី (ឧ. មេភូមិ / នាយកសាលា)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium" value={customInfo.role} onChange={e => setCustomInfo({...customInfo, role: e.target.value})} />
-                        <input type="text" placeholder="លេខទូរស័ព្ទ (ឧ. 012 345 678)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium" value={customInfo.phone} onChange={e => setCustomInfo({...customInfo, phone: e.target.value})} />
-                        <button onClick={saveEnrichedData} className="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 shadow-md">រក្សាទុក</button>
+                        <p className="text-sm font-semibold bg-blue-50 p-2.5 rounded-lg text-blue-800 border border-blue-100 flex items-center">
+                           <Building2 className="w-4 h-4 mr-2"/> ទីតាំងកំពុងរៀបចំ៖ {getPlaceName(editingPlace, lang)}
+                        </p>
+                        <input type="text" placeholder="ឈ្មោះស្ថាប័ន ឬបុគ្គល (ឧ. លោក សុខ)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium text-sm bg-white transition" value={customInfo.name} onChange={e => setCustomInfo({...customInfo, name: e.target.value})} />
+                        <input type="text" placeholder="តួនាទី (ឧ. មេភូមិ / នាយកសាលា)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium text-sm bg-white transition" value={customInfo.role} onChange={e => setCustomInfo({...customInfo, role: e.target.value})} />
+                        <input type="text" placeholder="លេខទូរស័ព្ទ (ឧ. 012 345 678)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium text-sm bg-white transition" value={customInfo.phone} onChange={e => setCustomInfo({...customInfo, phone: e.target.value})} />
+                        <button onClick={saveEnrichedData} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-md transition flex items-center justify-center gap-2">
+                          <Save className="w-4 h-4"/> រក្សាទុកទិន្នន័យនេះ
+                        </button>
                       </div>
-                    ) : (<p className="text-sm text-gray-500 italic py-8 text-center bg-gray-50 rounded-lg">សូមជ្រើសរើសទីតាំងពីបញ្ជីខាងឆ្វេងសិន...</p>)}
+                    ) : (<p className="text-sm text-gray-500 italic py-10 text-center bg-gray-50 rounded-lg border border-dashed">សូមជ្រើសរើសទីតាំងណាមួយពីបញ្ជីខាងឆ្វេងសិន...</p>)}
                   </div>
-                  <div className="bg-white rounded-xl shadow p-5 border-l-4 border-green-500">
-                    <h3 className="font-bold mb-4 border-b pb-2">៣. ទិន្នន័យបានបញ្ចូលរួច</h3>
+                  <div className="bg-white rounded-xl shadow-sm border p-5 border-l-4 border-l-emerald-500">
+                    <h3 className="font-bold mb-4 border-b pb-2 text-gray-800">៣. ទិន្នន័យបានបញ្ចូលរួច</h3>
                     <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
                       {Object.values(enrichedData).map(data => (
-                        <div key={data.placeId} className="flex justify-between items-center p-3 bg-gray-50 border rounded-lg">
+                        <div key={data.placeId} className="flex justify-between items-center p-3 bg-gray-50 border rounded-lg hover:bg-emerald-50 transition-colors">
                           <div>
-                             <p className="font-bold text-[13px] text-green-700">{data.googleName}</p>
-                             <p className="text-xs font-semibold mt-1">{data.customName} - {data.phone}</p>
+                             <p className="font-bold text-[13px] text-emerald-700">{data.googleName}</p>
+                             <p className="text-xs font-semibold mt-1 text-gray-700">{data.customName} - <span className="text-emerald-600">{data.phone}</span></p>
                           </div>
-                          <button onClick={() => deleteEnrichedData(data.placeId)} className="text-red-500 p-2 hover:bg-red-100 rounded-lg transition"><Trash2 className="w-5 h-5"/></button>
+                          <button onClick={() => deleteEnrichedData(data.placeId)} className="text-red-500 p-2 hover:bg-red-100 hover:text-red-700 rounded-lg transition"><Trash2 className="w-4 h-4"/></button>
                         </div>
                       ))}
+                      {Object.keys(enrichedData).length === 0 && <p className="text-sm text-gray-500 italic text-center py-4">មិនទាន់មានទិន្នន័យទេ</p>}
                     </div>
                   </div>
                 </div>
@@ -1181,85 +1103,130 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB: REPORTS (ស្ថិតិភាគរយ % តាមសប្តាហ៍ ខែ ឆ្នាំ) */}
+          {/* TAB: REPORTS - PERSONAL DASHBOARD STYLE */}
           {activeTab === 'reports' && (
             <div className="flex-1 flex flex-col">
-               <h1 className="text-2xl font-bold mb-6">{t.analyticTitle}</h1>
+               <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b-2 border-emerald-500 inline-block pb-1">{t.analyticTitle}</h1>
+               
+               {/* Dashboard Statistical Cards */}
                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-white p-6 rounded-2xl shadow-md border-t-4 border-blue-500 relative overflow-hidden">
-                    <p className="text-gray-400 text-xs font-black uppercase tracking-wider">{t.weekStat}</p>
-                    <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastWeek} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                  {/* Weekly Card */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                      <p className="text-blue-500 text-xs font-black uppercase tracking-wider mb-1 flex items-center"><Activity className="w-4 h-4 mr-1"/> {t.weekStat}</p>
+                      <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastWeek} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                    </div>
                     
-                    {/* Diagram % Progress bar */}
-                    <div className="mt-4">
-                      <div className="flex justify-between text-xs font-bold text-blue-600 mb-1">
+                    <div className="mt-6">
+                      <div className="flex justify-between text-xs font-bold text-gray-600 mb-2">
                         <span>{t.activeRate}</span>
-                        <span>{stats.weekPercent}%</span>
+                        <span className="text-blue-600">{stats.weekPercent}%</span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-3">
-                        <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{ width: `${stats.weekPercent}%` }}></div>
+                      <div className="w-full bg-blue-50 rounded-full h-3 overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-400 to-blue-600 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${stats.weekPercent}%` }}></div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-2xl shadow-md border-t-4 border-emerald-500 relative overflow-hidden">
-                    <p className="text-gray-400 text-xs font-black uppercase tracking-wider">{t.monthStat}</p>
-                    <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastMonth} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                  {/* Monthly Card */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                      <p className="text-emerald-500 text-xs font-black uppercase tracking-wider mb-1 flex items-center"><BarChart3 className="w-4 h-4 mr-1"/> {t.monthStat}</p>
+                      <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastMonth} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                    </div>
                     
-                    {/* Diagram % Progress bar */}
-                    <div className="mt-4">
-                      <div className="flex justify-between text-xs font-bold text-emerald-600 mb-1">
+                    <div className="mt-6">
+                      <div className="flex justify-between text-xs font-bold text-gray-600 mb-2">
                         <span>{t.activeRate}</span>
-                        <span>{stats.monthPercent}%</span>
+                        <span className="text-emerald-600">{stats.monthPercent}%</span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-3">
-                        <div className="bg-emerald-500 h-3 rounded-full transition-all duration-500" style={{ width: `${stats.monthPercent}%` }}></div>
+                      <div className="w-full bg-emerald-50 rounded-full h-3 overflow-hidden">
+                        <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${stats.monthPercent}%` }}></div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-2xl shadow-md border-t-4 border-purple-500 relative overflow-hidden">
-                    <p className="text-gray-400 text-xs font-black uppercase tracking-wider">{t.yearStat}</p>
-                    <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastYear} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                  {/* Yearly Card */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
+                    <div>
+                      <p className="text-purple-500 text-xs font-black uppercase tracking-wider mb-1 flex items-center"><Globe className="w-4 h-4 mr-1"/> {t.yearStat}</p>
+                      <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastYear} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                    </div>
                     
-                    {/* Diagram % Progress bar */}
-                    <div className="mt-4">
-                      <div className="flex justify-between text-xs font-bold text-purple-600 mb-1">
+                    <div className="mt-6">
+                      <div className="flex justify-between text-xs font-bold text-gray-600 mb-2">
                         <span>{t.activeRate}</span>
-                        <span>{stats.yearPercent}%</span>
+                        <span className="text-purple-600">{stats.yearPercent}%</span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-3">
-                        <div className="bg-purple-500 h-3 rounded-full transition-all duration-500" style={{ width: `${stats.yearPercent}%` }}></div>
+                      <div className="w-full bg-purple-50 rounded-full h-3 overflow-hidden">
+                        <div className="bg-gradient-to-r from-purple-400 to-purple-600 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${stats.yearPercent}%` }}></div>
                       </div>
                     </div>
                   </div>
                </div>
 
-               {/* General Overview Card */}
-               <div className="bg-white p-6 rounded-2xl shadow-md flex-1">
-                 <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Activity className="text-emerald-500 w-5 h-5"/> ស្ថិតិទូទៅ</h3>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="p-4 bg-gray-50 rounded-xl border flex justify-between items-center">
-                     <div>
-                       <p className="text-xs text-gray-400 font-bold uppercase">{t.totalUsers}</p>
-                       <p className="text-2xl font-black mt-1 text-gray-800">{totalUsersCount}</p>
-                     </div>
-                     <User className="w-8 h-8 text-blue-500 opacity-60" />
+               {/* Custom Bar Chart Simulation (Personalized Style) */}
+               <div className="bg-white p-6 rounded-2xl shadow-sm border flex-1 mb-8">
+                 <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-3"><BarChart3 className="text-emerald-500 w-5 h-5"/> ក្រាហ្វិកសសរស្ថិតិអ្នកប្រើប្រាស់ (User Traffic Chart)</h3>
+                 
+                 <div className="flex items-end justify-around h-56 mt-8 pt-4 border-l-2 border-b-2 border-gray-200 pb-2 relative px-4">
+                    {/* Y-Axis labels */}
+                    <div className="absolute left-[-30px] top-0 bottom-0 flex flex-col justify-between text-xs text-gray-400 font-bold py-2">
+                      <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+                    </div>
+                    
+                    {/* Week Bar */}
+                    <div className="flex flex-col items-center group w-1/4 max-w-[80px]">
+                      <div className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-1000 group-hover:opacity-80 flex items-start justify-center pt-2 shadow-md relative" style={{ height: `${Math.max(stats.weekPercent, 10)}%` }}>
+                        <span className="text-white text-xs font-bold absolute -top-6 text-blue-600 drop-shadow-sm">{stats.weekPercent}%</span>
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 mt-3 whitespace-nowrap">សប្តាហ៍នេះ</span>
+                    </div>
+                    
+                    {/* Month Bar */}
+                    <div className="flex flex-col items-center group w-1/4 max-w-[80px]">
+                      <div className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-lg transition-all duration-1000 group-hover:opacity-80 flex items-start justify-center pt-2 shadow-md relative" style={{ height: `${Math.max(stats.monthPercent, 10)}%` }}>
+                         <span className="text-white text-xs font-bold absolute -top-6 text-emerald-600 drop-shadow-sm">{stats.monthPercent}%</span>
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 mt-3 whitespace-nowrap">ខែនេះ</span>
+                    </div>
+                    
+                    {/* Year Bar */}
+                    <div className="flex flex-col items-center group w-1/4 max-w-[80px]">
+                      <div className="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t-lg transition-all duration-1000 group-hover:opacity-80 flex items-start justify-center pt-2 shadow-md relative" style={{ height: `${Math.max(stats.yearPercent, 10)}%` }}>
+                         <span className="text-white text-xs font-bold absolute -top-6 text-purple-600 drop-shadow-sm">{stats.yearPercent}%</span>
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 mt-3 whitespace-nowrap">ឆ្នាំនេះ</span>
+                    </div>
+                 </div>
+               </div>
+
+               {/* General Overview Summary Cards */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-md text-white flex justify-between items-center hover:scale-[1.02] transition-transform">
+                   <div>
+                     <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{t.totalUsers}</p>
+                     <p className="text-3xl font-black mt-2">{totalUsersCount}</p>
                    </div>
-                   <div className="p-4 bg-gray-50 rounded-xl border flex justify-between items-center">
-                     <div>
-                       <p className="text-xs text-gray-400 font-bold uppercase">{t.addedPlaces}</p>
-                       <p className="text-2xl font-black mt-1 text-gray-800">{Object.keys(enrichedData).length}</p>
-                     </div>
-                     <MapPin className="w-8 h-8 text-emerald-500 opacity-60" />
+                   <div className="p-4 bg-gray-800 rounded-full border border-gray-700">
+                      <User className="w-8 h-8 text-blue-400" />
+                   </div>
+                 </div>
+                 
+                 <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 rounded-2xl shadow-md text-white flex justify-between items-center hover:scale-[1.02] transition-transform">
+                   <div>
+                     <p className="text-xs text-emerald-200 font-bold uppercase tracking-widest">{t.addedPlaces}</p>
+                     <p className="text-3xl font-black mt-2">{Object.keys(enrichedData).length}</p>
+                   </div>
+                   <div className="p-4 bg-emerald-700 rounded-full border border-emerald-600">
+                      <MapPin className="w-8 h-8 text-white" />
                    </div>
                  </div>
                </div>
 
-               {/* Custom Footer */}
-               <div className="mt-8 text-center text-gray-500 text-xs font-bold leading-relaxed pb-4">
-                  <p>បង្កើតឡើងដោយយុវជនVMC វិ.ស.ស-2026</p>
-                  <p>@យុវជន VMC វិទ្យាល័យ ស្ដៅសន្តិភាព</p>
+               <div className="mt-12 mb-6 text-center text-gray-500">
+                  <p className="font-black text-sm uppercase tracking-wider mb-1">បង្កើតឡើងដោយយុវជន VMC វិ.ស.ស-2026</p>
+                  <p className="text-xs font-semibold">@យុវជន VMC វិទ្យាល័យ ស្ដៅសន្តិភាព</p>
                </div>
             </div>
           )}
@@ -1267,24 +1234,46 @@ export default function App() {
           {/* TAB: SECURITY */}
           {activeTab === 'security' && (
             <div className="flex-1">
-               <div className="flex justify-between items-center mb-6">
-                 <h1 className="text-2xl font-bold flex items-center text-red-600"><AlertTriangle className="mr-2"/> សន្តិសុខប្រព័ន្ធ</h1>
-                 <button onClick={clearSecurityLogs} className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-black transition">លុបកំណត់ហេតុ</button>
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b-4 border-red-500 pb-1">
+                 <h1 className="text-2xl font-black text-gray-800 flex items-center">សន្តិសុខប្រព័ន្ធ (ទប់ស្កាត់ការចូលខុស)</h1>
+                 {/* Explicit "Clear" Button */}
+                 <button onClick={requestClearSecurityLogs} className="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition flex items-center">
+                    <Trash2 className="w-4 h-4 mr-2"/> Clear
+                 </button>
                </div>
-               <div className="bg-white rounded-xl shadow overflow-hidden">
-                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-red-50"><tr><th className="px-6 py-3 text-left text-xs font-bold text-red-800">ម៉ោង/កាលបរិច្ឆេទ</th><th className="px-6 py-3 text-left text-xs font-bold text-red-800">IP Address</th><th className="px-6 py-3 text-left text-xs font-bold text-red-800">Password ដែលវាយខុស</th></tr></thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {securityLogs.map(log => (
-                        <tr key={log.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm font-medium">{new Date(log.timestamp).toLocaleString('km-KH')}</td>
-                          <td className="px-6 py-4 text-sm text-red-600 font-bold">{log.ip}</td>
-                          <td className="px-6 py-4 text-sm">{log.attemptedPass}</td>
-                        </tr>
-                      ))}
-                      {securityLogs.length === 0 && (<tr><td colSpan="3" className="px-6 py-8 text-center text-green-600 font-bold">គ្មានបញ្ហាទេ 🛡️</td></tr>)}
-                    </tbody>
-                 </table>
+               <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                 <div className="overflow-x-auto w-full">
+                   <table className="min-w-full divide-y divide-gray-200">
+                     <thead className="bg-red-50">
+                       <tr>
+                         <th className="px-6 py-4 text-left text-xs font-bold text-red-800 uppercase tracking-wider">ម៉ោង/កាលបរិច្ឆេទ</th>
+                         <th className="px-6 py-4 text-left text-xs font-bold text-red-800 uppercase tracking-wider">IP Address</th>
+                         <th className="px-6 py-4 text-left text-xs font-bold text-red-800 uppercase tracking-wider">Password ដែលវាយខុស</th>
+                         <th className="px-6 py-4 text-right text-xs font-bold text-red-800 uppercase tracking-wider">ប្រតិបត្តិការ</th>
+                       </tr>
+                     </thead>
+                     <tbody className="bg-white divide-y divide-gray-200">
+                       {securityLogs.map(log => (
+                         <tr key={log.id} className="hover:bg-red-50/50 transition-colors">
+                           <td className="px-6 py-4 text-sm font-medium text-gray-800 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('km-KH')}</td>
+                           <td className="px-6 py-4 text-sm text-red-600 font-bold font-mono">{log.ip}</td>
+                           <td className="px-6 py-4 text-sm text-gray-600">{log.attemptedPass}</td>
+                           <td className="px-6 py-4 text-right">
+                              <button onClick={() => deleteSingleSecurityLog(log.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition" title="លុបកំណត់ត្រានេះ"><Trash2 className="w-4 h-4"/></button>
+                           </td>
+                         </tr>
+                       ))}
+                       {securityLogs.length === 0 && (
+                         <tr>
+                           <td colSpan="4" className="px-6 py-12 text-center">
+                             <ShieldAlert className="w-12 h-12 text-emerald-500 mx-auto mb-3 opacity-50" />
+                             <p className="text-emerald-600 font-bold text-lg">គ្មានការប៉ុនប៉ងចូលដោយខុសច្បាប់ទេ 🛡️ ប្រព័ន្ធមានសុវត្ថិភាព!</p>
+                           </td>
+                         </tr>
+                       )}
+                     </tbody>
+                   </table>
+                 </div>
                </div>
             </div>
           )}
