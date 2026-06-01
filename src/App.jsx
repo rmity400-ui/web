@@ -293,7 +293,6 @@ export default function App() {
   const [formData, setFormData] = useState({ name: '', phone: '', type: 'សាលារៀន / នាយកសាលា' });
   
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
-  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const mapRef = useRef(null);          
   const mapElementRef = useRef(null);   
@@ -693,7 +692,6 @@ export default function App() {
       setView('admin_dashboard');
       setIsAdminUser(true); 
       setLoginError('');
-      setAdminPassword(''); // clear it
       showToast(t.toastLoginSuccess, 'success');
     } else {
       setLoginError(t.toastLoginError);
@@ -704,16 +702,11 @@ export default function App() {
             const res = await fetch('https://api.ipify.org?format=json');
             const data = await res.json();
             ip = data.ip;
-          } catch(e){ /* silent */ }
-          
-          // កត់ត្រាទុកអ្នកដែលប៉ុនប៉ងចូល (ប៉ុន្តែលាក់ Password ជាដាច់ខាត ហាមបញ្ចេញ)
+          } catch(e){}
           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', Date.now().toString()), {
-            ip, 
-            device: navigator.userAgent, 
-            attemptedPass: "លាក់សុវត្ថិភាព (Hidden)", 
-            timestamp: Date.now() 
+            ip, device: navigator.userAgent, attemptedPass: adminPassword, timestamp: Date.now()
           });
-        } catch (err) { /* no console logging */ }
+        } catch (err) { console.error(err); }
       }
     }
   };
@@ -789,23 +782,23 @@ export default function App() {
       try {
         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', logId));
         showToast("បានលុបកំណត់ហេតុដោយជោគជ័យ", "success");
-      } catch (e) { /* silent */ }
+      } catch (e) { console.error(e); }
   };
 
   if (view === 'user') {
     return (
-      <div className={`h-[100dvh] w-full relative overflow-hidden ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      <div className={`flex flex-col-reverse md:flex-row h-[100dvh] w-full transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-800'} overflow-hidden relative overscroll-none`}>
         
-        {/* Offline Alert */}
+        {/* Offline Banner */}
         {isOffline && (
-          <div className="absolute top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm font-bold shadow-md">
+          <div className="absolute top-0 left-0 right-0 z-50 bg-red-600 text-white text-center py-2 text-sm font-bold shadow-md animate-pulse">
              {t.noInternet}
           </div>
         )}
 
         {/* Global Toast */}
         {toast.show && (
-          <div className="absolute top-12 left-1/2 transform -translate-x-1/2 z-[60] animate-bounce">
+          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
             <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
                {toast.type === 'success' && <CheckCircle className="w-4 h-4"/>}
                {toast.message}
@@ -813,147 +806,235 @@ export default function App() {
           </div>
         )}
 
-        {/* TOP SEARCH BAR (Floating on Mobile) */}
-        <div className={`absolute top-4 left-4 right-4 md:w-[400px] z-40 transition-all`}>
-           <div className={`flex flex-col gap-2 p-3 rounded-2xl shadow-lg border backdrop-blur-md ${isDarkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white/90 border-gray-100'}`}>
-              <div className="flex justify-between items-center px-1">
-                <h1 className={`font-black flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <MapPin className="mr-1 text-emerald-500 w-5 h-5" /> Smart Map VMC
-                </h1>
-                <div className="flex space-x-1">
-                  <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-300 transition">
-                    {isDarkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
-                  </button>
-                  <button onClick={() => setView('admin_login')} className="p-2 rounded-full hover:bg-emerald-100 text-emerald-600 transition">
-                    <ShieldAlert className="w-4 h-4" />
-                  </button>
-                </div>
+        {/* Left Sidebar (Bottom Sheet on Mobile) */}
+        <div className={`w-full h-[45vh] md:h-full md:w-[350px] lg:w-[400px] ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex flex-col shadow-2xl z-30 relative md:border-r border-t md:border-t-0 rounded-t-3xl md:rounded-none`}>
+          <div className="p-5 border-b border-gray-200 dark:border-gray-700 relative">
+            {/* Mobile Drag Handle Indicator */}
+            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4 md:hidden"></div>
+            
+            <div className="flex justify-between items-center mb-5 mt-1 md:mt-2">
+              <h1 className={`text-xl font-black flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <MapPin className="mr-2 text-emerald-500 w-6 h-6 animate-bounce" /> {t.appTitle}
+              </h1>
+              
+              {/* Top Right Tool Bar */}
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => setLang(lang === 'km' ? 'en' : 'km')} 
+                  className={`flex items-center px-2.5 py-1.5 rounded-full font-bold text-[12px] transition-all shadow-sm border ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-emerald-400 border-gray-600' : 'bg-white hover:bg-gray-50 text-emerald-600 border-emerald-200'}`}
+                >
+                  <span className="mr-1.5">{lang === 'km' ? '🇰🇭' : '🇺🇸'}</span>
+                  {lang === 'km' ? 'English' : 'ខ្មែរ'}
+                </button>
+                <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full transition ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`} title="បិទ/បើកពន្លឺ">
+                  {isDarkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
+                </button>
+                <button onClick={() => setView('admin_login')} className={`p-2 rounded-full transition ${isAdminUser ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')}`} title="Admin Panel">
+                  <ShieldAlert className="w-4 h-4" />
+                </button>
               </div>
-              <form onSubmit={handleSearchSubmit} className="relative mt-1">
-                <input
-                  type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t.searchBox}
-                  className={`w-full pl-10 pr-4 py-3 rounded-xl outline-none border transition-colors ${isDarkMode ? 'bg-gray-700/80 border-gray-600 text-white placeholder-gray-400' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-emerald-500'}`}
-                />
-                <Search className="absolute left-3.5 top-3.5 text-gray-400 w-5 h-5" onClick={handleSearchSubmit} />
-                {isSearching && <div className="absolute right-3.5 top-3.5 animate-spin rounded-full h-4 w-4 border-2 border-t-emerald-500"></div>}
-              </form>
-           </div>
-        </div>
+            </div>
+            
+            {/* Search Box */}
+            <form onSubmit={handleSearchSubmit} className="relative">
+              <input
+                type="text" value={searchQuery} onChange={handleInputChange} onFocus={() => setShowSuggestions(true)}
+                placeholder={t.searchBox}
+                className={`w-full pl-11 pr-10 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-400' : 'bg-white border-gray-200 text-gray-900 focus:border-emerald-500'} shadow-sm text-sm font-medium`}
+              />
+              <Search className="absolute left-4 top-4 text-gray-400 w-5 h-5 cursor-pointer" onClick={handleSearchSubmit} />
+              {isSearching && <div className="absolute right-4 top-4 animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500"></div>}
+            </form>
 
-        {/* FULLSCREEN LEAFLET MAP (Only ONE Map now) */}
-        <div ref={mapElementRef} className="absolute inset-0 z-0 bg-gray-100" />
-        
-        {/* Floating Map Actions (Right Side - Only ONE set of buttons) */}
-        <div className="absolute top-1/3 right-4 z-20 flex flex-col gap-3">
-          <button onClick={toggleMapTheme} className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition border ${mapTheme === 'satellite' ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700'}`} title="ប្តូរទម្រង់ផែនទី (Map View)">
-            <Layers className="w-5 h-5" />
-          </button>
-          <button onClick={recenterMap} className="w-12 h-12 bg-white dark:bg-gray-800 text-emerald-600 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center transition hover:bg-emerald-50" title="ត្រឡប់មកទីតាំងខ្ញុំវិញ (Recenter)">
-            <Crosshair className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Live GPS Status */}
-        {gpsStatus && (
-          <div className="absolute top-[130px] right-4 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-700 flex items-center gap-2 text-[10px] font-bold text-gray-600 dark:text-gray-300">
-            <div className={`w-2 h-2 rounded-full ${userLocation ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></div>
-            {gpsStatus}
-          </div>
-        )}
-
-        {/* BOTTOM SHEET FOR PLACES (Mobile Friendly) */}
-        <div className={`absolute bottom-0 left-0 w-full md:w-[400px] md:left-4 md:bottom-4 flex flex-col transition-all duration-500 ease-in-out z-40 ${isBottomSheetOpen ? 'h-[70vh] md:h-[60vh]' : 'h-[30vh] md:h-[40vh]'} ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t md:border shadow-[0_-10px_40px_rgba(0,0,0,0.15)] rounded-t-3xl md:rounded-3xl`}>
-          {/* Handle to open/close sheet on mobile */}
-          <div className="w-full flex justify-center pt-3 pb-2 md:hidden" onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)}>
-            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full cursor-pointer"></div>
-          </div>
-          
-          <div className="px-5 pb-3 pt-2 md:pt-5 border-b dark:border-gray-700 flex justify-between items-center">
-             <h2 className="text-sm font-black text-gray-800 dark:text-gray-100 uppercase tracking-wider">{t.nearbyPlaces} ({places.length})</h2>
-             <button onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)} className="md:hidden text-emerald-600 font-bold text-xs">
-                {isBottomSheetOpen ? 'បង្រួម' : 'ពង្រីក'}
-             </button>
+            {/* Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className={`absolute left-5 right-5 mt-2 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-20 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+                {suggestions.map((place, idx) => (
+                  <div key={idx} onClick={() => selectSuggestion(place)} className={`px-4 py-3 cursor-pointer border-b last:border-b-0 flex items-center ${isDarkMode ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50 border-gray-50'}`}>
+                    <MapPin className="w-4 h-4 text-gray-400 mr-3 shrink-0" />
+                    <div className="overflow-hidden">
+                      <p className={`font-bold text-sm truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
+                      <p className={`text-xs truncate mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            {isLoading ? (
-              <div className="flex justify-center py-6"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>
-            ) : places.length === 0 ? (
-              <p className="text-center py-6 text-sm text-gray-500">{t.noPlaces}</p>
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
+            {isOffline ? (
+              <div className="space-y-4">
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-4 rounded-xl text-red-800 dark:text-red-300 text-sm">
+                  <AlertTriangle className="w-5 h-5 mb-2 text-red-600 dark:text-red-400" />
+                  <p>{t.offlineNotice}</p>
+                </div>
+                <h2 className={`text-xs font-black uppercase tracking-wider mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.offlineMode}</h2>
+                <ul className="space-y-3">
+                  {offlineContacts.map((contact, idx) => {
+                     const displayCustomName = lang === 'en' ? translateTextToEn(contact.customName) : contact.customName;
+                     const displayRole = lang === 'en' ? translateTextToEn(contact.role) : contact.role;
+                     const displayGoogleName = lang === 'en' ? translateTextToEn(contact.googleName) : contact.googleName;
+                     
+                     return (
+                        <li key={idx} className={`p-4 rounded-xl border flex flex-col ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow-sm`}>
+                           <h3 className="font-bold text-sm mb-1">{displayGoogleName}</h3>
+                           <p className="text-sm font-semibold flex items-center text-emerald-600 dark:text-emerald-400"><User className="w-4 h-4 mr-1"/> {displayCustomName} ({displayRole})</p>
+                           <a href={`tel:${contact.phone}`} className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-center font-bold text-sm flex items-center justify-center transition-colors">
+                             <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn} : {contact.phone}
+                           </a>
+                        </li>
+                     )
+                  })}
+                  {offlineContacts.length === 0 && <p className="text-gray-500 text-sm">{t.noPlaces}</p>}
+                </ul>
+              </div>
             ) : (
-              <ul className="space-y-3 pb-10">
-                {places.map((place) => {
-                  const types = place.types || [];
-                  let Icon = Building2;
-                  if (types.includes('school') || types.includes('college')) Icon = GraduationCap;
-                  if (types.includes('hospital') || types.includes('clinic')) Icon = Activity;
-                  if (types.includes('police')) Icon = ShieldAlert;
-                  if (types.includes('townhall')) Icon = Globe;
+              <>
+                <h2 className={`text-xs font-black uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {t.nearbyPlaces} ({places.length})
+                </h2>
+                {isLoading ? (
+                  <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>
+                ) : places.length === 0 ? (
+                  <p className={`text-center py-8 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.noPlaces}</p>
+                ) : (
+                  <ul className="space-y-3 pb-20">
+                    {places.map((place) => {
+                      const types = place.types || [];
+                      let Icon = Building2;
+                      if (types.includes('school') || types.includes('university') || types.includes('primary_school')) Icon = GraduationCap;
+                      if (types.includes('hospital') || types.includes('doctor') || types.includes('health') || types.includes('pharmacy')) Icon = Activity;
+                      if (types.includes('police')) Icon = ShieldAlert;
+                      if (types.includes('local_government_office') || types.includes('city_hall')) Icon = Globe;
 
-                  const isEnriched = enrichedData[place.id]; 
-                  const typeSuffix = getPlaceTypeName(types, lang);
-                  
-                  return (
-                    <li key={place.id} className={`p-3.5 border rounded-2xl flex flex-col shadow-sm cursor-pointer transition ${isEnriched ? 'bg-emerald-50/50 border-emerald-300 dark:bg-gray-700 dark:border-emerald-500' : 'bg-white border-gray-100 hover:border-emerald-200 dark:bg-gray-800 dark:border-gray-700'}`}>
-                      <div className="flex items-start" onClick={() => { if(mapRef.current && window.google) { mapRef.current.panTo(place.location); mapRef.current.setZoom(16); setIsBottomSheetOpen(false); } }}>
-                        <div className={`p-2.5 rounded-xl mr-3 ${isEnriched ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1 overflow-hidden pt-0.5">
-                          <h3 className="font-bold text-[14px] leading-tight truncate dark:text-gray-100">{getPlaceName(place, lang)}{typeSuffix}</h3>
-                          <p className="text-[11px] mt-1 truncate text-gray-500 dark:text-gray-400">{place.formattedAddress}</p>
-                        </div>
-                      </div>
+                      const isEnriched = enrichedData[place.id]; 
+                      const typeSuffix = getPlaceTypeName(types, lang);
+                      const displayTitle = getPlaceName(place, lang) + typeSuffix;
                       
-                      {isEnriched ? (
-                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-col">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="text-[13px] font-bold flex items-center mb-1 text-emerald-700 dark:text-emerald-400"><User className="w-3.5 h-3.5 mr-1"/> {isEnriched.customName} ({isEnriched.role})</p>
-                              <p className="text-[12px] font-bold flex items-center text-emerald-600"><Phone className="w-3.5 h-3.5 mr-1"/> {isEnriched.phone}</p>
+                      let displayCustomName = isEnriched ? isEnriched.customName : '';
+                      let displayRole = isEnriched ? isEnriched.role : '';
+                      if (isEnriched && lang === 'en') {
+                          displayCustomName = translateTextToEn(isEnriched.customName);
+                          displayRole = translateTextToEn(isEnriched.role);
+                      }
+
+                      return (
+                        <li 
+                          key={place.id} 
+                          className={`p-3.5 border rounded-xl transition-all flex flex-col shadow-sm cursor-pointer hover:shadow-md
+                            ${isDarkMode 
+                              ? (isEnriched ? 'bg-gray-700 border-emerald-500' : 'bg-gray-800 border-gray-700 hover:border-emerald-500')
+                              : (isEnriched ? 'bg-emerald-50/50 border-emerald-300' : 'bg-white border-gray-200 hover:border-emerald-300')
+                            }
+                          `}
+                        >
+                          <div className="flex items-start" onClick={() => { mapRef.current?.panTo(place.location); mapRef.current?.setZoom(17); }}>
+                            <div className={`p-2.5 rounded-lg mr-3 shrink-0 ${isEnriched ? (isDarkMode ? 'bg-emerald-900 text-emerald-400' : 'bg-emerald-100 text-emerald-700') : (isDarkMode ? 'bg-gray-700 text-emerald-400' : 'bg-emerald-50 text-emerald-600')}`}>
+                              <Icon className="w-5 h-5" />
                             </div>
-                            {isAdminUser && (
-                              <button onClick={(e) => { e.stopPropagation(); deleteEnrichedData(place.id); }} className="p-1.5 bg-red-100 text-red-600 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                            )}
+                            <div className="flex-1 overflow-hidden pt-1">
+                              <h3 className={`font-bold text-[14px] leading-tight truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{displayTitle}</h3>
+                              <p className={`text-[12px] mt-1 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
+                            </div>
                           </div>
-                          <a href={`tel:${isEnriched.phone}`} className="mt-1 py-2 w-full rounded-xl text-center font-bold text-[13px] flex items-center justify-center bg-emerald-600 text-white shadow-md">
-                            <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn}
-                          </a>
-                        </div>
-                      ) : (
-                        <div className="mt-2 text-center py-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                           <span className="text-[10px] font-bold text-amber-600">{t.localDataOnly}</span>
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+                          
+                          {isEnriched ? (
+                            <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-emerald-200'} flex flex-col`}>
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <p className={`text-[13px] font-bold flex items-center mb-0.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-800'}`}>
+                                    <User className="w-3.5 h-3.5 mr-1.5"/> {displayCustomName} ({displayRole})
+                                  </p>
+                                  <p className={`text-[12px] font-bold flex items-center ${isDarkMode ? 'text-emerald-500' : 'text-emerald-700'}`}>
+                                    <Phone className="w-3.5 h-3.5 mr-1.5"/> {isEnriched.phone}
+                                  </p>
+                                </div>
+                                {isAdminUser && (
+                                  <button onClick={(e) => { e.stopPropagation(); deleteEnrichedData(place.id); }} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="លុបទិន្នន័យនេះ">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                              <a href={`tel:${isEnriched.phone}`} onClick={e => e.stopPropagation()} className={`mt-1 py-2 w-full rounded-lg text-center font-bold text-[13px] flex items-center justify-center transition-colors bg-emerald-600 hover:bg-emerald-700 text-white shadow-md`}>
+                                <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn}
+                              </a>
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-center py-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                               <span className="text-[10px] font-bold text-red-500">{t.notSetLabel}</span>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {/* Modal for Admin Adding Data via Map Click */}
+        {/* Right Map Area (Top on Mobile) */}
+        <div className="flex-1 w-full h-[55vh] md:h-full relative z-0">
+          <div ref={mapElementRef} className="w-full h-full" />
+          
+          {/* Floating Actions */}
+          <div className="absolute bottom-6 md:bottom-6 right-4 z-20 flex flex-col gap-3">
+            <button 
+              onClick={toggleMapTheme} 
+              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition transform text-emerald-600 dark:text-emerald-400" 
+              title="ប្តូរទម្រង់ផែនទី (ផែនទីធម្មតា ឬ ផែនទីផ្កាយរណបបៃតង)"
+            >
+              <Layers className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+            <button onClick={recenterMap} className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition transform" title="ត្រឡប់មកទីតាំងខ្ញុំវិញ (Recenter)">
+              <Crosshair className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
+          </div>
+
+          {/* Floating Live GPS Status */}
+          {gpsStatus && (
+            <div className="absolute top-4 md:bottom-6 md:top-auto left-4 md:left-6 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-gray-100 dark:border-gray-750 flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-200">
+              <div className={`w-2 h-2 rounded-full ${userLocation ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`}></div>
+              {gpsStatus}
+            </div>
+          )}
+        </div>
+
+        {/* Modal for Admin clicking on map to add data */}
         {showAddModal && pendingLocation && isAdminUser && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-            <div className="p-6 rounded-3xl w-full max-w-sm bg-white shadow-2xl">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold flex items-center text-gray-900"><MapPin className="text-emerald-500 mr-2" /> បន្ថែមទីតាំងថ្មី</h3>
-                <button onClick={() => setShowAddModal(false)} className="text-gray-400 p-1 bg-gray-100 rounded-full hover:text-red-500"><X className="w-5 h-5" /></button>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className={`p-6 rounded-2xl w-full max-w-md shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'}`}>
+              <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-200 dark:border-gray-700">
+                <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <MapPin className="text-emerald-500" /> {t.addLocTitle}
+                </h3>
+                <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <div className="space-y-4">
-                <input type="text" placeholder="ឈ្មោះស្ថាប័ន / បុគ្គល" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-emerald-500 outline-none text-sm font-semibold" />
-                <input type="tel" placeholder="លេខទូរស័ព្ទ" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-emerald-500 outline-none text-sm font-semibold" />
-                <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-emerald-500 outline-none text-sm font-semibold">
-                  <option value="សាលារៀន / នាយកសាលា">សាលារៀន / នាយកសាលា</option>
-                  <option value="មន្ទីរពេទ្យ / គ្លីនិក">មន្ទីរពេទ្យ / គ្លីនិក</option>
-                  <option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option>
-                  <option value="សាលាឃុំ / ផ្ទះមេភូមិ">សាលាឃុំ / ផ្ទះមេភូមិ</option>
-                </select>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.placeNameLabel}</label>
+                  <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.phoneLabel}</label>
+                  <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.typeLabel}</label>
+                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none">
+                    <option value="សាលារៀន / នាយកសាលា">{t.selectSchool}</option>
+                    <option value="មន្ទីរពេទ្យ / គ្លីនិក">{t.selectHospital}</option>
+                    <option value="ប៉ុស្តិ៍ប៉ូលីស">{t.selectPolice}</option>
+                    <option value="សាលាឃុំ / ផ្ទះមេភូមិ">{t.selectCommune}</option>
+                  </select>
+                </div>
               </div>
-              <button onClick={saveEnrichedData} className="w-full mt-6 py-3.5 bg-emerald-600 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2">
-                <Save className="w-5 h-5" /> រក្សាទុកទិន្នន័យ
+              <button onClick={saveEnrichedData} className="w-full mt-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg flex justify-center items-center gap-2 text-sm transition">
+                <Save className="w-4 h-4" /> {t.saveBtn}
               </button>
             </div>
           </div>
@@ -1234,11 +1315,10 @@ export default function App() {
           {/* TAB: SECURITY */}
           {activeTab === 'security' && (
             <div className="flex-1">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b-4 border-red-500 pb-1">
-                 <h1 className="text-2xl font-black text-gray-800 flex items-center">សន្តិសុខប្រព័ន្ធ (ទប់ស្កាត់ការចូលខុស)</h1>
-                 {/* Explicit "Clear" Button */}
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                 <h1 className="text-2xl font-bold flex items-center text-red-600"><AlertTriangle className="mr-2"/> សន្តិសុខប្រព័ន្ធ (ទប់ស្កាត់ការចូលខុស)</h1>
                  <button onClick={requestClearSecurityLogs} className="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition flex items-center">
-                    <Trash2 className="w-4 h-4 mr-2"/> Clear
+                    <Trash2 className="w-4 h-4 mr-2"/> លុបកំណត់ហេតុទាំងអស់
                  </button>
                </div>
                <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
