@@ -3,7 +3,7 @@ import {
   Search, MapPin, Navigation, Building2, Store, GraduationCap, 
   ShieldAlert, Lock, User, Phone, Trash2, Activity, BarChart3, 
   Settings, AlertTriangle, X, Crosshair, Layers, 
-  Loader2, Moon, Sun, Globe, PhoneCall, Save, CheckCircle
+  Loader2, Moon, Sun, Globe, PhoneCall, Save, CheckCircle, ChevronUp, ChevronDown
 } from 'lucide-react';
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
@@ -30,7 +30,7 @@ try {
   console.error("Firebase init error:", e);
 }
 
-// Distance Calculator
+// គណនាចម្ងាយរវាងកូអរដោនេពីរ (គីឡូម៉ែត្រ)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (!lat1 || !lon1 || !lat2 || !lon2) return 0;
   const R = 6371; 
@@ -43,7 +43,7 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return R * c; 
 };
 
-// Fallback Function for Offline
+// ទីតាំងបម្រុងទុកពេលគ្មានអ៊ីនធឺណិត (Offline)
 const getFallbackPOIs = (lat, lng) => {
   return [
     {
@@ -63,9 +63,7 @@ const getFallbackPOIs = (lat, lng) => {
   ];
 };
 
-// ==========================================
-// TRANSLATION DICTIONARY (ខ្មែរ 🇰🇭 / English 🇺🇸)
-// ==========================================
+// វចនានុក្រមភាសា (ខ្មែរ 🇰🇭 / English 🇺🇸)
 const dict = {
   km: {
     appTitle: "Smart Map",
@@ -129,13 +127,16 @@ const dict = {
     confirmClearTitle: "បញ្ជាក់ការលុប",
     confirmClearMsg: "តើអ្នកពិតជាចង់លុបកំណត់ហេតុសន្តិសុខទាំងអស់មែនទេ?",
     confirmYes: "យល់ព្រមលុប",
-    confirmNo: "បោះបង់"
+    confirmNo: "បោះបង់",
+    mapViewTab: "ផែនទី",
+    listTab: "បញ្ជីទីតាំង",
+    adminTab: "គ្រប់គ្រង"
   },
   en: {
     appTitle: "Smart Map",
     searchBox: "Search countries, provinces, districts, villages...",
     myLocation: "Recenter Map",
-    nearbyPlaces: "Nearby Locations Around You",
+    nearbyPlaces: "Nearby Locations",
     noPlaces: "No important places found nearby",
     callBtn: "Call Now",
     adminBtn: "Admin System",
@@ -193,11 +194,14 @@ const dict = {
     confirmClearTitle: "Confirm Deletion",
     confirmClearMsg: "Are you sure you want to clear all security logs?",
     confirmYes: "Yes, clear them",
-    confirmNo: "Cancel"
+    confirmNo: "Cancel",
+    mapViewTab: "Map",
+    listTab: "Places",
+    adminTab: "Admin"
   }
 };
 
-// Deep Translation Function for Place Names & Custom Data
+// បកប្រែឈ្មោះទីតាំងទៅជាភាសាអង់គ្លេសស្វ័យប្រវត្ត
 const translateTextToEn = (text) => {
     if (!text) return '';
     return text
@@ -248,7 +252,8 @@ const getPlaceName = (place, lang) => {
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [view, setView] = useState('user'); 
+  const [view, setView] = useState('user'); // user, admin_login, admin_dashboard
+  const [mobileTab, setMobileTab] = useState('map'); // map, list
   const [isAdminUser, setIsAdminUser] = useState(false);
   
   const isAdminRef = useRef(isAdminUser);
@@ -291,6 +296,7 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [pendingLocation, setPendingLocation] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', type: 'សាលារៀន / នាយកសាលា' });
+  const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
   
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
 
@@ -302,11 +308,10 @@ export default function App() {
   const watchIdRef = useRef(null);
   const infoWindowRef = useRef(null);
 
-  // NOTE: This API Key should ideally be restricted and provided via environment variables in production.
   const API_KEY = "AIzaSyCYPYMqUNC3FYAuDoTBiJtCCzjZtQd7oCg";
   const ADMIN_PASS = "ict168mit";
 
-  // Global Toast function
+  // បង្ហាញការជូនដំណឹង (Toast Notification)
   const showToast = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
@@ -392,7 +397,6 @@ export default function App() {
       return;
     }
 
-    // Handle Google Maps Authentication Error gracefully
     window.gm_authFailure = () => {
        showToast("Google Maps API Key មិនត្រឹមត្រូវ (InvalidKeyMapError)។", "error");
        setIsApiLoaded(false);
@@ -414,7 +418,7 @@ export default function App() {
     };
   }, [API_KEY, showToast]);
 
-  // UPDATE PLACES MARKERS
+  // បញ្ចូលសញ្ញាសម្គាល់លើផែនទី (Markers)
   const updateMarkers = useCallback((newPlaces) => {
     markersRef.current.forEach(marker => { if (marker) marker.map = null; });
     markersRef.current = [];
@@ -438,7 +442,6 @@ export default function App() {
           title: displayTitle,
         });
 
-        // Resolve translations for InfoWindow
         let infoWindowName = isEnriched ? isEnriched.customName : '';
         let infoWindowRole = isEnriched ? isEnriched.role : '';
         if (isEnriched && lang === 'en') {
@@ -446,7 +449,6 @@ export default function App() {
             infoWindowRole = translateTextToEn(isEnriched.role);
         }
         
-        // Extract Place Photo URI if available
         let photoHtml = '';
         if (place.photos && place.photos.length > 0) {
             try {
@@ -486,7 +488,7 @@ export default function App() {
     });
   }, [enrichedData, lang, t.localDataOnly]);
 
-  // FETCH NEARBY PLACES FROM GOOGLE PLACES API
+  // ទាញយកទីតាំងពី Google Places API
   const fetchNearbyPlaces = useCallback(async (location) => {
     if (!mapRef.current) return;
     setIsLoading(true);
@@ -504,7 +506,7 @@ export default function App() {
       const request = {
         textQuery: 'school OR hospital OR clinic OR police OR local_government_office OR commune OR village',
         fields: ['id', 'displayName', 'location', 'formattedAddress', 'types', 'photos'],
-        locationBias: { center: location, radius: 25000 }, // Increased Radius to 25km (20-40km range)
+        locationBias: { center: location, radius: 25000 }, 
         language: lang
       };
       const { places: newPlaces } = await window.google.maps.places.Place.searchByText(request);
@@ -529,7 +531,7 @@ export default function App() {
     }
   }, [fetchNearbyPlaces, trackingError]);
 
-  // Initialize Map
+  // បង្កើតផែនទីដំបូង
   useEffect(() => {
     if (!isApiLoaded || !mapElementRef.current || view !== 'user') return;
 
@@ -539,14 +541,13 @@ export default function App() {
       zoom: 14,
       mapId: "450ae928a2c49128", 
       mapTypeId: 'roadmap',
-      mapTypeControl: true, // Enable native map type control
-      streetViewControl: true, // Enable native Street View (Pegman)
-      fullscreenControl: true, // Enable native Fullscreen
-      zoomControl: true
+      mapTypeControl: false, 
+      streetViewControl: false, 
+      fullscreenControl: false, 
+      zoomControl: false
     });
     mapRef.current = map;
 
-    // Admin Add Data by Clicking on Map directly
     map.addListener("click", (e) => {
         if (infoWindowRef.current) infoWindowRef.current.close();
         if (isAdminRef.current) {
@@ -606,7 +607,6 @@ export default function App() {
     };
   }, [isApiLoaded, view]); 
 
-  // Toggle Map Theme (Roadmap vs Satellite)
   const toggleMapTheme = () => {
      if (mapRef.current) {
         const newTheme = mapTheme === 'roadmap' ? 'satellite' : 'roadmap';
@@ -626,6 +626,7 @@ export default function App() {
         const topResult = searchResults[0];
         mapRef.current.setCenter(topResult.location); mapRef.current.setZoom(16);
         fetchNearbyPlaces({ lat: topResult.location.lat(), lng: topResult.location.lng() });
+        setMobileTab('map'); // ប្តូរទៅមើលផែនទីស្វ័យប្រវត្តិ
       } else { showToast(lang === 'km' ? "រកមិនឃើញទីតាំងនេះទេ" : "Place not found", "error"); }
     } catch (error) { console.error(error); } finally { setIsSearching(false); }
   };
@@ -654,9 +655,10 @@ export default function App() {
     setSearchQuery(getPlaceName(place, lang)); setShowSuggestions(false);
     mapRef.current.panTo(place.location); mapRef.current.setZoom(16);
     fetchNearbyPlaces({ lat: place.location.lat(), lng: place.location.lng() });
+    setMobileTab('map');
   };
 
-  // ANALYTICS CALCULATIONS
+  // ស្ថិតិអ្នកប្រើប្រាស់
   const totalUsersCount = visitorLogs.length;
 
   const stats = useMemo(() => {
@@ -676,7 +678,6 @@ export default function App() {
     return { lastWeek, lastMonth, lastYear, weekPercent, monthPercent, yearPercent };
   }, [visitorLogs, totalUsersCount]);
 
-  // ACTIONS
   const recenterMap = () => {
     if (mapRef.current && userLocation) {
       mapRef.current.panTo(userLocation);
@@ -760,7 +761,6 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
-  // Replaced window.confirm with custom modal interaction
   const requestClearSecurityLogs = () => {
     setConfirmDialog({
       isOpen: true,
@@ -787,7 +787,7 @@ export default function App() {
 
   if (view === 'user') {
     return (
-      <div className={`flex flex-col-reverse md:flex-row h-[100dvh] w-full transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-800'} overflow-hidden relative overscroll-none`}>
+      <div className={`flex flex-col h-[100dvh] w-full transition-colors duration-300 ${isDarkMode ? 'dark bg-gray-900 text-white' : 'bg-gray-50 text-gray-800'} overflow-hidden relative overscroll-none`}>
         
         {/* Offline Banner */}
         {isOffline && (
@@ -798,71 +798,102 @@ export default function App() {
 
         {/* Global Toast */}
         {toast.show && (
-          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
-            <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
+          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-bounce pointer-events-none">
+            <div className={`px-6 py-3 rounded-full shadow-2xl text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
                {toast.type === 'success' && <CheckCircle className="w-4 h-4"/>}
                {toast.message}
             </div>
           </div>
         )}
 
-        {/* Left Sidebar (Bottom Sheet on Mobile) */}
-        <div className={`w-full h-[45vh] md:h-full md:w-[350px] lg:w-[400px] ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} flex flex-col shadow-2xl z-30 relative md:border-r border-t md:border-t-0 rounded-t-3xl md:rounded-none`}>
-          <div className="p-5 border-b border-gray-200 dark:border-gray-700 relative">
-            {/* Mobile Drag Handle Indicator */}
-            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4 md:hidden"></div>
+        {/* TOP MOBILE HEADER & SEARCH */}
+        <div className={`w-full p-4 shrink-0 z-40 transition-colors ${isDarkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white border-b border-gray-100'} shadow-sm`}>
+          <div className="flex justify-between items-center mb-3">
+            <h1 className={`text-lg font-black flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <MapPin className="mr-1.5 text-emerald-500 w-5 h-5 animate-bounce" /> {t.appTitle}
+            </h1>
             
-            <div className="flex justify-between items-center mb-5 mt-1 md:mt-2">
-              <h1 className={`text-xl font-black flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <MapPin className="mr-2 text-emerald-500 w-6 h-6 animate-bounce" /> {t.appTitle}
-              </h1>
-              
-              {/* Top Right Tool Bar */}
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={() => setLang(lang === 'km' ? 'en' : 'km')} 
-                  className={`flex items-center px-2.5 py-1.5 rounded-full font-bold text-[12px] transition-all shadow-sm border ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-emerald-400 border-gray-600' : 'bg-white hover:bg-gray-50 text-emerald-600 border-emerald-200'}`}
-                >
-                  <span className="mr-1.5">{lang === 'km' ? '🇰🇭' : '🇺🇸'}</span>
-                  {lang === 'km' ? 'English' : 'ខ្មែរ'}
-                </button>
-                <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full transition ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`} title="បិទ/បើកពន្លឺ">
-                  {isDarkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
-                </button>
-                <button onClick={() => setView('admin_login')} className={`p-2 rounded-full transition ${isAdminUser ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')}`} title="Admin Panel">
-                  <ShieldAlert className="w-4 h-4" />
-                </button>
-              </div>
+            {/* របារបញ្ជាភាសា ពន្លឺ និង Admin */}
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setLang(lang === 'km' ? 'en' : 'km')} 
+                className={`flex items-center px-2.5 py-1.5 rounded-full font-bold text-[11px] transition-all shadow-sm border ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-emerald-400 border-gray-600' : 'bg-gray-50 hover:bg-gray-100 text-emerald-600 border-emerald-200'}`}
+              >
+                <span className="mr-1">{lang === 'km' ? '🇰🇭' : '🇺🇸'}</span>
+                {lang === 'km' ? 'EN' : 'ខ្មែរ'}
+              </button>
+              <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full transition ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`} title="បិទ/បើកពន្លឺ">
+                {isDarkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
+              </button>
+              <button onClick={() => setView('admin_login')} className={`p-2 rounded-full transition ${isAdminUser ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')}`} title="Admin Panel">
+                <ShieldAlert className="w-4 h-4" />
+              </button>
             </div>
-            
-            {/* Search Box */}
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <input
-                type="text" value={searchQuery} onChange={handleInputChange} onFocus={() => setShowSuggestions(true)}
-                placeholder={t.searchBox}
-                className={`w-full pl-11 pr-10 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-400' : 'bg-white border-gray-200 text-gray-900 focus:border-emerald-500'} shadow-sm text-sm font-medium`}
-              />
-              <Search className="absolute left-4 top-4 text-gray-400 w-5 h-5 cursor-pointer" onClick={handleSearchSubmit} />
-              {isSearching && <div className="absolute right-4 top-4 animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-500"></div>}
-            </form>
+          </div>
+          
+          {/* ប្រអប់ស្វែងរក */}
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <input
+              type="text" value={searchQuery} onChange={handleInputChange} onFocus={() => setShowSuggestions(true)}
+              placeholder={t.searchBox}
+              className={`w-full pl-11 pr-10 py-3 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-400' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-emerald-500'} text-sm font-medium`}
+            />
+            <Search className="absolute left-4 top-3.5 text-gray-400 w-4 h-4 cursor-pointer" onClick={handleSearchSubmit} />
+            {isSearching && <div className="absolute right-4 top-3.5 animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>}
+          </form>
 
-            {/* Suggestions Dropdown */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className={`absolute left-5 right-5 mt-2 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-20 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
-                {suggestions.map((place, idx) => (
-                  <div key={idx} onClick={() => selectSuggestion(place)} className={`px-4 py-3 cursor-pointer border-b last:border-b-0 flex items-center ${isDarkMode ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50 border-gray-50'}`}>
-                    <MapPin className="w-4 h-4 text-gray-400 mr-3 shrink-0" />
-                    <div className="overflow-hidden">
-                      <p className={`font-bold text-sm truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
-                      <p className={`text-xs truncate mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
-                    </div>
+          {/* បញ្ជីទីតាំងស្នើស្វ័យប្រវត្តពេលវាយអក្សរស្វែងរក */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className={`absolute left-4 right-4 mt-2 rounded-xl shadow-2xl max-h-60 overflow-y-auto z-50 border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+              {suggestions.map((place, idx) => (
+                <div key={idx} onClick={() => selectSuggestion(place)} className={`px-4 py-3 cursor-pointer border-b last:border-b-0 flex items-center ${isDarkMode ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50 border-gray-50'}`}>
+                  <MapPin className="w-4 h-4 text-gray-400 mr-3 shrink-0" />
+                  <div className="overflow-hidden">
+                    <p className={`font-bold text-sm truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
+                    <p className={`text-xs truncate mt-0.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
                   </div>
-                ))}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* MAIN BODY AREA WITH DYNAMIC MAP & TABS */}
+        <div className="flex-1 w-full h-full relative overflow-hidden">
+          
+          {/* MAP TAB - FULL MAP VIEW */}
+          <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${mobileTab === 'map' ? 'opacity-100 z-10' : 'opacity-0 -z-10'}`}>
+            <div ref={mapElementRef} className="w-full h-full" />
+            
+            {/* FLOATING ACTION BUTTONS */}
+            <div className="absolute bottom-6 right-4 z-20 flex flex-col gap-3">
+              <button 
+                onClick={toggleMapTheme} 
+                className="w-11 h-11 bg-white/95 dark:bg-gray-800/95 border border-gray-100 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition text-emerald-600 dark:text-emerald-400" 
+                title="ប្តូរទម្រង់ផែនទី"
+              >
+                <Layers className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={recenterMap} 
+                className="w-11 h-11 bg-white/95 dark:bg-gray-800/95 text-emerald-600 dark:text-emerald-400 border border-gray-100 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition" 
+                title={t.myLocation}
+              >
+                <Crosshair className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* GPS STATUS */}
+            {gpsStatus && (
+              <div className="absolute bottom-6 left-4 z-20 bg-white/90 dark:bg-gray-800/90 backdrop-blur px-3 py-1.5 rounded-full shadow-md border border-gray-100 dark:border-gray-700 flex items-center gap-2 text-[10px] font-black uppercase text-gray-700 dark:text-gray-200">
+                <div className={`w-2 h-2 rounded-full ${userLocation ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`}></div>
+                {gpsStatus}
               </div>
             )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
+          {/* LIST TAB - BEAUTIFUL SEARCH & CONTACTS SHEET */}
+          <div className={`absolute inset-0 w-full h-full bg-gray-50 dark:bg-gray-900 transition-opacity duration-300 overflow-y-auto p-4 custom-scrollbar ${mobileTab === 'list' ? 'opacity-100 z-10' : 'opacity-0 -z-10'}`}>
             {isOffline ? (
               <div className="space-y-4">
                 <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 p-4 rounded-xl text-red-800 dark:text-red-300 text-sm">
@@ -870,36 +901,39 @@ export default function App() {
                   <p>{t.offlineNotice}</p>
                 </div>
                 <h2 className={`text-xs font-black uppercase tracking-wider mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.offlineMode}</h2>
-                <ul className="space-y-3">
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {offlineContacts.map((contact, idx) => {
                      const displayCustomName = lang === 'en' ? translateTextToEn(contact.customName) : contact.customName;
                      const displayRole = lang === 'en' ? translateTextToEn(contact.role) : contact.role;
                      const displayGoogleName = lang === 'en' ? translateTextToEn(contact.googleName) : contact.googleName;
                      
                      return (
-                        <li key={idx} className={`p-4 rounded-xl border flex flex-col ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'} shadow-sm`}>
+                        <li key={idx} className={`p-4 rounded-2xl border flex flex-col ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-sm`}>
                            <h3 className="font-bold text-sm mb-1">{displayGoogleName}</h3>
-                           <p className="text-sm font-semibold flex items-center text-emerald-600 dark:text-emerald-400"><User className="w-4 h-4 mr-1"/> {displayCustomName} ({displayRole})</p>
-                           <a href={`tel:${contact.phone}`} className="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-center font-bold text-sm flex items-center justify-center transition-colors">
+                           <p className="text-sm font-semibold flex items-center text-emerald-600 dark:text-emerald-400 mb-3"><User className="w-4 h-4 mr-1"/> {displayCustomName} ({displayRole})</p>
+                           <a href={`tel:${contact.phone}`} className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-center font-bold text-sm flex items-center justify-center transition-colors">
                              <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn} : {contact.phone}
                            </a>
                         </li>
                      )
                   })}
-                  {offlineContacts.length === 0 && <p className="text-gray-500 text-sm">{t.noPlaces}</p>}
+                  {offlineContacts.length === 0 && <p className="text-gray-500 text-sm text-center py-10">{t.noPlaces}</p>}
                 </ul>
               </div>
             ) : (
-              <>
-                <h2 className={`text-xs font-black uppercase tracking-wider mb-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t.nearbyPlaces} ({places.length})
-                </h2>
+              <div className="space-y-3 max-w-4xl mx-auto pb-16">
+                <div className="flex justify-between items-center">
+                  <h2 className={`text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t.nearbyPlaces} ({places.length})
+                  </h2>
+                </div>
+                
                 {isLoading ? (
                   <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div></div>
                 ) : places.length === 0 ? (
                   <p className={`text-center py-8 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t.noPlaces}</p>
                 ) : (
-                  <ul className="space-y-3 pb-20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {places.map((place) => {
                       const types = place.types || [];
                       let Icon = Building2;
@@ -920,112 +954,116 @@ export default function App() {
                       }
 
                       return (
-                        <li 
+                        <div 
                           key={place.id} 
-                          className={`p-3.5 border rounded-xl transition-all flex flex-col shadow-sm cursor-pointer hover:shadow-md
+                          className={`p-4 border rounded-2xl transition-all flex flex-col shadow-sm cursor-pointer
                             ${isDarkMode 
-                              ? (isEnriched ? 'bg-gray-700 border-emerald-500' : 'bg-gray-800 border-gray-700 hover:border-emerald-500')
-                              : (isEnriched ? 'bg-emerald-50/50 border-emerald-300' : 'bg-white border-gray-200 hover:border-emerald-300')
+                              ? (isEnriched ? 'bg-gray-800 border-emerald-500' : 'bg-gray-800 border-gray-700 hover:border-emerald-500')
+                              : (isEnriched ? 'bg-emerald-50/40 border-emerald-300 hover:bg-emerald-50' : 'bg-white border-gray-200 hover:border-emerald-300')
                             }
                           `}
                         >
-                          <div className="flex items-start" onClick={() => { mapRef.current?.panTo(place.location); mapRef.current?.setZoom(17); }}>
-                            <div className={`p-2.5 rounded-lg mr-3 shrink-0 ${isEnriched ? (isDarkMode ? 'bg-emerald-900 text-emerald-400' : 'bg-emerald-100 text-emerald-700') : (isDarkMode ? 'bg-gray-700 text-emerald-400' : 'bg-emerald-50 text-emerald-600')}`}>
+                          <div className="flex items-start" onClick={() => { mapRef.current?.panTo(place.location); mapRef.current?.setZoom(17); setMobileTab('map'); }}>
+                            <div className={`p-2.5 rounded-xl mr-3 shrink-0 ${isEnriched ? (isDarkMode ? 'bg-emerald-900/50 text-emerald-400' : 'bg-emerald-100 text-emerald-700') : (isDarkMode ? 'bg-gray-750 text-emerald-400' : 'bg-emerald-50/50 text-emerald-600')}`}>
                               <Icon className="w-5 h-5" />
                             </div>
-                            <div className="flex-1 overflow-hidden pt-1">
-                              <h3 className={`font-bold text-[14px] leading-tight truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{displayTitle}</h3>
-                              <p className={`text-[12px] mt-1 truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
+                            <div className="flex-1 overflow-hidden">
+                              <h3 className={`font-bold text-sm leading-snug truncate ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{displayTitle}</h3>
+                              <p className={`text-xs truncate mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{place.formattedAddress}</p>
                             </div>
                           </div>
                           
                           {isEnriched ? (
-                            <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-600' : 'border-emerald-200'} flex flex-col`}>
-                              <div className="flex justify-between items-start mb-2">
+                            <div className={`mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-emerald-200'} flex flex-col`}>
+                              <div className="flex justify-between items-start mb-3">
                                 <div>
-                                  <p className={`text-[13px] font-bold flex items-center mb-0.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-800'}`}>
-                                    <User className="w-3.5 h-3.5 mr-1.5"/> {displayCustomName} ({displayRole})
+                                  <p className={`text-[13px] font-bold flex items-center mb-1 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-800'}`}>
+                                    <User className="w-3.5 h-3.5 mr-1.5 shrink-0"/> {displayCustomName} ({displayRole})
                                   </p>
-                                  <p className={`text-[12px] font-bold flex items-center ${isDarkMode ? 'text-emerald-500' : 'text-emerald-700'}`}>
-                                    <Phone className="w-3.5 h-3.5 mr-1.5"/> {isEnriched.phone}
+                                  <p className={`text-xs font-bold flex items-center ${isDarkMode ? 'text-emerald-500' : 'text-emerald-700'}`}>
+                                    <Phone className="w-3.5 h-3.5 mr-1.5 shrink-0"/> {isEnriched.phone}
                                   </p>
                                 </div>
                                 {isAdminUser && (
-                                  <button onClick={(e) => { e.stopPropagation(); deleteEnrichedData(place.id); }} className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="លុបទិន្នន័យនេះ">
+                                  <button onClick={(e) => { e.stopPropagation(); deleteEnrichedData(place.id); }} className="p-2 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition" title="លុបទិន្នន័យនេះ">
                                     <Trash2 className="w-4 h-4" />
                                   </button>
                                 )}
                               </div>
-                              <a href={`tel:${isEnriched.phone}`} onClick={e => e.stopPropagation()} className={`mt-1 py-2 w-full rounded-lg text-center font-bold text-[13px] flex items-center justify-center transition-colors bg-emerald-600 hover:bg-emerald-700 text-white shadow-md`}>
+                              <a href={`tel:${isEnriched.phone}`} onClick={e => e.stopPropagation()} className={`w-full py-2.5 rounded-xl text-center font-bold text-xs flex items-center justify-center transition-colors bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm`}>
                                 <PhoneCall className="w-4 h-4 mr-2" /> {t.callBtn}
                               </a>
                             </div>
                           ) : (
-                            <div className="mt-2 text-center py-1 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                               <span className="text-[10px] font-bold text-red-500">{t.notSetLabel}</span>
+                            <div className="mt-3 text-center py-1.5 bg-gray-100/50 dark:bg-gray-800 rounded-xl">
+                               <span className="text-[10px] font-black text-red-500 uppercase tracking-widest">{t.notSetLabel}</span>
                             </div>
                           )}
-                        </li>
+                        </div>
                       );
                     })}
-                  </ul>
+                  </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Right Map Area (Top on Mobile) */}
-        <div className="flex-1 w-full h-[55vh] md:h-full relative z-0">
-          <div ref={mapElementRef} className="w-full h-full" />
+        {/* PERSISTENT MOBILE-FIRST APP BOTTOM NAV BAR */}
+        <div className={`w-full shrink-0 h-16 border-t z-40 flex justify-around items-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} shadow-lg`}>
+          <button 
+            onClick={() => setMobileTab('map')} 
+            className={`flex flex-col items-center justify-center h-full w-full transition-colors ${mobileTab === 'map' ? 'text-emerald-500' : 'text-gray-400'}`}
+          >
+            <Layers className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-bold">{t.mapViewTab}</span>
+          </button>
           
-          {/* Floating Actions */}
-          <div className="absolute bottom-6 md:bottom-6 right-4 z-20 flex flex-col gap-3">
-            <button 
-              onClick={toggleMapTheme} 
-              className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition transform text-emerald-600 dark:text-emerald-400" 
-              title="ប្តូរទម្រង់ផែនទី (ផែនទីធម្មតា ឬ ផែនទីផ្កាយរណបបៃតង)"
-            >
-              <Layers className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
-            <button onClick={recenterMap} className="w-12 h-12 md:w-14 md:h-14 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 border border-gray-100 dark:border-gray-700 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition transform" title="ត្រឡប់មកទីតាំងខ្ញុំវិញ (Recenter)">
-              <Crosshair className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
-          </div>
-
-          {/* Floating Live GPS Status */}
-          {gpsStatus && (
-            <div className="absolute top-4 md:bottom-6 md:top-auto left-4 md:left-6 z-10 bg-white/90 dark:bg-gray-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-gray-100 dark:border-gray-750 flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-200">
-              <div className={`w-2 h-2 rounded-full ${userLocation ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`}></div>
-              {gpsStatus}
+          <button 
+            onClick={() => setMobileTab('list')} 
+            className={`flex flex-col items-center justify-center h-full w-full transition-colors ${mobileTab === 'list' ? 'text-emerald-500' : 'text-gray-400'}`}
+          >
+            <div className="relative">
+              <Activity className="w-5 h-5 mb-1" />
+              {places.length > 0 && <span className="absolute -top-1 -right-2 bg-emerald-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-black animate-pulse">{places.length}</span>}
             </div>
-          )}
+            <span className="text-[10px] font-bold">{t.listTab}</span>
+          </button>
+
+          <button 
+            onClick={() => setView('admin_login')} 
+            className={`flex flex-col items-center justify-center h-full w-full text-gray-400 hover:text-emerald-500`}
+          >
+            <ShieldAlert className="w-5 h-5 mb-1" />
+            <span className="text-[10px] font-bold">{t.adminTab}</span>
+          </button>
         </div>
 
-        {/* Modal for Admin clicking on map to add data */}
+        {/* MODAL FOR ADMIN ACTION WITH REFINED MOBILE-FIRST DESIGN */}
         {showAddModal && pendingLocation && isAdminUser && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className={`p-6 rounded-2xl w-full max-w-md shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'}`}>
-              <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 className={`text-lg font-bold flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  <MapPin className="text-emerald-500" /> {t.addLocTitle}
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className={`p-6 rounded-3xl w-full max-w-sm shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'} animate-fade-in`}>
+              <div className="flex justify-between items-center mb-5 pb-3 border-b border-gray-100 dark:border-gray-700">
+                <h3 className={`text-base font-black flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <MapPin className="text-emerald-500 w-5 h-5" /> {t.addLocTitle}
                 </h3>
                 <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="space-y-4 text-sm">
+              
+              <div className="space-y-4">
                 <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.placeNameLabel}</label>
-                  <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none" />
+                  <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">{t.placeNameLabel}</label>
+                  <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none font-bold" />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.phoneLabel}</label>
-                  <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none" />
+                  <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">{t.phoneLabel}</label>
+                  <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none font-bold font-mono" />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1.5 dark:text-gray-300">{t.typeLabel}</label>
-                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-2.5 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none">
+                  <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">{t.typeLabel}</label>
+                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none font-bold">
                     <option value="សាលារៀន / នាយកសាលា">{t.selectSchool}</option>
                     <option value="មន្ទីរពេទ្យ / គ្លីនិក">{t.selectHospital}</option>
                     <option value="ប៉ុស្តិ៍ប៉ូលីស">{t.selectPolice}</option>
@@ -1033,7 +1071,7 @@ export default function App() {
                   </select>
                 </div>
               </div>
-              <button onClick={saveEnrichedData} className="w-full mt-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 shadow-lg flex justify-center items-center gap-2 text-sm transition">
+              <button onClick={saveEnrichedData} className="w-full mt-6 py-3.5 bg-emerald-600 text-white font-black rounded-xl hover:bg-emerald-700 shadow-md flex justify-center items-center gap-2 text-sm transition">
                 <Save className="w-4 h-4" /> {t.saveBtn}
               </button>
             </div>
@@ -1043,18 +1081,19 @@ export default function App() {
     );
   }
 
+  // VIEW: ADMIN ACCESS PIN VERIFICATION
   if (view === 'admin_login') {
     return (
       <div className={`h-screen w-full flex items-center justify-center px-4 ${isDarkMode ? 'bg-gray-950' : 'bg-gray-900'}`}>
         {toast.show && (
-          <div className="absolute top-6 z-50 animate-bounce">
+          <div className="fixed top-6 z-50 animate-bounce">
             <div className={`px-6 py-3 rounded-full shadow-xl text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'}`}>
                {toast.type === 'success' && <CheckCircle className="w-4 h-4"/>}
                {toast.message}
             </div>
           </div>
         )}
-        <div className={`max-w-md w-full rounded-3xl shadow-2xl p-8 relative border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'}`}>
+        <div className={`max-w-md w-full rounded-3xl shadow-2xl p-8 relative border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'} animate-fade-in`}>
           <button onClick={() => setView('user')} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-2 transition-colors"><X className="w-6 h-6" /></button>
           
           <div className="flex justify-center mb-6 mt-4">
@@ -1067,17 +1106,17 @@ export default function App() {
           
           <form onSubmit={handleAdminLogin} className="space-y-4">
             <div className="relative">
-              <Lock className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-4 top-4.5 w-5 h-5 text-gray-400" />
               <input 
                 type="password" 
                 placeholder={t.enterPass} 
-                className={`w-full pl-11 pr-4 py-3.5 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all font-medium ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-emerald-500' : 'bg-gray-50 border-gray-200 focus:border-emerald-500 text-gray-900'}`}
+                className={`w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all font-bold ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-emerald-500' : 'bg-gray-50 border-gray-200 focus:border-emerald-500 text-gray-900'}`}
                 value={adminPassword} 
                 onChange={(e) => setAdminPassword(e.target.value)} 
               />
             </div>
             {loginError && <p className="text-red-500 text-sm text-center font-bold animate-pulse">{loginError}</p>}
-            <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-lg transform transition active:scale-95">
+            <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-xl shadow-lg transform transition active:scale-95">
               {t.loginBtn}
             </button>
           </form>
@@ -1086,14 +1125,14 @@ export default function App() {
     );
   }
 
+  // VIEW: COMPREHENSIVE ADMIN WEB PANEL
   if (view === 'admin_dashboard') {
     return (
-      <div className="h-screen w-full bg-gray-100 flex flex-col md:flex-row relative">
+      <div className="h-screen w-full bg-gray-100 flex flex-col md:flex-row relative overflow-hidden">
         
-        {/* Custom Confirmation Dialog for Admin Actions */}
         {confirmDialog.isOpen && (
-          <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center backdrop-blur-sm px-4">
-            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-fade-in">
+          <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center backdrop-blur-sm px-4 animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
                <h3 className="text-xl font-bold text-gray-900 mb-2">{confirmDialog.title}</h3>
                <p className="text-gray-600 mb-6">{confirmDialog.message}</p>
                <div className="flex gap-3 justify-end">
@@ -1109,74 +1148,78 @@ export default function App() {
         )}
 
         {toast.show && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-bounce">
             <div className={`px-6 py-3 rounded-full shadow-lg text-white font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
                {toast.type === 'success' && <CheckCircle className="w-4 h-4"/>}
                {toast.message}
             </div>
           </div>
         )}
-        <div className="w-full md:w-64 bg-gray-900 text-white flex flex-col shrink-0 overflow-y-auto">
-          <div className="p-6 border-b border-gray-800"><h2 className="text-xl font-bold flex items-center"><ShieldAlert className="mr-2 text-emerald-500"/> Admin Panel</h2></div>
-          <nav className="flex-1 p-4 space-y-2">
-            <button onClick={() => setActiveTab('locations')} className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'locations' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><MapPin className="w-5 h-5 mr-3"/> {t.adminTabLoc}</button>
-            <button onClick={() => setActiveTab('reports')} className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'reports' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><BarChart3 className="w-5 h-5 mr-3"/> {t.adminTabRep}</button>
-            <button onClick={() => setActiveTab('security')} className={`w-full flex items-center p-3 rounded-lg transition-colors ${activeTab === 'security' ? 'bg-emerald-600' : 'hover:bg-gray-800'}`}><AlertTriangle className="w-5 h-5 mr-3"/> {t.adminTabSec}</button>
+        
+        {/* Sidebar */}
+        <div className="w-full md:w-64 bg-gray-900 text-white flex flex-col shrink-0">
+          <div className="p-6 border-b border-gray-800"><h2 className="text-lg font-black flex items-center"><ShieldAlert className="mr-2 text-emerald-500"/> Admin Panel</h2></div>
+          <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+            <button onClick={() => setActiveTab('locations')} className={`w-full flex items-center p-3 rounded-xl font-bold text-sm transition-colors ${activeTab === 'locations' ? 'bg-emerald-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><MapPin className="w-5 h-5 mr-3"/> {t.adminTabLoc}</button>
+            <button onClick={() => setActiveTab('reports')} className={`w-full flex items-center p-3 rounded-xl font-bold text-sm transition-colors ${activeTab === 'reports' ? 'bg-emerald-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><BarChart3 className="w-5 h-5 mr-3"/> {t.adminTabRep}</button>
+            <button onClick={() => setActiveTab('security')} className={`w-full flex items-center p-3 rounded-xl font-bold text-sm transition-colors ${activeTab === 'security' ? 'bg-emerald-600 text-white shadow' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}><AlertTriangle className="w-5 h-5 mr-3"/> {t.adminTabSec}</button>
           </nav>
-          <div className="p-4 border-t border-gray-800 mt-auto">
-            <button onClick={() => { setView('user'); setAdminPassword(''); }} className="w-full bg-emerald-600 hover:bg-emerald-700 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center mb-2 transition"><MapPin className="w-4 h-4 mr-2"/> ត្រឡប់ទៅផែនទី</button>
-            <button onClick={() => { setIsAdminUser(false); setView('user'); setAdminPassword(''); }} className="w-full bg-gray-700 hover:bg-red-600 py-2.5 rounded-lg text-sm font-bold text-gray-200 transition">{t.logoutBtn}</button>
+          <div className="p-4 border-t border-gray-800">
+            <button onClick={() => { setView('user'); setAdminPassword(''); }} className="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl text-xs font-black flex items-center justify-center mb-2 transition shadow"><MapPin className="w-4 h-4 mr-2"/> ត្រឡប់ទៅផែនទី</button>
+            <button onClick={() => { setIsAdminUser(false); setView('user'); setAdminPassword(''); }} className="w-full bg-gray-800 hover:bg-red-600 py-3 rounded-xl text-xs font-black text-gray-200 hover:text-white transition">{t.logoutBtn}</button>
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 animate-fade-in relative flex flex-col bg-gray-50">
+        {/* Main Panel */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col bg-gray-50 custom-scrollbar">
           
-          {/* TAB: LOCATIONS */}
+          {/* TAB: MANAGING GEO LOCATIONS */}
           {activeTab === 'locations' && (
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold mb-6 text-gray-800">គ្រប់គ្រងទិន្នន័យទីតាំង</h1>
+            <div className="flex-1 space-y-6">
+              <h1 className="text-xl font-black text-gray-900 border-b pb-3">គ្រប់គ្រងទិន្នន័យទីតាំងជុំវិញខ្លួន</h1>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl shadow-sm border p-5">
-                  <h3 className="font-bold mb-4 border-b pb-2 text-gray-800 flex items-center"><MapPin className="w-5 h-5 text-emerald-500 mr-2"/> ១. ទីតាំងជុំវិញអ្នក (រង្វង់ ២៥ គ.ម)</h3>
-                  <div className="h-[400px] overflow-y-auto space-y-2 custom-scrollbar pr-2">
+                <div className="bg-white rounded-2xl shadow-sm border p-5">
+                  <h3 className="font-bold text-sm mb-4 border-b pb-2 text-gray-800 flex items-center"><MapPin className="w-5 h-5 text-emerald-500 mr-2"/> ១. ទីតាំងជុំវិញអ្នក (រង្វង់ ២៥ គ.ម)</h3>
+                  <div className="h-[380px] overflow-y-auto space-y-2 custom-scrollbar pr-2">
                     {places.map(place => (
-                      <div key={place.id} onClick={() => setEditingPlace(place)} className={`p-3 border rounded-lg cursor-pointer transition ${enrichedData[place.id] ? 'border-emerald-400 bg-emerald-50' : 'hover:border-emerald-500 hover:bg-emerald-50'}`}>
-                        <p className={`font-bold text-sm ${enrichedData[place.id] ? 'text-emerald-800' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
-                        <p className="text-xs text-gray-500 mt-1 truncate">{place.formattedAddress}</p>
+                      <div key={place.id} onClick={() => setEditingPlace(place)} className={`p-3.5 border rounded-xl cursor-pointer transition ${enrichedData[place.id] ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-100 bg-gray-50 hover:border-emerald-500 hover:bg-emerald-50/30'}`}>
+                        <p className={`font-bold text-xs ${enrichedData[place.id] ? 'text-emerald-800' : 'text-gray-900'}`}>{getPlaceName(place, lang)}</p>
+                        <p className="text-[11px] text-gray-500 mt-1 truncate">{place.formattedAddress}</p>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="space-y-6">
-                  <div className="bg-white rounded-xl shadow-sm border p-5 border-l-4 border-l-blue-500">
-                    <h3 className="font-bold mb-4 border-b pb-2 text-gray-800">២. បន្ថែមព័ត៌មានលម្អិត</h3>
+                  <div className="bg-white rounded-2xl shadow-sm border p-5 border-l-4 border-l-blue-500">
+                    <h3 className="font-bold text-sm mb-4 border-b pb-2 text-gray-800 flex items-center"><Settings className="w-4 h-4 text-blue-500 mr-2"/> ២. បន្ថែមព័ត៌មានលម្អិត</h3>
                     {editingPlace ? (
                       <div className="space-y-3">
-                        <p className="text-sm font-semibold bg-blue-50 p-2.5 rounded-lg text-blue-800 border border-blue-100 flex items-center">
+                        <p className="text-xs font-semibold bg-blue-50 p-3 rounded-xl text-blue-800 border border-blue-100 flex items-center">
                            <Building2 className="w-4 h-4 mr-2"/> ទីតាំងកំពុងរៀបចំ៖ {getPlaceName(editingPlace, lang)}
                         </p>
-                        <input type="text" placeholder="ឈ្មោះស្ថាប័ន ឬបុគ្គល (ឧ. លោក សុខ)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium text-sm bg-white transition" value={customInfo.name} onChange={e => setCustomInfo({...customInfo, name: e.target.value})} />
-                        <input type="text" placeholder="តួនាទី (ឧ. មេភូមិ / នាយកសាលា)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium text-sm bg-white transition" value={customInfo.role} onChange={e => setCustomInfo({...customInfo, role: e.target.value})} />
-                        <input type="text" placeholder="លេខទូរស័ព្ទ (ឧ. 012 345 678)" className="w-full border-2 focus:border-blue-500 p-3 rounded-lg outline-none font-medium text-sm bg-white transition" value={customInfo.phone} onChange={e => setCustomInfo({...customInfo, phone: e.target.value})} />
-                        <button onClick={saveEnrichedData} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-md transition flex items-center justify-center gap-2">
+                        <input type="text" placeholder="ឈ្មោះស្ថាប័ន ឬបុគ្គល (ឧ. លោក សុខ)" className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.name} onChange={e => setCustomInfo({...customInfo, name: e.target.value})} />
+                        <input type="text" placeholder="តួនាទី (ឧ. មេភូមិ / នាយកសាលា)" className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.role} onChange={e => setCustomInfo({...customInfo, role: e.target.value})} />
+                        <input type="text" placeholder="លេខទូរស័ព្ទ (ឧ. 012 345 678)" className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.phone} onChange={e => setCustomInfo({...customInfo, phone: e.target.value})} />
+                        <button onClick={saveEnrichedData} className="w-full bg-blue-600 text-white font-black py-3 rounded-xl hover:bg-blue-700 shadow transition-colors flex items-center justify-center gap-2 text-sm">
                           <Save className="w-4 h-4"/> រក្សាទុកទិន្នន័យនេះ
                         </button>
                       </div>
-                    ) : (<p className="text-sm text-gray-500 italic py-10 text-center bg-gray-50 rounded-lg border border-dashed">សូមជ្រើសរើសទីតាំងណាមួយពីបញ្ជីខាងឆ្វេងសិន...</p>)}
+                    ) : (<p className="text-xs text-gray-500 italic py-16 text-center bg-gray-50 rounded-2xl border border-dashed">សូមជ្រើសរើសទីតាំងណាមួយពីបញ្ជីខាងឆ្វេងសិន...</p>)}
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border p-5 border-l-4 border-l-emerald-500">
-                    <h3 className="font-bold mb-4 border-b pb-2 text-gray-800">៣. ទិន្នន័យបានបញ្ចូលរួច</h3>
-                    <div className="space-y-3 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
+                  
+                  <div className="bg-white rounded-2xl shadow-sm border p-5 border-l-4 border-l-emerald-500">
+                    <h3 className="font-bold text-sm mb-4 border-b pb-2 text-gray-800 flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> ៣. ទិន្នន័យបានបញ្ចូលរួច</h3>
+                    <div className="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-2">
                       {Object.values(enrichedData).map(data => (
-                        <div key={data.placeId} className="flex justify-between items-center p-3 bg-gray-50 border rounded-lg hover:bg-emerald-50 transition-colors">
-                          <div>
-                             <p className="font-bold text-[13px] text-emerald-700">{data.googleName}</p>
-                             <p className="text-xs font-semibold mt-1 text-gray-700">{data.customName} - <span className="text-emerald-600">{data.phone}</span></p>
+                        <div key={data.placeId} className="flex justify-between items-center p-3 bg-gray-50 border border-gray-100 rounded-xl hover:bg-emerald-50 transition-colors">
+                          <div className="overflow-hidden">
+                             <p className="font-bold text-xs text-emerald-700 truncate">{data.googleName}</p>
+                             <p className="text-[11px] font-semibold mt-1 text-gray-600">{data.customName} - <span className="text-emerald-600 font-bold">{data.phone}</span></p>
                           </div>
-                          <button onClick={() => deleteEnrichedData(data.placeId)} className="text-red-500 p-2 hover:bg-red-100 hover:text-red-700 rounded-lg transition"><Trash2 className="w-4 h-4"/></button>
+                          <button onClick={() => deleteEnrichedData(data.placeId)} className="text-red-500 p-2 hover:bg-red-100 hover:text-red-700 rounded-xl transition"><Trash2 className="w-4.5 h-4.5"/></button>
                         </div>
                       ))}
-                      {Object.keys(enrichedData).length === 0 && <p className="text-sm text-gray-500 italic text-center py-4">មិនទាន់មានទិន្នន័យទេ</p>}
+                      {Object.keys(enrichedData).length === 0 && <p className="text-xs text-gray-500 italic text-center py-4">មិនទាន់មានទិន្នន័យទេ</p>}
                     </div>
                   </div>
                 </div>
@@ -1184,162 +1227,150 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB: REPORTS - PERSONAL DASHBOARD STYLE */}
+          {/* TAB: STYLISH ANALYTICS DASHBOARD */}
           {activeTab === 'reports' && (
-            <div className="flex-1 flex flex-col">
-               <h1 className="text-2xl font-bold mb-6 text-gray-800 border-b-2 border-emerald-500 inline-block pb-1">{t.analyticTitle}</h1>
+            <div className="flex-1 space-y-6">
+               <h1 className="text-xl font-black text-gray-900 border-b pb-3">{t.analyticTitle}</h1>
                
-               {/* Dashboard Statistical Cards */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {/* Weekly Card */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Weekly */}
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
                     <div>
-                      <p className="text-blue-500 text-xs font-black uppercase tracking-wider mb-1 flex items-center"><Activity className="w-4 h-4 mr-1"/> {t.weekStat}</p>
-                      <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastWeek} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                      <p className="text-blue-500 text-xs font-black uppercase tracking-wider flex items-center"><Activity className="w-4 h-4 mr-1"/> {t.weekStat}</p>
+                      <h2 className="text-3xl font-black mt-2 text-gray-900">{stats.lastWeek} <span className="text-xs text-gray-400 font-normal">នាក់</span></h2>
                     </div>
-                    
                     <div className="mt-6">
                       <div className="flex justify-between text-xs font-bold text-gray-600 mb-2">
                         <span>{t.activeRate}</span>
                         <span className="text-blue-600">{stats.weekPercent}%</span>
                       </div>
-                      <div className="w-full bg-blue-50 rounded-full h-3 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-400 to-blue-600 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${stats.weekPercent}%` }}></div>
+                      <div className="w-full bg-blue-50 rounded-full h-2 overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-400 to-blue-600 h-full rounded-full transition-all duration-1000" style={{ width: `${stats.weekPercent}%` }}></div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Monthly Card */}
+                  {/* Monthly */}
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
                     <div>
-                      <p className="text-emerald-500 text-xs font-black uppercase tracking-wider mb-1 flex items-center"><BarChart3 className="w-4 h-4 mr-1"/> {t.monthStat}</p>
-                      <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastMonth} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                      <p className="text-emerald-500 text-xs font-black uppercase tracking-wider flex items-center"><BarChart3 className="w-4 h-4 mr-1"/> {t.monthStat}</p>
+                      <h2 className="text-3xl font-black mt-2 text-gray-900">{stats.lastMonth} <span className="text-xs text-gray-400 font-normal">នាក់</span></h2>
                     </div>
-                    
                     <div className="mt-6">
                       <div className="flex justify-between text-xs font-bold text-gray-600 mb-2">
                         <span>{t.activeRate}</span>
                         <span className="text-emerald-600">{stats.monthPercent}%</span>
                       </div>
-                      <div className="w-full bg-emerald-50 rounded-full h-3 overflow-hidden">
-                        <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${stats.monthPercent}%` }}></div>
+                      <div className="w-full bg-emerald-50 rounded-full h-2 overflow-hidden">
+                        <div className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all duration-1000" style={{ width: `${stats.monthPercent}%` }}></div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Yearly Card */}
+                  {/* Yearly */}
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition">
                     <div>
-                      <p className="text-purple-500 text-xs font-black uppercase tracking-wider mb-1 flex items-center"><Globe className="w-4 h-4 mr-1"/> {t.yearStat}</p>
-                      <h2 className="text-4xl font-black mt-2 text-gray-900">{stats.lastYear} <span className="text-sm text-gray-400 font-normal">នាក់</span></h2>
+                      <p className="text-purple-500 text-xs font-black uppercase tracking-wider flex items-center"><Globe className="w-4 h-4 mr-1"/> {t.yearStat}</p>
+                      <h2 className="text-3xl font-black mt-2 text-gray-900">{stats.lastYear} <span className="text-xs text-gray-400 font-normal">នាក់</span></h2>
                     </div>
-                    
                     <div className="mt-6">
                       <div className="flex justify-between text-xs font-bold text-gray-600 mb-2">
                         <span>{t.activeRate}</span>
                         <span className="text-purple-600">{stats.yearPercent}%</span>
                       </div>
-                      <div className="w-full bg-purple-50 rounded-full h-3 overflow-hidden">
-                        <div className="bg-gradient-to-r from-purple-400 to-purple-600 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${stats.yearPercent}%` }}></div>
+                      <div className="w-full bg-purple-50 rounded-full h-2 overflow-hidden">
+                        <div className="bg-gradient-to-r from-purple-400 to-purple-600 h-full rounded-full transition-all duration-1000" style={{ width: `${stats.yearPercent}%` }}></div>
                       </div>
                     </div>
                   </div>
                </div>
 
-               {/* Custom Bar Chart Simulation (Personalized Style) */}
-               <div className="bg-white p-6 rounded-2xl shadow-sm border flex-1 mb-8">
+               {/* Bar Chart Representation */}
+               <div className="bg-white p-6 rounded-2xl shadow-sm border">
                  <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2 border-b pb-3"><BarChart3 className="text-emerald-500 w-5 h-5"/> ក្រាហ្វិកសសរស្ថិតិអ្នកប្រើប្រាស់ (User Traffic Chart)</h3>
                  
-                 <div className="flex items-end justify-around h-56 mt-8 pt-4 border-l-2 border-b-2 border-gray-200 pb-2 relative px-4">
-                    {/* Y-Axis labels */}
-                    <div className="absolute left-[-30px] top-0 bottom-0 flex flex-col justify-between text-xs text-gray-400 font-bold py-2">
-                      <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+                 <div className="flex items-end justify-around h-48 mt-8 border-l border-b border-gray-200 pb-2 px-4 relative">
+                    <div className="absolute left-[-24px] top-0 bottom-0 flex flex-col justify-between text-[10px] text-gray-400 font-black">
+                      <span>100%</span><span>50%</span><span>0%</span>
                     </div>
                     
-                    {/* Week Bar */}
-                    <div className="flex flex-col items-center group w-1/4 max-w-[80px]">
-                      <div className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-1000 group-hover:opacity-80 flex items-start justify-center pt-2 shadow-md relative" style={{ height: `${Math.max(stats.weekPercent, 10)}%` }}>
-                        <span className="text-white text-xs font-bold absolute -top-6 text-blue-600 drop-shadow-sm">{stats.weekPercent}%</span>
+                    <div className="flex flex-col items-center group w-20">
+                      <div className="w-12 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t transition-all duration-1000 hover:opacity-90 flex items-start justify-center pt-2 relative" style={{ height: `${Math.max(stats.weekPercent, 10)}%` }}>
+                        <span className="text-xs font-bold absolute -top-5 text-blue-600">{stats.weekPercent}%</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-600 mt-3 whitespace-nowrap">សប្តាហ៍នេះ</span>
+                      <span className="text-[11px] font-bold text-gray-500 mt-2">សប្តាហ៍នេះ</span>
                     </div>
                     
-                    {/* Month Bar */}
-                    <div className="flex flex-col items-center group w-1/4 max-w-[80px]">
-                      <div className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-lg transition-all duration-1000 group-hover:opacity-80 flex items-start justify-center pt-2 shadow-md relative" style={{ height: `${Math.max(stats.monthPercent, 10)}%` }}>
-                         <span className="text-white text-xs font-bold absolute -top-6 text-emerald-600 drop-shadow-sm">{stats.monthPercent}%</span>
+                    <div className="flex flex-col items-center group w-20">
+                      <div className="w-12 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t transition-all duration-1000 hover:opacity-90 flex items-start justify-center pt-2 relative" style={{ height: `${Math.max(stats.monthPercent, 10)}%` }}>
+                         <span className="text-xs font-bold absolute -top-5 text-emerald-600">{stats.monthPercent}%</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-600 mt-3 whitespace-nowrap">ខែនេះ</span>
+                      <span className="text-[11px] font-bold text-gray-500 mt-2">ខែនេះ</span>
                     </div>
                     
-                    {/* Year Bar */}
-                    <div className="flex flex-col items-center group w-1/4 max-w-[80px]">
-                      <div className="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t-lg transition-all duration-1000 group-hover:opacity-80 flex items-start justify-center pt-2 shadow-md relative" style={{ height: `${Math.max(stats.yearPercent, 10)}%` }}>
-                         <span className="text-white text-xs font-bold absolute -top-6 text-purple-600 drop-shadow-sm">{stats.yearPercent}%</span>
+                    <div className="flex flex-col items-center group w-20">
+                      <div className="w-12 bg-gradient-to-t from-purple-600 to-purple-400 rounded-t transition-all duration-1000 hover:opacity-90 flex items-start justify-center pt-2 relative" style={{ height: `${Math.max(stats.yearPercent, 10)}%` }}>
+                         <span className="text-xs font-bold absolute -top-5 text-purple-600">{stats.yearPercent}%</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-600 mt-3 whitespace-nowrap">ឆ្នាំនេះ</span>
+                      <span className="text-[11px] font-bold text-gray-500 mt-2">ឆ្នាំនេះ</span>
                     </div>
                  </div>
                </div>
 
-               {/* General Overview Summary Cards */}
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-md text-white flex justify-between items-center hover:scale-[1.02] transition-transform">
+               {/* Totals Summary */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                 <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow text-white flex justify-between items-center">
                    <div>
                      <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{t.totalUsers}</p>
                      <p className="text-3xl font-black mt-2">{totalUsersCount}</p>
                    </div>
-                   <div className="p-4 bg-gray-800 rounded-full border border-gray-700">
-                      <User className="w-8 h-8 text-blue-400" />
+                   <div className="p-3.5 bg-gray-800 rounded-2xl border border-gray-700">
+                      <User className="w-6 h-6 text-blue-400" />
                    </div>
                  </div>
                  
-                 <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 rounded-2xl shadow-md text-white flex justify-between items-center hover:scale-[1.02] transition-transform">
+                 <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 rounded-2xl shadow text-white flex justify-between items-center">
                    <div>
                      <p className="text-xs text-emerald-200 font-bold uppercase tracking-widest">{t.addedPlaces}</p>
                      <p className="text-3xl font-black mt-2">{Object.keys(enrichedData).length}</p>
                    </div>
-                   <div className="p-4 bg-emerald-700 rounded-full border border-emerald-600">
-                      <MapPin className="w-8 h-8 text-white" />
+                   <div className="p-3.5 bg-emerald-700 rounded-2xl border border-emerald-600">
+                      <MapPin className="w-6 h-6 text-white" />
                    </div>
                  </div>
-               </div>
-
-               <div className="mt-12 mb-6 text-center text-gray-500">
-                  <p className="font-black text-sm uppercase tracking-wider mb-1">បង្កើតឡើងដោយយុវជន VMC វិ.ស.ស-2026</p>
-                  <p className="text-xs font-semibold">@យុវជន VMC វិទ្យាល័យ ស្ដៅសន្តិភាព</p>
                </div>
             </div>
           )}
 
-          {/* TAB: SECURITY */}
+          {/* TAB: SECURITY LOGS */}
           {activeTab === 'security' && (
-            <div className="flex-1">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                 <h1 className="text-2xl font-bold flex items-center text-red-600"><AlertTriangle className="mr-2"/> សន្តិសុខប្រព័ន្ធ (ទប់ស្កាត់ការចូលខុស)</h1>
-                 <button onClick={requestClearSecurityLogs} className="bg-red-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 shadow-md transition flex items-center">
-                    <Trash2 className="w-4 h-4 mr-2"/> លុបកំណត់ហេតុទាំងអស់
+            <div className="flex-1 space-y-6">
+               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-3 gap-4">
+                 <h1 className="text-xl font-black text-red-600 flex items-center"><AlertTriangle className="mr-2"/> សន្តិសុខប្រព័ន្ធ (ការចូលមិនជោគជ័យ)</h1>
+                 <button onClick={requestClearSecurityLogs} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow transition flex items-center">
+                    <Trash2 className="w-4 h-4 mr-1.5"/> លុបកំណត់ហេតុទាំងអស់
                  </button>
                </div>
-               <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+               
+               <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
                  <div className="overflow-x-auto w-full">
                    <table className="min-w-full divide-y divide-gray-200">
-                     <thead className="bg-red-50">
+                     <thead className="bg-red-50/50">
                        <tr>
-                         <th className="px-6 py-4 text-left text-xs font-bold text-red-800 uppercase tracking-wider">ម៉ោង/កាលបរិច្ឆេទ</th>
-                         <th className="px-6 py-4 text-left text-xs font-bold text-red-800 uppercase tracking-wider">IP Address</th>
-                         <th className="px-6 py-4 text-left text-xs font-bold text-red-800 uppercase tracking-wider">Password ដែលវាយខុស</th>
-                         <th className="px-6 py-4 text-right text-xs font-bold text-red-800 uppercase tracking-wider">ប្រតិបត្តិការ</th>
+                         <th className="px-6 py-4 text-left text-xs font-black text-red-800 uppercase tracking-wider">ម៉ោង/កាលបរិច្ឆេទ</th>
+                         <th className="px-6 py-4 text-left text-xs font-black text-red-800 uppercase tracking-wider">IP Address</th>
+                         <th className="px-6 py-4 text-left text-xs font-black text-red-800 uppercase tracking-wider">Password</th>
+                         <th className="px-6 py-4 text-right text-xs font-black text-red-800 uppercase tracking-wider">សកម្មភាព</th>
                        </tr>
                      </thead>
-                     <tbody className="bg-white divide-y divide-gray-200">
+                     <tbody className="bg-white divide-y divide-gray-150">
                        {securityLogs.map(log => (
-                         <tr key={log.id} className="hover:bg-red-50/50 transition-colors">
-                           <td className="px-6 py-4 text-sm font-medium text-gray-800 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('km-KH')}</td>
-                           <td className="px-6 py-4 text-sm text-red-600 font-bold font-mono">{log.ip}</td>
-                           <td className="px-6 py-4 text-sm text-gray-600">{log.attemptedPass}</td>
+                         <tr key={log.id} className="hover:bg-red-50/20 transition-colors">
+                           <td className="px-6 py-4 text-xs font-bold text-gray-800 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('km-KH')}</td>
+                           <td className="px-6 py-4 text-xs text-red-600 font-bold font-mono whitespace-nowrap">{log.ip}</td>
+                           <td className="px-6 py-4 text-xs text-gray-600 font-mono">{log.attemptedPass}</td>
                            <td className="px-6 py-4 text-right">
-                              <button onClick={() => deleteSingleSecurityLog(log.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition" title="លុបកំណត់ត្រានេះ"><Trash2 className="w-4 h-4"/></button>
+                              <button onClick={() => deleteSingleSecurityLog(log.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition" title="លុប"><Trash2 className="w-4 h-4"/></button>
                            </td>
                          </tr>
                        ))}
@@ -1347,7 +1378,7 @@ export default function App() {
                          <tr>
                            <td colSpan="4" className="px-6 py-12 text-center">
                              <ShieldAlert className="w-12 h-12 text-emerald-500 mx-auto mb-3 opacity-50" />
-                             <p className="text-emerald-600 font-bold text-lg">គ្មានការប៉ុនប៉ងចូលដោយខុសច្បាប់ទេ 🛡️ ប្រព័ន្ធមានសុវត្ថិភាព!</p>
+                             <p className="text-emerald-600 font-black text-sm">គ្មានការប៉ុនប៉ងចូលដោយខុសច្បាប់ទេ 🛡️ ប្រព័ន្ធមានសុវត្ថិភាព!</p>
                            </td>
                          </tr>
                        )}
