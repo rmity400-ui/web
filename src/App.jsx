@@ -3,7 +3,7 @@ import {
   Search, MapPin, Navigation, Building2, Store, GraduationCap, 
   ShieldAlert, Lock, User, Phone, Trash2, Activity, BarChart3, 
   Settings, AlertTriangle, X, Crosshair, Layers, 
-  Loader2, Moon, Sun, Globe, PhoneCall, Save, CheckCircle, ChevronUp, ChevronDown
+  Loader2, Moon, Sun, Globe, PhoneCall, Save, CheckCircle, UserCog
 } from 'lucide-react';
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
@@ -63,11 +63,11 @@ const getFallbackPOIs = (lat, lng) => {
   ];
 };
 
-// វចនានុក្រមភាសា (ខ្មែរ 🇰🇭 / English 🇺🇸)
+// វចនានុក្រមភាសា
 const dict = {
   km: {
     appTitle: "Smart Map",
-    searchBox: "ស្វែងរកប្រទេស ខេត្ត ស្រុក ឃុំ ភូមិ ឬទីតាំង...",
+    searchBox: "ស្វែងរកប្រទេស ខេត្ត ស្រុក ឬទីតាំង...",
     myLocation: "ត្រលប់មកទីតាំងខ្ញុំ",
     nearbyPlaces: "បញ្ជីទីតាំងជុំវិញអ្នក",
     noPlaces: "មិនមានទីតាំងសំខាន់ៗនៅក្បែរនេះទេ",
@@ -95,10 +95,10 @@ const dict = {
     securityTitle: "កំណត់ត្រាសន្តិសុខ (Security Logs)",
     noSecurityIssues: "គ្មានបញ្ហាសន្តិសុខទេ 🛡️",
     timeLabel: "ម៉ោង/កាលបរិច្ឆេទ",
-    ipLabel: "IP Address / ឧបករណ៍",
+    ipLabel: "ពត៌មានអ្នកលួចចូល (IP/ទីតាំង)",
     wrongPassLabel: "Password ដែលវាយខុស",
     clearLogsBtn: "លុបកំណត់ហេតុទាំងអស់",
-    localDataOnly: "NO ! មិនទាន់មានទិន្នន័យទំនាក់ទំនងផ្លូវការ",
+    localDataOnly: "មិនទាន់មានទិន្នន័យទំនាក់ទំនងផ្លូវការ",
     verifyTitle: "ផ្ទៀងផ្ទាត់សិទ្ធិជា Admin",
     verifyNotice: "សូមបញ្ចូលលេខសម្ងាត់គ្រប់គ្រង ដើម្បីទទួលបានសិទ្ធិបន្ថែមទីតាំង តួនាទី និងលេខទូរស័ព្ទផ្លូវការ។",
     logoutBtn: "ចាកចេញពីគណនី",
@@ -123,18 +123,18 @@ const dict = {
     toastDeleteSuccess: "បានលុបទិន្នន័យជោគជ័យ",
     toastLoginSuccess: "ចូលជា Admin ជោគជ័យ!",
     toastLoginError: "លេខសម្ងាត់មិនត្រឹមត្រូវទេ!",
-    notSetLabel: "NO ! លេខ និងតួនាទីមិនទាន់បញ្ជាក់",
+    notSetLabel: "លេខ និងតួនាទីមិនទាន់បញ្ជាក់",
     confirmClearTitle: "បញ្ជាក់ការលុប",
     confirmClearMsg: "តើអ្នកពិតជាចង់លុបកំណត់ហេតុសន្តិសុខទាំងអស់មែនទេ?",
     confirmYes: "យល់ព្រមលុប",
     confirmNo: "បោះបង់",
     mapViewTab: "ផែនទី",
-    listTab: "បញ្ជីទីតាំង",
-    adminTab: "គ្រប់គ្រង"
+    listTab: "Locations",
+    adminTab: "Admin"
   },
   en: {
     appTitle: "Smart Map",
-    searchBox: "Search countries, provinces, districts, villages...",
+    searchBox: "Search countries, provinces, districts...",
     myLocation: "Recenter Map",
     nearbyPlaces: "Nearby Locations",
     noPlaces: "No important places found nearby",
@@ -162,7 +162,7 @@ const dict = {
     securityTitle: "Security & System Logs",
     noSecurityIssues: "No security issues detected 🛡️",
     timeLabel: "Time & Date",
-    ipLabel: "IP / Device",
+    ipLabel: "Intruder Info (IP/Location)",
     wrongPassLabel: "Attempted Wrong Password",
     clearLogsBtn: "Clear All Logs",
     localDataOnly: "No official contact data yet",
@@ -190,18 +190,17 @@ const dict = {
     toastDeleteSuccess: "Data deleted successfully",
     toastLoginSuccess: "Logged in as Admin successfully!",
     toastLoginError: "Incorrect password! Please try again",
-    notSetLabel: "NO ! Contact & Role unassigned",
+    notSetLabel: "Contact & Role unassigned",
     confirmClearTitle: "Confirm Deletion",
     confirmClearMsg: "Are you sure you want to clear all security logs?",
     confirmYes: "Yes, clear them",
     confirmNo: "Cancel",
     mapViewTab: "Map",
-    listTab: "Places",
+    listTab: "Locations",
     adminTab: "Admin"
   }
 };
 
-// បកប្រែឈ្មោះទីតាំងទៅជាភាសាអង់គ្លេសស្វ័យប្រវត្ត
 const translateTextToEn = (text) => {
     if (!text) return '';
     return text
@@ -252,8 +251,8 @@ const getPlaceName = (place, lang) => {
 
 export default function App() {
   const [user, setUser] = useState(null);
-  const [view, setView] = useState('user'); // user, admin_login, admin_dashboard
-  const [mobileTab, setMobileTab] = useState('map'); // map, list
+  const [view, setView] = useState('user'); 
+  const [mobileTab, setMobileTab] = useState('map'); 
   const [isAdminUser, setIsAdminUser] = useState(false);
   
   const isAdminRef = useRef(isAdminUser);
@@ -296,7 +295,6 @@ export default function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [pendingLocation, setPendingLocation] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', type: 'សាលារៀន / នាយកសាលា' });
-  const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
   
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null, title: '' });
 
@@ -311,7 +309,6 @@ export default function App() {
   const API_KEY = "AIzaSyCYPYMqUNC3FYAuDoTBiJtCCzjZtQd7oCg";
   const ADMIN_PASS = "ict168mit";
 
-  // បង្ហាញការជូនដំណឹង (Toast Notification)
   const showToast = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
@@ -418,7 +415,6 @@ export default function App() {
     };
   }, [API_KEY, showToast]);
 
-  // បញ្ចូលសញ្ញាសម្គាល់លើផែនទី (Markers)
   const updateMarkers = useCallback((newPlaces) => {
     markersRef.current.forEach(marker => { if (marker) marker.map = null; });
     markersRef.current = [];
@@ -488,7 +484,6 @@ export default function App() {
     });
   }, [enrichedData, lang, t.localDataOnly]);
 
-  // ទាញយកទីតាំងពី Google Places API
   const fetchNearbyPlaces = useCallback(async (location) => {
     if (!mapRef.current) return;
     setIsLoading(true);
@@ -506,12 +501,12 @@ export default function App() {
       const request = {
         textQuery: 'school OR hospital OR clinic OR police OR local_government_office OR commune OR village',
         fields: ['id', 'displayName', 'location', 'formattedAddress', 'types', 'photos'],
-        locationBias: { center: location, radius: 25000 }, 
+        locationBias: { center: location, radius: 20000 }, // 20Km Radius
         language: lang
       };
       const { places: newPlaces } = await window.google.maps.places.Place.searchByText(request);
       if (newPlaces) {
-        setPlaces(newPlaces);
+        setPlaces(newPlaces); // លុបបញ្ជីចាស់ចោល និងជំនួសដោយបញ្ជីថ្មីតែម្តង
         updateMarkers(newPlaces);
       }
     } catch (error) {
@@ -526,12 +521,12 @@ export default function App() {
     const currentCenter = mapRef.current.getCenter();
     const lat1 = lastFetchedCenter.current.lat; const lon1 = lastFetchedCenter.current.lng;
     const lat2 = currentCenter.lat(); const lon2 = currentCenter.lng();
-    if (calculateDistance(lat1, lon1, lat2, lon2) >= 0.5) {
+    // បើផ្លាស់ទីលើសពី ១គីឡូម៉ែត្រ ទាញយកទិន្នន័យថ្មី និងលុបរបស់ចាស់ចោល
+    if (calculateDistance(lat1, lon1, lat2, lon2) >= 1) {
       fetchNearbyPlaces({ lat: lat2, lng: lon2 });
     }
   }, [fetchNearbyPlaces, trackingError]);
 
-  // បង្កើតផែនទីដំបូង
   useEffect(() => {
     if (!isApiLoaded || !mapElementRef.current || view !== 'user') return;
 
@@ -615,6 +610,17 @@ export default function App() {
      }
   };
 
+  const handleClearSearch = () => {
+     setSearchQuery('');
+     setShowSuggestions(false);
+     if (userLocation || lastFetchedCenter.current) {
+        const center = userLocation || lastFetchedCenter.current;
+        mapRef.current?.panTo(center);
+        mapRef.current?.setZoom(14);
+        fetchNearbyPlaces(center);
+     }
+  };
+
   const handleSearchSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -626,7 +632,7 @@ export default function App() {
         const topResult = searchResults[0];
         mapRef.current.setCenter(topResult.location); mapRef.current.setZoom(16);
         fetchNearbyPlaces({ lat: topResult.location.lat(), lng: topResult.location.lng() });
-        setMobileTab('map'); // ប្តូរទៅមើលផែនទីស្វ័យប្រវត្តិ
+        setMobileTab('map'); 
       } else { showToast(lang === 'km' ? "រកមិនឃើញទីតាំងនេះទេ" : "Place not found", "error"); }
     } catch (error) { console.error(error); } finally { setIsSearching(false); }
   };
@@ -658,7 +664,6 @@ export default function App() {
     setMobileTab('map');
   };
 
-  // ស្ថិតិអ្នកប្រើប្រាស់
   const totalUsersCount = visitorLogs.length;
 
   const stats = useMemo(() => {
@@ -698,14 +703,16 @@ export default function App() {
       setLoginError(t.toastLoginError);
       if (db && user) {
         try {
-          let ip = 'Unknown';
+          let ip = 'Unknown', locString = 'មិនស្គាល់ទីតាំង';
           try {
-            const res = await fetch('https://api.ipify.org?format=json');
+            // ទាញយកទីតាំង និង IP ជាក់លាក់របស់អ្នកដែលព្យាយាមលួចចូល
+            const res = await fetch('https://ipapi.co/json/');
             const data = await res.json();
-            ip = data.ip;
+            ip = data.ip || 'Unknown';
+            locString = `${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`;
           } catch(e){}
           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', Date.now().toString()), {
-            ip, device: navigator.userAgent, attemptedPass: adminPassword, timestamp: Date.now()
+            ip, location: locString, device: navigator.userAgent, attemptedPass: adminPassword, timestamp: Date.now()
           });
         } catch (err) { console.error(err); }
       }
@@ -813,7 +820,6 @@ export default function App() {
               <MapPin className="mr-1.5 text-emerald-500 w-5 h-5 animate-bounce" /> {t.appTitle}
             </h1>
             
-            {/* របារបញ្ជាភាសា ពន្លឺ និង Admin */}
             <div className="flex items-center space-x-2">
               <button 
                 onClick={() => setLang(lang === 'km' ? 'en' : 'km')} 
@@ -825,20 +831,24 @@ export default function App() {
               <button onClick={() => setIsDarkMode(!isDarkMode)} className={`p-2 rounded-full transition ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`} title="បិទ/បើកពន្លឺ">
                 {isDarkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
               </button>
-              <button onClick={() => setView('admin_login')} className={`p-2 rounded-full transition ${isAdminUser ? 'bg-emerald-100 text-emerald-600' : (isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-600')}`} title="Admin Panel">
-                <ShieldAlert className="w-4 h-4" />
-              </button>
             </div>
           </div>
           
-          {/* ប្រអប់ស្វែងរក */}
+          {/* ប្រអប់ស្វែងរក (Search Bar) */}
           <form onSubmit={handleSearchSubmit} className="relative">
             <input
               type="text" value={searchQuery} onChange={handleInputChange} onFocus={() => setShowSuggestions(true)}
               placeholder={t.searchBox}
-              className={`w-full pl-11 pr-10 py-3 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-400' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-emerald-500'} text-sm font-medium`}
+              className={`w-full pl-11 pr-10 py-3 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-emerald-400' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-emerald-500'} text-[16px] font-medium`}
+              style={{ fontSize: '16px' }} // សម្រាប់ការពារកុំឲ្យ iOS Zoom
             />
             <Search className="absolute left-4 top-3.5 text-gray-400 w-4 h-4 cursor-pointer" onClick={handleSearchSubmit} />
+            
+            {/* សញ្ញាខ្វែងសម្រាប់លុប */}
+            {searchQuery && !isSearching && (
+              <X className="absolute right-4 top-3.5 text-gray-400 w-5 h-5 cursor-pointer hover:text-red-500 transition-colors" onClick={handleClearSearch} />
+            )}
+            
             {isSearching && <div className="absolute right-4 top-3.5 animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>}
           </form>
 
@@ -1010,10 +1020,10 @@ export default function App() {
         </div>
 
         {/* PERSISTENT MOBILE-FIRST APP BOTTOM NAV BAR */}
-        <div className={`w-full shrink-0 h-16 border-t z-40 flex justify-around items-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} shadow-lg`}>
+        <div className={`w-full shrink-0 h-16 border-t z-40 flex justify-around items-center ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} shadow-[0_-4px_20px_rgba(0,0,0,0.05)]`}>
           <button 
             onClick={() => setMobileTab('map')} 
-            className={`flex flex-col items-center justify-center h-full w-full transition-colors ${mobileTab === 'map' ? 'text-emerald-500' : 'text-gray-400'}`}
+            className={`flex flex-col items-center justify-center h-full w-full transition-colors ${mobileTab === 'map' ? 'text-emerald-500' : 'text-gray-400 hover:text-emerald-400'}`}
           >
             <Layers className="w-5 h-5 mb-1" />
             <span className="text-[10px] font-bold">{t.mapViewTab}</span>
@@ -1021,7 +1031,7 @@ export default function App() {
           
           <button 
             onClick={() => setMobileTab('list')} 
-            className={`flex flex-col items-center justify-center h-full w-full transition-colors ${mobileTab === 'list' ? 'text-emerald-500' : 'text-gray-400'}`}
+            className={`flex flex-col items-center justify-center h-full w-full transition-colors ${mobileTab === 'list' ? 'text-emerald-500' : 'text-gray-400 hover:text-emerald-400'}`}
           >
             <div className="relative">
               <Activity className="w-5 h-5 mb-1" />
@@ -1030,16 +1040,19 @@ export default function App() {
             <span className="text-[10px] font-bold">{t.listTab}</span>
           </button>
 
+          {/* ចលនារូបមនុស្ស (User Animated Admin Icon) */}
           <button 
             onClick={() => setView('admin_login')} 
-            className={`flex flex-col items-center justify-center h-full w-full text-gray-400 hover:text-emerald-500`}
+            className={`flex flex-col items-center justify-center h-full w-full transition-colors ${isAdminUser ? 'text-emerald-600' : 'text-gray-400 hover:text-emerald-500'}`}
           >
-            <ShieldAlert className="w-5 h-5 mb-1" />
-            <span className="text-[10px] font-bold">{t.adminTab}</span>
+            <div className="relative flex flex-col items-center justify-center h-full w-full">
+               <UserCog className={`w-5 h-5 mb-1 ${isAdminUser ? '' : 'animate-[pulse_2s_ease-in-out_infinite]'}`} />
+               <span className="text-[10px] font-bold">{t.adminTab}</span>
+            </div>
           </button>
         </div>
 
-        {/* MODAL FOR ADMIN ACTION WITH REFINED MOBILE-FIRST DESIGN */}
+        {/* MODAL FOR ADMIN ACTION */}
         {showAddModal && pendingLocation && isAdminUser && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className={`p-6 rounded-3xl w-full max-w-sm shadow-2xl border ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-transparent'} animate-fade-in`}>
@@ -1055,15 +1068,15 @@ export default function App() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">{t.placeNameLabel}</label>
-                  <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none font-bold" />
+                  <input type="text" placeholder={t.placeHolderName} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} style={{fontSize: '16px'}} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none font-bold" />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">{t.phoneLabel}</label>
-                  <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none font-bold font-mono" />
+                  <input type="tel" placeholder={t.placeholderPhone} value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} style={{fontSize: '16px'}} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none font-bold font-mono" />
                 </div>
                 <div>
                   <label className="block text-xs font-black text-gray-500 uppercase tracking-wider mb-1.5">{t.typeLabel}</label>
-                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white text-sm outline-none font-bold">
+                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} style={{fontSize: '16px'}} className="w-full p-3 border dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none font-bold">
                     <option value="សាលារៀន / នាយកសាលា">{t.selectSchool}</option>
                     <option value="មន្ទីរពេទ្យ / គ្លីនិក">{t.selectHospital}</option>
                     <option value="ប៉ុស្តិ៍ប៉ូលីស">{t.selectPolice}</option>
@@ -1110,6 +1123,7 @@ export default function App() {
               <input 
                 type="password" 
                 placeholder={t.enterPass} 
+                style={{ fontSize: '16px' }}
                 className={`w-full pl-12 pr-4 py-4 border-2 rounded-xl focus:outline-none focus:ring-0 transition-all font-bold ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-emerald-500' : 'bg-gray-50 border-gray-200 focus:border-emerald-500 text-gray-900'}`}
                 value={adminPassword} 
                 onChange={(e) => setAdminPassword(e.target.value)} 
@@ -1179,7 +1193,7 @@ export default function App() {
               <h1 className="text-xl font-black text-gray-900 border-b pb-3">គ្រប់គ្រងទិន្នន័យទីតាំងជុំវិញខ្លួន</h1>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-2xl shadow-sm border p-5">
-                  <h3 className="font-bold text-sm mb-4 border-b pb-2 text-gray-800 flex items-center"><MapPin className="w-5 h-5 text-emerald-500 mr-2"/> ១. ទីតាំងជុំវិញអ្នក (រង្វង់ ២៥ គ.ម)</h3>
+                  <h3 className="font-bold text-sm mb-4 border-b pb-2 text-gray-800 flex items-center"><MapPin className="w-5 h-5 text-emerald-500 mr-2"/> ១. ទីតាំងជុំវិញអ្នក (រង្វង់ ២០ គ.ម)</h3>
                   <div className="h-[380px] overflow-y-auto space-y-2 custom-scrollbar pr-2">
                     {places.map(place => (
                       <div key={place.id} onClick={() => setEditingPlace(place)} className={`p-3.5 border rounded-xl cursor-pointer transition ${enrichedData[place.id] ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-100 bg-gray-50 hover:border-emerald-500 hover:bg-emerald-50/30'}`}>
@@ -1197,9 +1211,9 @@ export default function App() {
                         <p className="text-xs font-semibold bg-blue-50 p-3 rounded-xl text-blue-800 border border-blue-100 flex items-center">
                            <Building2 className="w-4 h-4 mr-2"/> ទីតាំងកំពុងរៀបចំ៖ {getPlaceName(editingPlace, lang)}
                         </p>
-                        <input type="text" placeholder="ឈ្មោះស្ថាប័ន ឬបុគ្គល (ឧ. លោក សុខ)" className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.name} onChange={e => setCustomInfo({...customInfo, name: e.target.value})} />
-                        <input type="text" placeholder="តួនាទី (ឧ. មេភូមិ / នាយកសាលា)" className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.role} onChange={e => setCustomInfo({...customInfo, role: e.target.value})} />
-                        <input type="text" placeholder="លេខទូរស័ព្ទ (ឧ. 012 345 678)" className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.phone} onChange={e => setCustomInfo({...customInfo, phone: e.target.value})} />
+                        <input type="text" placeholder="ឈ្មោះស្ថាប័ន ឬបុគ្គល (ឧ. លោក សុខ)" style={{fontSize: '16px'}} className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.name} onChange={e => setCustomInfo({...customInfo, name: e.target.value})} />
+                        <input type="text" placeholder="តួនាទី (ឧ. មេភូមិ / នាយកសាលា)" style={{fontSize: '16px'}} className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.role} onChange={e => setCustomInfo({...customInfo, role: e.target.value})} />
+                        <input type="text" placeholder="លេខទូរស័ព្ទ (ឧ. 012 345 678)" style={{fontSize: '16px'}} className="w-full border-2 focus:border-blue-500 p-3 rounded-xl outline-none font-bold text-xs bg-white transition-colors" value={customInfo.phone} onChange={e => setCustomInfo({...customInfo, phone: e.target.value})} />
                         <button onClick={saveEnrichedData} className="w-full bg-blue-600 text-white font-black py-3 rounded-xl hover:bg-blue-700 shadow transition-colors flex items-center justify-center gap-2 text-sm">
                           <Save className="w-4 h-4"/> រក្សាទុកទិន្នន័យនេះ
                         </button>
@@ -1339,6 +1353,11 @@ export default function App() {
                    </div>
                  </div>
                </div>
+               
+               {/* Credits Section */}
+               <div className="text-center py-8 mt-12 border-t border-gray-200 text-[13px] font-black text-gray-400 uppercase tracking-wider">
+                  បង្កើតឡើងដោយយុវជនVMCវិទ្យាល័យស្តៅសន្តិភាព
+               </div>
             </div>
           )}
 
@@ -1358,7 +1377,7 @@ export default function App() {
                      <thead className="bg-red-50/50">
                        <tr>
                          <th className="px-6 py-4 text-left text-xs font-black text-red-800 uppercase tracking-wider">ម៉ោង/កាលបរិច្ឆេទ</th>
-                         <th className="px-6 py-4 text-left text-xs font-black text-red-800 uppercase tracking-wider">IP Address</th>
+                         <th className="px-6 py-4 text-left text-xs font-black text-red-800 uppercase tracking-wider">{t.ipLabel}</th>
                          <th className="px-6 py-4 text-left text-xs font-black text-red-800 uppercase tracking-wider">Password</th>
                          <th className="px-6 py-4 text-right text-xs font-black text-red-800 uppercase tracking-wider">សកម្មភាព</th>
                        </tr>
@@ -1367,7 +1386,10 @@ export default function App() {
                        {securityLogs.map(log => (
                          <tr key={log.id} className="hover:bg-red-50/20 transition-colors">
                            <td className="px-6 py-4 text-xs font-bold text-gray-800 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('km-KH')}</td>
-                           <td className="px-6 py-4 text-xs text-red-600 font-bold font-mono whitespace-nowrap">{log.ip}</td>
+                           <td className="px-6 py-4 text-xs">
+                              <span className="text-red-600 font-bold font-mono block">{log.ip}</span>
+                              <span className="text-[10px] text-gray-500">{log.location}</span>
+                           </td>
                            <td className="px-6 py-4 text-xs text-gray-600 font-mono">{log.attemptedPass}</td>
                            <td className="px-6 py-4 text-right">
                               <button onClick={() => deleteSingleSecurityLog(log.id)} className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-2 rounded-xl transition" title="លុប"><Trash2 className="w-4 h-4"/></button>
@@ -1385,6 +1407,11 @@ export default function App() {
                      </tbody>
                    </table>
                  </div>
+               </div>
+               
+               {/* Credits Section */}
+               <div className="text-center py-8 mt-12 border-t border-gray-200 text-[13px] font-black text-gray-400 uppercase tracking-wider">
+                  បង្កើតឡើងដោយយុវជនVMCវិទ្យាល័យស្តៅសន្តិភាព
                </div>
             </div>
           )}
