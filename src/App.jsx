@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import "./assets/ramit.png";
 import { 
   getFirestore, collection, doc, setDoc, addDoc, onSnapshot, updateDoc, deleteDoc
 } from 'firebase/firestore';
@@ -12,6 +11,7 @@ import {
   ChevronRight, ChevronDown, Phone, Map as MapIcon, Check, X, AlertTriangle, 
   LogOut, Camera, Plus, Compass, BarChart2, ShieldAlert, Bell, Clock, ArrowLeft, Home, FileText, Activity, Users, Layers
 } from 'lucide-react';
+import "./assets/ramit.png";
 
 // === CONFIGURATION & INITIALIZATION ===
 const firebaseConfig = {
@@ -396,22 +396,51 @@ export default function App() {
             PAGE 1: WELCOME SCREEN (Full Panoramic Background)
             ========================================== */}
         {currentPage === 1 && (
-          <div className="absolute inset-0 z-50 flex flex-col justify-end bg-cover bg-center" style={{ backgroundImage: 'url("ramit.png")' }}>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent"></div>
+          /* 💡 ណែនាំ៖ ប្អូនអាចផ្លាស់ប្តូររូបភាព Background នៃទំព័រដំបូងត្រង់កន្លែងនេះ 
+            ដោយគ្រាន់តែប្តូរលីង URL ក្នុង backgroundImage: 'url("...")' ខាងក្រោមនេះជាមួយរូបភាពរបស់ប្អូន។
+          */
+          <div 
+            className="absolute inset-0 z-50 flex flex-col justify-between bg-cover bg-center" 
+            style={{ backgroundImage: 'url("/images.ramit.png")' }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent"></div>
             
-            <div className="relative z-10 p-8 pb-16 text-center animate-slide-up">
-              <div className="w-16 h-16 bg-[#00965e] rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg border-2 border-white/20">
-                <MapPin size={30} className="text-white" />
+            {/* Header Content of Welcome Page */}
+            <div className="relative z-10 p-6 pt-12 text-center">
+              <div className="w-14 h-14 bg-[#00965e] rounded-full mx-auto mb-3 flex items-center justify-center shadow-lg border-2 border-white/20">
+                <MapPin size={26} className="text-white animate-bounce" />
               </div>
-              <h1 className="text-2xl font-black text-white mb-2 drop-shadow-md font-sans">ផែនទីសហគមន៍ឆ្លាតវៃ</h1>
-              <p className="text-emerald-300 text-xs font-medium mb-8 drop-shadow">គម្រោង VMC ឆ្នាំ 2026 - វិទ្យាល័យស្តៅសន្តិភាព</p>
-              
+              <h1 className="text-xl font-black text-white drop-shadow-md font-sans leading-relaxed">
+                ផែនទីសហគមន៍ឆ្លាតវៃ
+              </h1>
+              <p className="text-emerald-300 text-[11px] font-semibold tracking-wider drop-shadow-sm">
+                គម្រោង VMC ឆ្នាំ 2026 - វិទ្យាល័យស្តៅសន្តិភាព
+              </p>
+            </div>
+
+            {/* Project Goals / Purpose Block ("គោលបំណង") */}
+            <div className="relative z-10 px-6 py-4 mx-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 animate-slide-up">
+              <h3 className="text-xs font-bold text-emerald-400 mb-1.5 flex items-center gap-1.5">
+                🎯 គោលបំណងគម្រោង VMC
+              </h3>
+              <ul className="text-[10px] text-slate-200 space-y-1 text-left list-disc list-inside leading-relaxed">
+                <li>ជួយសម្រួលការស្វែងរកសាលារៀន មណ្ឌលសុខភាព និងប៉ុស្តិ៍ប៉ូលីសក្នុងតំបន់</li>
+                <li>កត់ត្រាស្ថិតិគ្រួសារ និងព័ត៌មានទំនាក់ទំនងមេភូមិដោយតម្លាភាព</li>
+                <li>បង្កើនការចូលរួមរបស់ប្រជាពលរដ្ឋក្នុងការកសាងទិន្នន័យមូលដ្ឋាន</li>
+              </ul>
+            </div>
+
+            {/* Footer and Button on Welcome Page */}
+            <div className="relative z-10 p-6 text-center">
               <button 
                 onClick={handleProceed}
-                className="w-full bg-[#00965e] hover:bg-[#007a4c] active:scale-95 transition-transform text-white py-4 rounded-2xl font-bold text-base shadow-xl shadow-[#00965e]/30"
+                className="w-full bg-[#00965e] hover:bg-[#007a4c] active:scale-95 transition-transform text-white py-3.5 rounded-2xl font-bold text-sm shadow-xl shadow-[#00965e]/30"
               >
                 ដំណើរការចូលប្រើ
               </button>
+              <p className="text-[8.5px] text-slate-400/80 mt-4 tracking-widest uppercase">
+                VMC Youth STAU SANTEPHEAP • 2026
+              </p>
             </div>
           </div>
         )}
@@ -422,31 +451,38 @@ export default function App() {
         {currentPage === 2 && (
           <div className="flex-1 flex flex-col h-full relative">
             
-            {/* Header */}
-            <header className={`px-5 py-4 flex justify-between items-center z-20 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border-b shadow-xs`}>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-[#00965e]/10 rounded-full flex items-center justify-center text-[#00965e]">
-                  <MapPin size={18} />
-                </div>
+            {/* Header with BACK button to welcome page */}
+            <header className={`px-4 py-3 flex justify-between items-center z-20 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border-b shadow-xs`}>
+              <div className="flex items-center gap-1.5">
+                {/* 🔙 ប៊ូតុងត្រឡប់មកកាន់ទំព័រស្វាគមន៍ដំបូងវិញ (Welcome / First Page) */}
+                <button 
+                  onClick={() => setCurrentPage(1)} 
+                  className="p-1.5 text-slate-400 hover:text-[#00965e] dark:hover:text-emerald-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="ត្រឡប់ទៅទំព័រស្វាគមន៍"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <div className="w-0.5 h-6 bg-slate-200 dark:bg-slate-800 mx-0.5"></div>
                 <div>
-                  <h2 className="font-bold text-sm leading-tight text-[#00965e]">ផែនទីសហគមន៍ឆ្លាតវៃ</h2>
-                  <p className="text-[10px] text-slate-500">គម្រោង VMC ឆ្នាំ 2026</p>
+                  <h2 className="font-bold text-xs leading-tight text-[#00965e]">ផែនទីសហគមន៍ឆ្លាតវៃ</h2>
+                  <p className="text-[9px] text-slate-450">គម្រោង VMC ឆ្នាំ 2026</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setIsDarkMode(!isDarkMode)} className="text-slate-400 hover:text-[#00965e] transition-colors">
-                  {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              
+              <div className="flex items-center gap-2.5">
+                <button onClick={() => setIsDarkMode(!isDarkMode)} className="text-slate-400 hover:text-[#00965e] transition-colors p-1">
+                  {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
                 <div 
                   onClick={() => setActiveTab('profile')}
-                  className="w-9 h-9 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center overflow-hidden cursor-pointer border-2 border-[#00965e]/30 transition-transform hover:scale-105"
+                  className="w-8 h-8 bg-slate-250 dark:bg-slate-800 rounded-full flex items-center justify-center overflow-hidden cursor-pointer border border-[#00965e]/30 transition-transform hover:scale-105"
                 >
                   {isAdmin ? (
-                    <span className="font-bold text-emerald-600 text-xs">AD</span>
+                    <span className="font-bold text-emerald-600 text-[10px]">AD</span>
                   ) : username ? (
-                    <span className="font-bold text-slate-600 dark:text-slate-200 text-xs">{username.substring(0,2).toUpperCase()}</span>
+                    <span className="font-bold text-slate-600 dark:text-slate-200 text-[10px]">{username.substring(0,2).toUpperCase()}</span>
                   ) : (
-                    <User size={18} className="text-slate-500" />
+                    <User size={16} className="text-slate-500" />
                   )}
                 </div>
               </div>
@@ -461,8 +497,8 @@ export default function App() {
                   
                   {/* Panoramic header */}
                   <div className="rounded-3xl p-4 text-white bg-gradient-to-r from-[#00965e] to-emerald-700 shadow-md">
-                    <h3 className="font-bold text-sm mb-1">ស្វាគមន៍មកកាន់ផែនទីសហគមន៍!</h3>
-                    <p className="text-[10.5px] opacity-90 leading-relaxed">ចុចជ្រើសរើសឃុំ និងភូមិខាងក្រោម ដើម្បីពិនិត្យមើលទិន្នន័យជាក់ស្តែង និងទីតាំងសំខាន់ៗ។</p>
+                    <h3 className="font-bold text-xs mb-1">ស្វាគមន៍មកកាន់ផែនទីសហគមន៍!</h3>
+                    <p className="text-[10px] opacity-90 leading-relaxed">ចុចជ្រើសរើសឃុំ និងភូមិខាងក្រោម ដើម្បីពិនិត្យមើលទិន្នន័យជាក់ស្តែង និងទីតាំងសំខាន់ៗ។</p>
                   </div>
 
                   {/* Search input field */}
@@ -472,22 +508,22 @@ export default function App() {
                       placeholder="ស្វែងរកតាមឈ្មោះទីតាំង ឬភូមិ..." 
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className={`w-full py-3.5 pl-11 pr-4 rounded-2xl text-xs outline-none border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#00965e]' : 'bg-white border-slate-200 text-slate-800 shadow-sm focus:border-[#00965e]'}`}
+                      className={`w-full py-3 pl-10 pr-4 rounded-2xl text-xs outline-none border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#00965e]' : 'bg-white border-slate-200 text-slate-800 shadow-sm focus:border-[#00965e]'}`}
                     />
-                    <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
+                    <Search className="absolute left-3.5 top-3 text-slate-400" size={16} />
                   </div>
 
                   {/* District selector (ស្រុករតនមណ្ឌល vs ផ្សេងៗ) */}
                   <div className={`flex p-1 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200/50'}`}>
                     <button 
                       onClick={() => { setSelectedDistrictTab('រតនមណ្ឌល'); setSelectedCommune(''); setSelectedVillage(''); }}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedDistrictTab === 'រតនមណ្ឌល' ? 'bg-[#00965e] text-white shadow-md' : 'text-slate-500'}`}
+                      className={`flex-1 py-1.5 text-[10.5px] font-bold rounded-lg transition-all ${selectedDistrictTab === 'រតនមណ្ឌល' ? 'bg-[#00965e] text-white shadow-md' : 'text-slate-500'}`}
                     >
                       ស្រុករតនមណ្ឌល
                     </button>
                     <button 
                       onClick={() => { setSelectedDistrictTab('ផ្សេងៗ'); setSelectedCommune(''); setSelectedVillage(''); }}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedDistrictTab === 'ផ្សេងៗ' ? 'bg-[#00965e] text-white shadow-md' : 'text-slate-500'}`}
+                      className={`flex-1 py-1.5 text-[10.5px] font-bold rounded-lg transition-all ${selectedDistrictTab === 'ផ្សេងៗ' ? 'bg-[#00965e] text-white shadow-md' : 'text-slate-500'}`}
                     >
                       ស្រុកផ្សេងៗ ({customDistrictsList.length})
                     </button>
@@ -496,7 +532,7 @@ export default function App() {
                   {/* INTERACTIVE GEOGRAPHIC PICKER (For Rotanak Mondol) */}
                   {selectedDistrictTab === 'រតនមណ្ឌល' && (
                     <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'} space-y-3`}>
-                      <h4 className="font-bold text-xs text-[#00965e] flex items-center gap-2">
+                      <h4 className="font-bold text-xs text-[#00965e] flex items-center gap-1.5">
                         <Layers size={14} /> ជ្រើសរើសតំបន់រុករក
                       </h4>
                       
@@ -506,7 +542,7 @@ export default function App() {
                         <select 
                           value={selectedCommune} 
                           onChange={e => { setSelectedCommune(e.target.value); setSelectedVillage(''); }}
-                          className={`w-full p-3 rounded-xl border text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                          className={`w-full p-2.5 rounded-xl border text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
                         >
                           <option value="">-- ជ្រើសរើសឃុំ --</option>
                           {Object.keys(RatanakMondolData).map(comm => (
@@ -522,7 +558,7 @@ export default function App() {
                           <select 
                             value={selectedVillage} 
                             onChange={e => setSelectedVillage(e.target.value)}
-                            className={`w-full p-3 rounded-xl border text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                            className={`w-full p-2.5 rounded-xl border text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
                           >
                             <option value="">-- ជ្រើសរើសភូមិ --</option>
                             {Object.keys(RatanakMondolData[selectedCommune] || {}).map(vil => (
@@ -547,11 +583,11 @@ export default function App() {
                         <div className="grid grid-cols-2 gap-3 text-center">
                           <div className={`p-2.5 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                             <span className="text-[10px] text-slate-400 block mb-0.5">គ្រួសារសរុប</span>
-                            <strong className="text-sm text-[#00965e]">{activeVillageMeta.households} គ្រួសារ</strong>
+                            <strong className="text-xs text-[#00965e]">{activeVillageMeta.households} គ្រួសារ</strong>
                           </div>
                           <div className={`p-2.5 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                             <span className="text-[10px] text-slate-400 block mb-0.5">ប្រជាជនសរុប</span>
-                            <strong className="text-sm text-[#00965e]">{activeVillageMeta.population} នាក់</strong>
+                            <strong className="text-xs text-[#00965e]">{activeVillageMeta.population} នាក់</strong>
                           </div>
                         </div>
 
@@ -565,7 +601,7 @@ export default function App() {
                             {ldr.phone && (
                               <a 
                                 href={`tel:${ldr.phone}`} 
-                                className="px-3 py-1.5 bg-[#00965e] text-white rounded-full text-[10px] font-bold flex items-center gap-1 hover:bg-[#007a4c]"
+                                className="px-2.5 py-1.5 bg-[#00965e] text-white rounded-full text-[9px] font-bold flex items-center gap-1 hover:bg-[#007a4c]"
                               >
                                 <Phone size={10} /> ហៅទូរស័ព្ទ ({ldr.phone})
                               </a>
@@ -589,7 +625,7 @@ export default function App() {
                           <img src={loc.imageUrl} alt={loc.name} className="w-full h-40 object-cover" />
                           <div className="p-4">
                             <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-bold text-sm leading-tight">{loc.name}</h4>
+                              <h4 className="font-bold text-xs leading-tight">{loc.name}</h4>
                               <span className="text-[9px] bg-[#00965e]/10 text-[#00965e] px-2.5 py-1 rounded-full font-bold">{loc.category}</span>
                             </div>
                             <p className="text-xs text-slate-500 flex items-center gap-1 mb-3">
@@ -597,7 +633,7 @@ export default function App() {
                             </p>
                             <button 
                               onClick={() => alert(`តភ្ជាប់ទៅ Google Maps សម្រាប់ទីតាំង៖ ${loc.name}`)} 
-                              className="w-full py-2.5 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-xl text-xs font-bold flex justify-center items-center gap-2 hover:bg-slate-200 transition-colors"
+                              className="w-full py-2 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-xl text-xs font-bold flex justify-center items-center gap-2 hover:bg-slate-200 transition-colors"
                             >
                               <Compass size={14} /> មើលទីតាំងលើផែនទី
                             </button>
