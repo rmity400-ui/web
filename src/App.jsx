@@ -11,7 +11,7 @@ import {
   ChevronRight, ChevronDown, Phone, Map as MapIcon, Check, X, AlertTriangle, 
   LogOut, Camera, Plus, Compass, BarChart2, ShieldAlert, Bell, Clock, ArrowLeft, Home, FileText, Activity, Users, Layers
 } from 'lucide-react';
-import "./assets/ramit.png";
+import meRamit from "./assets/me-ramit.png";
 
 // === CONFIGURATION & INITIALIZATION ===
 const firebaseConfig = {
@@ -381,7 +381,10 @@ export default function App() {
   }, [selectedCommune, selectedVillage]);
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'} flex items-center justify-center p-0 md:p-4 font-sans transition-colors duration-300`}>
+   <div
+  className="absolute inset-0 z-50 flex flex-col justify-between bg-cover bg-center"
+  style={{ backgroundImage: `url(${meRamit})` }}
+>
       <style>{`
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
