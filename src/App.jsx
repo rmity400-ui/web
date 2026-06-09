@@ -11,7 +11,7 @@ import {
   ChevronRight, ChevronDown, Phone, Map as MapIcon, Check, X, AlertTriangle, 
   LogOut, Camera, Plus, Compass, BarChart2, ShieldAlert, Bell, Clock, ArrowLeft, Home, FileText, Activity, Users, Layers
 } from 'lucide-react';
-import meRamit from "./assets/me-ramit.png";
+import meRamit from "./assets/ramit.png";
 
 // === CONFIGURATION & INITIALIZATION ===
 const firebaseConfig = {
