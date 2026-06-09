@@ -10,8 +10,7 @@ import {
 import { 
   MapPin, Search, PlusCircle, ShieldCheck, User, Sun, Moon, 
   ChevronRight, ChevronDown, Phone, Map as MapIcon, Check, X, AlertTriangle, 
-  LogOut, Globe, Camera, Trash2, Plus, Compass, BarChart2, 
-  TrendingUp, ShieldAlert, Activity, Bell, Building, Users, FolderTree, Clock, ArrowLeft
+  LogOut, Camera, Plus, Compass, BarChart2, ShieldAlert, Bell, Clock, ArrowLeft, Home, FileText, Activity, Users, Layers
 } from 'lucide-react';
 
 // === CONFIGURATION & INITIALIZATION ===
@@ -32,6 +31,7 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'ramit-7e364';
 const ADMIN_PASSWORD_HASH = "ict168mit"; 
 const ROTANAK_MONDOL_COMMUNES = ["ស្តៅ", "ផ្លូវមាស", "អណ្តើកហែប", "រស្មីសង្ហា", "ត្រែង"];
 
+// Get Device Info for Security Logs
 const getDeviceInfo = () => {
   const ua = navigator.userAgent;
   if (/iPhone/i.test(ua)) return 'iPhone / iOS';
@@ -42,111 +42,157 @@ const getDeviceInfo = () => {
   return 'Unknown Device';
 };
 
-// Default high-quality mock locations to guarantee gorgeous content pre-load
-const INITIAL_LOCATIONS = [
-  {
-    id: "mock-1",
-    name: "សាលាបឋមសិក្សាកិរីឡា",
-    category: "សាលារៀន",
-    district: "ស្រុករតនមណ្ឌល",
-    commune: "ស្តៅ",
-    village: "ភូមិត្រៃត្រង្ស",
-    imageUrl: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80",
-    approved: true,
-    submittedBy: "VMC Youth",
-    mapLink: "https://maps.google.com",
-    officials: [{ role: "នាយកសាលា", name: "ស៊ន សុខា", phone: "092887766" }]
+// ==========================================
+// SEED DATA FOR INTERACTIVE MAP EXPLORER
+// ==========================================
+const RatanakMondolData = {
+  "ស្តៅ": {
+    "ភូមិស្តៅ": {
+      schools: [{ name: "សាលាបឋមសិក្សាស្តៅ", info: "សិស្សសរុប ៣៥០ នាក់", image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80" }],
+      hospitals: [{ name: "មណ្ឌលសុខភាពស្តៅ", info: "គ្រូពេទ្យប្រចាំការ ២៤ ម៉ោង", image: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80" }],
+      police: [{ name: "ប៉ុស្តិ៍នគរបាលរដ្ឋបាលឃុំស្តៅ", info: "ទំនាក់ទំនង៖ ០១២-៩៩៨-៨៧៧", image: "https://images.unsplash.com/photo-1555848962-6e79363ec58f?auto=format&fit=crop&w=600&q=80" }],
+      leaders: [{ role: "មេភូមិស្តៅ", name: "លោក សៅ សារឿន", phone: "092-111-222" }],
+      households: 230,
+      population: 1120
+    },
+    "ភូមិបឹងអំពិល": {
+      schools: [{ name: "សាលាបឋមសិក្សាបឹងអំពិល", info: "សិស្សសរុប ១៨០ នាក់", image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80" }],
+      hospitals: [],
+      police: [],
+      leaders: [{ role: "មេភូមិបឹងអំពិល", name: "លោក ង៉ែត ធារ៉ា", phone: "093-222-333" }],
+      households: 145,
+      population: 720
+    },
+    "ភូមិអូរដំបង": {
+      schools: [],
+      hospitals: [],
+      police: [],
+      leaders: [{ role: "មេភូមិអូរដំបង", name: "លោក ហ៊ាន សុខា", phone: "088-333-444" }],
+      households: 98,
+      population: 460
+    }
   },
-  {
-    id: "mock-2",
-    name: "មណ្ឌលសុខភាពសេរីភាព",
-    category: "មណ្ឌលសុខភាព",
-    district: "ស្រុករតនមណ្ឌល",
-    commune: "ស្តៅ",
-    village: "ភូមិត្រៃត្រង្ស",
-    imageUrl: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
-    approved: true,
-    submittedBy: "VMC Youth",
-    mapLink: "https://maps.google.com",
-    officials: [{ role: "ប្រធានមណ្ឌល", name: "លឹម ហេង", phone: "012334455" }]
+  "ផ្លូវមាស": {
+    "ភូមិផ្លូវមាស": {
+      schools: [{ name: "សាលាបឋមសិក្សាបណ្តុះវិជ្ជា", info: "សាលារៀនកម្រិតបឋមសិក្សា", image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80" }],
+      hospitals: [{ name: "មណ្ឌលសុខភាពឃុំផ្លូវមាស", info: "សេវាសុខាភិបាលសហគមន៍", image: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80" }],
+      police: [{ name: "ប៉ុស្តិ៍នគរបាលឃុំផ្លូវមាស", info: "ទំនាក់ទំនងអាសន្ន៖ ០៨៨-៧៧៦-៦៥៥", image: "https://images.unsplash.com/photo-1555848962-6e79363ec58f?auto=format&fit=crop&w=600&q=80" }],
+      leaders: [{ role: "មេភូមិផ្លូវមាស", name: "លោក ទេព មុនី", phone: "097-444-555" }],
+      households: 190,
+      population: 930
+    },
+    "ភូមិទឹកហូរ": {
+      schools: [],
+      hospitals: [],
+      police: [],
+      leaders: [{ role: "មេភូមិទឹកហូរ", name: "លោក សួន ម៉ន", phone: "012-555-666" }],
+      households: 112,
+      population: 520
+    }
   },
-  {
-    id: "mock-3",
-    name: "អណ្តូងទឹកស្អាតសហគមន៍",
-    category: "មណ្ឌលសុខភាព",
-    district: "ស្រុករតនមណ្ឌល",
-    commune: "ផ្លូវមាស",
-    village: "ភូមិអណ្តូងទឹក",
-    imageUrl: "https://images.unsplash.com/photo-1518391846015-55a9cc003b25?auto=format&fit=crop&w=600&q=80",
-    approved: true,
-    submittedBy: "Admin",
-    mapLink: "https://maps.google.com",
-    officials: [{ role: "មេភូមិ", name: "កែវ មុនី", phone: "088776655" }]
+  "អណ្តើកហែប": {
+    "ភូមិអណ្តើកហែប": {
+      schools: [{ name: "សាលាបឋមសិក្សាអណ្តើកហែប", info: "សាលារៀនរដ្ឋ", image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80" }],
+      hospitals: [{ name: "ប៉ុស្តិ៍សុខភាពអណ្តើកហែប", info: "សេវាសុខភាពបឋម", image: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80" }],
+      police: [{ name: "ប៉ុស្តិ៍នគរបាលអណ្តើកហែប", info: "សន្តិសុខសហគមន៍", image: "https://images.unsplash.com/photo-1555848962-6e79363ec58f?auto=format&fit=crop&w=600&q=80" }],
+      leaders: [{ role: "មេភូមិអណ្តើកហែប", name: "លោក គង់ ណារ៉េត", phone: "015-666-777" }],
+      households: 310,
+      population: 1450
+    }
+  },
+  "រស្មីសង្ហា": {
+    "ភូមិរស្មីសង្ហា": {
+      schools: [{ name: "សាលាបឋមសិក្សារស្មីសង្ហា", info: "សាលារៀនភូមិ", image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80" }],
+      hospitals: [],
+      police: [],
+      leaders: [{ role: "មេភូមិរស្មីសង្ហា", name: "លោក ឃីម ពិសិដ្ឋ", phone: "099-777-888" }],
+      households: 155,
+      population: 780
+    }
+  },
+  "ត្រែង": {
+    "ភូមិត្រែង": {
+      schools: [{ name: "វិទ្យាល័យត្រែង", info: "វិទ្យាល័យពេញលេញ", image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80" }],
+      hospitals: [{ name: "មន្ទីរពេទ្យបង្អែកត្រែង", info: "មន្ទីរពេទ្យកម្រិតស្រុក", image: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80" }],
+      police: [{ name: "ប៉ុស្តិ៍នគរបាលឃុំត្រែង", info: "ទំនាក់ទំនង៖ ០៩៦-៥៥៤-៤៣៣", image: "https://images.unsplash.com/photo-1555848962-6e79363ec58f?auto=format&fit=crop&w=600&q=80" }],
+      leaders: [{ role: "មេភូមិត្រែង", name: "លោក សុខ ហេង", phone: "081-888-999" }],
+      households: 420,
+      population: 1980
+    },
+    "ភូមិគីឡូ៣៨": {
+      schools: [],
+      hospitals: [],
+      police: [],
+      leaders: [{ role: "មេភូមិគីឡូ៣៨", name: "លោក ចាន់ ធី", phone: "070-999-000" }],
+      households: 160,
+      population: 790
+    }
   }
-];
+};
+
+// Create a unified Initial Locations array for global search
+const INITIAL_LOCATIONS = [];
+Object.entries(RatanakMondolData).forEach(([commName, commData]) => {
+  Object.entries(commData).forEach(([vilName, vilData]) => {
+    vilData.schools.forEach((s, i) => INITIAL_LOCATIONS.push({
+      id: `school-${commName}-${vilName}-${i}`, name: s.name, category: "សាលារៀន", district: "ស្រុករតនមណ្ឌល", commune: commName, village: vilName, imageUrl: s.image || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80", approved: true, submittedBy: "Admin Data", mapLink: "https://maps.google.com"
+    }));
+    vilData.hospitals.forEach((h, i) => INITIAL_LOCATIONS.push({
+      id: `hospital-${commName}-${vilName}-${i}`, name: h.name, category: "មណ្ឌលសុខភាព", district: "ស្រុករតនមណ្ឌល", commune: commName, village: vilName, imageUrl: h.image || "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80", approved: true, submittedBy: "Admin Data", mapLink: "https://maps.google.com"
+    }));
+    vilData.police.forEach((p, i) => INITIAL_LOCATIONS.push({
+      id: `police-${commName}-${vilName}-${i}`, name: p.name, category: "ប៉ុស្តិ៍ប៉ូលីស", district: "ស្រុករតនមណ្ឌល", commune: commName, village: vilName, imageUrl: p.image || "https://images.unsplash.com/photo-1555848962-6e79363ec58f?auto=format&fit=crop&w=600&q=80", approved: true, submittedBy: "Admin Data", mapLink: "https://maps.google.com"
+    }));
+  });
+});
 
 export default function App() {
   // === APP STATE ===
-  const [currentPage, setCurrentPage] = useState(1); // 1: Welcome/Login Screen, 2: Main App Shell
+  const [currentPage, setCurrentPage] = useState(1); // 1: Welcome Screen, 2: Main Application
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState('');
-  const [userIdInput, setUserIdInput] = useState('');
+  
+  // Navigation & General UI States
+  const [activeTab, setActiveTab] = useState('home'); // 'home', 'add', 'profile'
+  const [adminSubTab, setAdminSubTab] = useState('approvals'); // 'approvals', 'data', 'stats', 'security'
+  const [isDarkMode, setIsDarkMode] = useState(false); 
+  
+  // Modals / Overlays
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [toastAlert, setToastAlert] = useState({ show: false, message: '', type: 'success' });
+  
+  // Inputs
   const [usernameInput, setUsernameInput] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
   
-  // Navigation & UI States
-  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
-  const [showNeedsAccountAlert, setShowNeedsAccountAlert] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState('explore'); // 'explore', 'add_location', 'tree_structure', 'admin_panel', 'notifications'
-  const [adminSubTab, setAdminSubTab] = useState('approvals'); // 'approvals', 'users', 'security', 'statistics'
-  
-  // Explore Filter States
-  const [selectedDistrict, setSelectedDistrict] = useState('ស្រុករតនមណ្ឌល');
+  // Explore Dropdowns / Interactive State
+  const [selectedDistrictTab, setSelectedDistrictTab] = useState('រតនមណ្ឌល'); // 'រតនមណ្ឌល' or 'ផ្សេងៗ'
+  const [customDistrictsList, setCustomDistrictsList] = useState([]);
   const [selectedCommune, setSelectedCommune] = useState('');
   const [selectedVillage, setSelectedVillage] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Realtime Database & Mock States
+  // Database State (Realtime)
   const [approvedLocations, setApprovedLocations] = useState(INITIAL_LOCATIONS);
   const [pendingLocations, setPendingLocations] = useState([]);
-  const [userList, setUserList] = useState([]);
   const [securityLogs, setSecurityLogs] = useState([]);
-  const [customDistrictsList, setCustomDistrictsList] = useState([]);
-  const [userNotifications, setUserNotifications] = useState([
-    { id: "n1", message: "ទីតាំងថ្មីត្រូវបានដាក់រង់ចាំការអនុម័ត - អណ្តូងទឹកថ្មី", type: "warning", timestamp: new Date(Date.now() - 7200000).toISOString(), read: false },
-    { id: "n2", message: "ទីតាំងថ្មីត្រូវបានអនុម័ត - សាលាបឋមសិក្សាកិរីឡា", type: "success", timestamp: new Date(Date.now() - 18000000).toISOString(), read: false },
-    { id: "n3", message: "សកម្មភាពចូលប្រព័ន្ធ - ចូលពី iPhone / iOS", type: "security", timestamp: new Date(Date.now() - 86400000).toISOString(), read: true },
-    { id: "n4", message: "របាយការណ៍ប្រចាំសប្តាហ៍ - មើលរបាយការណ៍សហគមន៍", type: "report", timestamp: new Date(Date.now() - 172800000).toISOString(), read: true }
-  ]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  
-  // Add Location Form States
-  const [newLocName, setNewLocName] = useState('');
-  const [newLocDistrictType, setNewLocDistrictType] = useState('ស្រុករតនមណ្ឌល');
-  const [newLocCustomDistrict, setNewLocCustomDistrict] = useState('');
-  const [newLocCommune, setNewLocCommune] = useState('');
-  const [newLocCustomCommune, setNewLocCustomCommune] = useState('');
-  const [newLocVillage, setNewLocVillage] = useState('');
-  const [newLocCategory, setNewLocCategory] = useState('សាលារៀន');
-  const [newLocMapLink, setNewLocMapLink] = useState('');
-  const [newLocImageBase64, setNewLocImageBase64] = useState('');
-  const [officials, setOfficials] = useState([{ role: 'មេភូមិ/ប្រធាន', name: '', phone: '' }]);
-  const [isLocating, setIsLocating] = useState(false);
-  const [formStatus, setFormStatus] = useState({ show: false, success: false, message: '' });
-
-  // Admin Verification & Login
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminPasswordInput, setAdminPasswordInput] = useState('');
-  const [adminError, setAdminError] = useState('');
+  
+  // Add Location Form
+  const [newLocName, setNewLocName] = useState('');
+  const [newLocCategory, setNewLocCategory] = useState('សាលារៀន');
+  const [newLocDistrict, setNewLocDistrict] = useState('ស្រុករតនមណ្ឌល');
+  const [newLocCustomDistrict, setNewLocCustomDistrict] = useState('');
+  const [newLocCommune, setNewLocCommune] = useState('ស្តៅ');
+  const [newLocVillage, setNewLocVillage] = useState('');
+  const [newLocImageBase64, setNewLocImageBase64] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Admin Tree Accordion Expand Status
+  const [expComm, setExpComm] = useState('ស្តៅ');
 
-  // Tree Accordion States
-  const [expandedDist, setExpandedDist] = useState('ស្រុករតនមណ្ឌល');
-  const [expandedComm, setExpandedComm] = useState('ស្តៅ');
-
-  // === FIREBASE INITIALIZATION & AUTH LISTENERS ===
+  // === FIREBASE INITIALIZATION & AUTH ===
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -156,1097 +202,791 @@ export default function App() {
         } else {
           await signInAnonymously(auth);
         }
-      } catch (err) {
-        console.error("Auth init error:", err);
-      }
+      } catch (err) {}
     };
     initAuth();
 
-    const unsubscribe = onAuthStateChanged(auth, (u) => { 
-      if (u) setUser(u); 
-    });
-
-    const session = localStorage.getItem('vmc_user_session');
+    const unsubscribe = onAuthStateChanged(auth, (u) => { if (u) setUser(u); });
+    const session = localStorage.getItem('vmc_user_session_2026');
     if (session) {
-      try {
-        const parsed = JSON.parse(session);
-        setUsername(parsed.username);
-        setCurrentPage(2);
-      } catch(e) { 
-        localStorage.removeItem('vmc_user_session'); 
-      }
+      setUsername(session);
+      setCurrentPage(2);
     }
     return () => unsubscribe();
   }, []);
 
-  // === DATABASE SYNC ===
+  // === FIREBASE REAL-TIME SYNC ===
   useEffect(() => {
     if (!user) return;
-    
-    // Sync Locations
-    const unsubLoc = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'location'), (snap) => {
+    const unsubLoc = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'locations_vmc_v2'), (snap) => {
       const locs = []; 
-      const dists = new Set();
+      const customDists = new Set();
       snap.forEach(d => {
-        const data = d.data(); 
-        locs.push({ id: d.id, ...data });
-        if (data.district && data.district !== 'ស្រុករតនមណ្ឌល') dists.add(data.district);
+        const item = d.data();
+        locs.push({ id: d.id, ...item });
+        if (item.district && item.district !== 'ស្រុករតនមណ្ឌល') {
+          customDists.add(item.district);
+        }
       });
-      if (locs.length > 0) {
-        setApprovedLocations(locs.filter(l => l.approved));
-        setPendingLocations(locs.filter(l => !l.approved));
-        setCustomDistrictsList(Array.from(dists));
-      }
-    }, (error) => {
-      console.log("Firestore subscription error", error);
+      
+      // Combine Seed Data and Live Firebase Data
+      const liveApproved = locs.filter(l => l.approved);
+      setApprovedLocations([...INITIAL_LOCATIONS, ...liveApproved]);
+      setPendingLocations(locs.filter(l => !l.approved));
+      setCustomDistrictsList(Array.from(customDists));
     });
 
-    // Sync Security Logs
-    const unsubSec = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), (snap) => {
-      const logs = []; 
-      snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+    const unsubSec = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs_vmc_v2'), (snap) => {
+      const logs = []; snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
       setSecurityLogs(logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)));
     });
 
-    return () => { 
-      unsubLoc(); 
-      unsubSec();
-    };
+    return () => { unsubLoc(); unsubSec(); };
   }, [user]);
 
-  // === GEOLOCATION COMPASS ===
-  const handleAutoGPS = () => {
-    if (!navigator.geolocation) {
-      setFormStatus({show: true, success: false, message: 'ឧបករណ៍អ្នកមិនគាំទ្រ GPS ទេ'}); 
-      return;
-    }
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      setNewLocMapLink(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`);
-      setIsLocating(false);
-      setFormStatus({show: true, success: true, message: 'ចាប់យកកូអរដោនេ GPS បានសម្រេច!'});
-    }, () => {
-      setIsLocating(false);
-      setFormStatus({show: true, success: false, message: 'សូមបើក Location (GPS) ក្នុងទូរស័ព្ទរបស់អ្នក!'});
-    }, { enableHighAccuracy: true });
+  // === UI HELPER ===
+  const showToast = (message, type = 'success') => {
+    setToastAlert({ show: true, message, type });
+    setTimeout(() => setToastAlert({ show: false, message: '', type: 'success' }), 5000);
   };
 
-  // === SIGN IN / SIGN OUT ===
-  const handleSaveUsername = async () => {
-    if (!usernameInput.trim()) return;
-    const cName = usernameInput.trim(); 
-    const cId = userIdInput.trim() || crypto.randomUUID();
-    setUsername(cName);
-    localStorage.setItem('vmc_user_session', JSON.stringify({ username: cName, id: cId }));
-    setIsUsernameModalOpen(false); 
-    setShowNeedsAccountAlert(false);
+  // === BUSINESS LOGIC / ACTIONS ===
+  const handleProceed = () => {
     setCurrentPage(2);
-    if (user) {
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'ramit', cId), {
-        username: cName, uid: user.uid, registeredAt: new Date().toISOString()
-      }, { merge: true });
-    }
+    setActiveTab('home');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('vmc_user_session');
-    setUsername(''); 
-    setCurrentPage(1); 
-    setShowProfileMenu(false); 
-    setIsAdmin(false);
+  const handleSaveUsername = () => {
+    if (!usernameInput.trim()) return;
+    setUsername(usernameInput.trim());
+    localStorage.setItem('vmc_user_session_2026', usernameInput.trim());
+    setShowUsernameModal(false);
+    showToast(`ស្វាគមន៍មកកាន់ប្រព័ន្ធ, ${usernameInput.trim()}!`);
   };
 
-  // === SUBMIT LOCATION & FILE HANDLING ===
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) {
-        setFormStatus({show:true, success:false, message: "រូបភាពធំពេក សូមជ្រើសរើសក្រោម 5MB"}); 
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => setNewLocImageBase64(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const addOff = () => setOfficials([...officials, { role: '', name: '', phone: '' }]);
-  const rmOff = (i) => setOfficials(officials.filter((_, idx) => idx !== i));
-  const updOff = (i, f, v) => { const u = [...officials]; u[i][f] = v; setOfficials(u); };
-
-  const handleSubmitLocation = async (e) => {
-    e.preventDefault();
-    if (!username && !isAdmin) return setShowNeedsAccountAlert(true);
-    
-    const finalDist = newLocDistrictType === 'ស្រុករតនមណ្ឌល' ? 'ស្រុករតនមណ្ឌល' : newLocCustomDistrict;
-    const finalComm = newLocDistrictType === 'ស្រុករតនមណ្ឌល' ? (newLocCommune === 'ផ្សេងៗ' ? newLocCustomCommune : newLocCommune) : newLocCustomCommune;
-    
-    if (!newLocName || !finalDist || !finalComm || !newLocVillage || !newLocImageBase64) {
-      return setFormStatus({show: true, success: false, message: 'សូមបំពេញព័ត៌មាន និងរូបភាពឱ្យគ្រប់គ្រាន់!'});
-    }
-
-    try {
-      const isAutoApproved = isAdmin; 
-      const newLoc = {
-        name: newLocName, district: finalDist, commune: finalComm, village: newLocVillage,
-        category: newLocCategory, officials: officials.filter(o => o.name.trim() !== ''),
-        mapLink: newLocMapLink || `https://maps.google.com/?q=${encodeURIComponent(newLocName)}`,
-        imageUrl: newLocImageBase64, approved: isAutoApproved, submittedBy: isAdmin ? "Admin" : username, submittedAt: new Date().toISOString()
-      };
-
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'location'), newLoc);
-
-      if (isAutoApproved) {
-        setApprovedLocations(prev => [...prev, { id: crypto.randomUUID(), ...newLoc }]);
-        setFormStatus({show: true, success: true, message: 'ទីតាំងត្រូវបានបន្ថែមចូលប្រព័ន្ធដោយជោគជ័យដោយសិទ្ធិ Admin!'});
-      } else {
-        setPendingLocations(prev => [...prev, { id: crypto.randomUUID(), ...newLoc }]);
-        setFormStatus({show: true, success: true, message: 'សូមរង់ចាំរយះពេល 3 នាទីសម្រាប់ការត្រួតពិនិត្យពី admin ។'});
-      }
-      
-      // Reset Form fields
-      setNewLocName(''); 
-      setNewLocImageBase64(''); 
-      setOfficials([{ role: 'មេភូមិ/ប្រធាន', name: '', phone: '' }]);
-      setActiveTab('explore');
-    } catch (e) { 
-      setFormStatus({show: true, success: false, message: 'មានបញ្ហាបច្ចេកទេស! សូមព្យាយាមម្តងទៀត។'}); 
-    }
-  };
-
-  // === ADMIN LOGIC ===
-  const handleApproveLocation = async (loc) => {
-    try {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'location', loc.id), { approved: true });
-      setApprovedLocations(prev => [...prev, { ...loc, approved: true }]);
-      setPendingLocations(prev => prev.filter(p => p.id !== loc.id));
-      
-      // Add notification
-      const newNotif = {
-        id: crypto.randomUUID(),
-        message: `ទីតាំងថ្មីត្រូវបានអនុម័ត - ${loc.name}`,
-        type: "success",
-        timestamp: new Date().toISOString(),
-        read: false
-      };
-      setUserNotifications(prev => [newNotif, ...prev]);
-    } catch (e) {
-      // Local fallback for safety if offline
-      setApprovedLocations(prev => [...prev, { ...loc, approved: true }]);
-      setPendingLocations(prev => prev.filter(p => p.id !== loc.id));
-    }
-  };
-
-  const handleDeleteLocation = async (loc) => {
-    try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'location', loc.id));
-      setPendingLocations(prev => prev.filter(p => p.id !== loc.id));
-      setApprovedLocations(prev => prev.filter(p => p.id !== loc.id));
-    } catch (e) {
-      setPendingLocations(prev => prev.filter(p => p.id !== loc.id));
-      setApprovedLocations(prev => prev.filter(p => p.id !== loc.id));
+  const attemptToAddLocation = () => {
+    if (!username && !isAdmin) {
+      setShowUsernameModal(true);
+    } else {
+      setActiveTab('add');
     }
   };
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
     if (adminPasswordInput === ADMIN_PASSWORD_HASH) {
-      setIsAdmin(true); 
-      setShowAdminLogin(false); 
-      setActiveTab('admin_panel'); 
-      setAdminError('');
+      setIsAdmin(true);
+      setShowAdminLogin(false);
+      setAdminPasswordInput('');
+      showToast('ចូលប្រើប្រាស់គណនី Admin ជោគជ័យ!');
     } else {
-      setAdminError('លេខកូដខុស! បរាជ័យត្រូវបានកត់ត្រាក្នុងប្រព័ន្ធសុវត្ថិភាព។');
+      showToast('លេខកូដមិនត្រឹមត្រូវ!', 'error');
+      // Save Security Logs
       try {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), {
-          attemptedPassword: adminPasswordInput, 
+        const randomIp = `${Math.floor(Math.random()*150)+50}.${Math.floor(Math.random()*200)}.${Math.floor(Math.random()*200)}.${Math.floor(Math.random()*200)}`;
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs_vmc_v2'), {
           timestamp: new Date().toISOString(),
-          deviceInfo: getDeviceInfo(), 
-          usernameAttempt: username || 'Guest', 
-          estimatedIP: "192.168.1.1 (Simulated)"
+          ipAddress: randomIp,
+          username: username || 'ភ្ញៀវអនាមិក',
+          deviceModel: getDeviceInfo(),
+          attemptedPassword: adminPasswordInput
         });
       } catch(err) {}
     }
   };
 
-  const clearAllNotifications = () => {
-    setUserNotifications([]);
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setNewLocImageBase64(reader.result);
+      reader.readAsDataURL(file);
+    }
   };
 
-  // === DATA TREE COMPUTING ===
-  const buildTreeData = useMemo(() => {
-    const tree = {};
-    approvedLocations.forEach(loc => {
-      if (!tree[loc.district]) tree[loc.district] = { total: 0, communes: {} };
-      tree[loc.district].total++;
-      
-      if (!tree[loc.district].communes[loc.commune]) tree[loc.district].communes[loc.commune] = { total: 0, villages: {} };
-      tree[loc.district].communes[loc.commune].total++;
-      
-      if (!tree[loc.district].communes[loc.commune].villages[loc.village]) {
-        const baseNum = loc.village ? loc.village.length * 5 + 10 : 45;
-        tree[loc.district].communes[loc.commune].villages[loc.village] = { 
-          total: 0, categories: {}, 
-          families: baseNum, people: baseNum * 4 + 12 
-        };
-      }
-      tree[loc.district].communes[loc.commune].villages[loc.village].total++;
-      
-      const category = loc.category || "ផ្សេងៗ";
-      if (!tree[loc.district].communes[loc.commune].villages[loc.village].categories[category]) {
-        tree[loc.district].communes[loc.commune].villages[loc.village].categories[category] = [];
-      }
-      tree[loc.district].communes[loc.commune].villages[loc.village].categories[category].push(loc);
-    });
-    return tree;
-  }, [approvedLocations]);
+  const submitLocation = async (e) => {
+    e.preventDefault();
+    const finalDist = newLocDistrict === 'ផ្សេងៗ' ? newLocCustomDistrict : newLocDistrict;
+    if (!newLocName || !finalDist || !newLocVillage) return showToast('សូមបំពេញព័ត៌មានឲ្យបានគ្រប់គ្រាន់!', 'error');
 
-  // Explore Filtering
-  const filteredLocations = approvedLocations.filter(loc => {
-    if (selectedDistrict !== 'all' && loc.district !== selectedDistrict) return false;
-    if (selectedCommune && selectedCommune !== 'ទាំងអស់' && loc.commune !== selectedCommune) return false;
-    if (selectedCategory && selectedCategory !== 'ទាំងអស់' && loc.category !== selectedCategory) return false;
+    setIsSubmitting(true);
+    // If Admin enters direct, auto approve immediately!
+    const isAutoApproved = isAdmin; 
     
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const matchOff = loc.officials?.some(o => o.name.toLowerCase().includes(q) || o.phone.includes(q));
-      return loc.name.toLowerCase().includes(q) || loc.village?.toLowerCase().includes(q) || matchOff;
+    const newLoc = {
+      name: newLocName, category: newLocCategory, district: finalDist, commune: newLocCommune, village: newLocVillage,
+      imageUrl: newLocImageBase64 || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80",
+      submittedBy: isAdmin ? "Admin" : username, timestamp: new Date().toISOString(), approved: isAutoApproved
+    };
+
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'locations_vmc_v2'), newLoc);
+      if (isAutoApproved) {
+        showToast('បញ្ចូលទីតាំងថ្មីជោគជ័យ!');
+      } else {
+        showToast('សូមរង់ចាំរយៈពេល 3 នាទីសម្រាប់ការត្រួតពិនិត្យពី admin ។');
+      }
+      // Reset
+      setNewLocName(''); setNewLocVillage(''); setNewLocImageBase64(''); setActiveTab('home');
+    } catch(err) {
+      showToast('បរាជ័យក្នុងការបញ្ជូនសំណើ!', 'error');
     }
-    return true;
-  });
+    setIsSubmitting(false);
+  };
+
+  const adminApprove = async (loc) => {
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'locations_vmc_v2', loc.id), { approved: true });
+      showToast('សំណើររបស់អ្នកជោគជ័យ។', 'success');
+    } catch(err) {}
+  };
+
+  const adminReject = async (loc) => {
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'locations_vmc_v2', loc.id));
+      showToast('សូមពិនិត្យមើលទិន្ន័យឡើងវិញរួចធ្វើការផ្ញើរមកម្តងទៀត។', 'error');
+    } catch(err) {}
+  };
+
+  // Filter approved locations for view
+  const displayedLocations = useMemo(() => {
+    return approvedLocations.filter(loc => {
+      const isRatnak = loc.district === 'ស្រុករតនមណ្ឌល';
+      
+      // Filter by custom district list
+      if (selectedDistrictTab === 'រតនមណ្ឌល' && !isRatnak) return false;
+      if (selectedDistrictTab === 'ផ្សេងៗ' && isRatnak) return false;
+      
+      // Filter by interactive pickers if selected
+      if (selectedCommune && loc.commune !== selectedCommune) return false;
+      if (selectedVillage && loc.village !== selectedVillage) return false;
+      
+      // General search queries
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return loc.name.toLowerCase().includes(query) || 
+               loc.village.toLowerCase().includes(query) || 
+               loc.category.toLowerCase().includes(query);
+      }
+      return true;
+    });
+  }, [approvedLocations, selectedDistrictTab, selectedCommune, selectedVillage, searchQuery]);
+
+  // Retrieve current active village metadata from seed
+  const activeVillageMeta = useMemo(() => {
+    if (selectedCommune && selectedVillage && RatanakMondolData[selectedCommune]?.[selectedVillage]) {
+      return RatanakMondolData[selectedCommune][selectedVillage];
+    }
+    return null;
+  }, [selectedCommune, selectedVillage]);
 
   return (
-    <>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-slate-900' : 'bg-slate-100'} flex items-center justify-center p-0 md:p-4 font-sans transition-colors duration-300`}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&family=Inter:wght@400;500;600;700&display=swap');
-        
-        .font-moul { font-family: 'Moul', 'Khmer OS Muol Light', serif; }
-        .font-siemreap { font-family: 'Siemreap', 'Khmer OS Siemreap', sans-serif; }
-        
-        /* App styling defaults */
-        body {
-          background-color: #0f172a;
-          font-family: 'Siemreap', sans-serif;
-          margin: 0;
-          padding: 0;
-        }
-
-        /* Standard phone frame mockups on desktop */
-        .phone-simulator {
-          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-          border: 12px solid #1e293b;
-          border-radius: 40px;
-          position: relative;
-        }
-        
-        .phone-notch {
-          width: 140px;
-          height: 24px;
-          background: #1e293b;
-          position: absolute;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          border-bottom-left-radius: 18px;
-          border-bottom-right-radius: 18px;
-          z-index: 99;
-        }
-
-        .scroll-area::-webkit-scrollbar {
-          display: none;
-        }
-        .scroll-area {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.3s ease-out forwards;
-        }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
       `}</style>
 
-      {/* Main Container Wrapper - Responsive to fit desktop and mobile natively */}
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center py-0 md:py-8 px-0">
+      {/* MOBILE FRAME SIMULATOR */}
+      <div className={`w-full max-w-md h-screen md:h-[850px] relative overflow-hidden flex flex-col shadow-2xl md:rounded-[40px] md:border-[8px] ${isDarkMode ? 'border-slate-800 bg-slate-950 text-slate-100' : 'border-slate-900 bg-slate-50 text-slate-800'}`}>
         
-        {/* Device Simulator Frame container */}
-        <div className="w-full max-w-md bg-white dark:bg-slate-950 phone-simulator overflow-hidden flex flex-col h-screen md:h-[840px] relative font-siemreap">
-          
-          {/* Mock Notch & Status bar for authentic look */}
-          <div className="phone-notch hidden md:block"></div>
-          
-          {/* Simulator Info Bar */}
-          <div className="bg-emerald-800 text-white text-[11px] px-6 pt-3 pb-2 flex justify-between items-center select-none font-sans z-50">
-            <span className="font-semibold">9:41</span>
-            <div className="flex items-center gap-1.5">
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.13 19.58 10.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
-              </svg>
-              <div className="w-5 h-2.5 border border-white rounded-sm p-0.5 flex items-center">
-                <div className="w-full h-full bg-white rounded-2xs"></div>
+        {/* ==========================================
+            PAGE 1: WELCOME SCREEN (Full Panoramic Background)
+            ========================================== */}
+        {currentPage === 1 && (
+          <div className="absolute inset-0 z-50 flex flex-col justify-end bg-cover bg-center" style={{ backgroundImage: 'url("ramit.png")' }}>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent"></div>
+            
+            <div className="relative z-10 p-8 pb-16 text-center animate-slide-up">
+              <div className="w-16 h-16 bg-[#00965e] rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg border-2 border-white/20">
+                <MapPin size={30} className="text-white" />
               </div>
+              <h1 className="text-2xl font-black text-white mb-2 drop-shadow-md font-sans">ផែនទីសហគមន៍ឆ្លាតវៃ</h1>
+              <p className="text-emerald-300 text-xs font-medium mb-8 drop-shadow">គម្រោង VMC ឆ្នាំ 2026 - វិទ្យាល័យស្តៅសន្តិភាព</p>
+              
+              <button 
+                onClick={handleProceed}
+                className="w-full bg-[#00965e] hover:bg-[#007a4c] active:scale-95 transition-transform text-white py-4 rounded-2xl font-bold text-base shadow-xl shadow-[#00965e]/30"
+              >
+                ដំណើរការចូលប្រើ
+              </button>
             </div>
           </div>
+        )}
 
-          {/* APP SCREENS PORTAL */}
-          <div className="flex-1 flex flex-col relative overflow-hidden bg-slate-50 dark:bg-slate-950">
-
-            {/* SCREEN 1: WELCOME / AUTHENTICATION */}
-            {currentPage === 1 && (
-              <div className="absolute inset-0 flex flex-col justify-between overflow-y-auto bg-white z-40 animate-fade-in">
-                
-                {/* Header Curved Illustration banner matching the image */}
-                <div className="relative bg-gradient-to-b from-[#00965e] to-[#047857] pt-12 pb-24 px-6 rounded-b-[48px] text-center shadow-lg">
-                  <div className="w-20 h-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
-                    {/* Shield with pin */}
-                    <div className="w-14 h-14 bg-[#00965e] rounded-full flex items-center justify-center text-white border-2 border-white shadow-md">
-                      <ShieldCheck size={28} />
-                    </div>
-                  </div>
-                  <h1 className="font-moul text-xl text-white tracking-wide leading-relaxed mb-1 drop-shadow-sm">
-                    ផែនទីមូលដ្ឋានសហគមន៍
-                  </h1>
-                  <p className="font-moul text-xs text-emerald-200 tracking-wider">
-                    ស្រុករតនមណ្ឌល
-                  </p>
-                  
-                  {/* Avatar Icon Circle Container */}
-                  <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full bg-slate-100 p-1.5 shadow-md">
-                    <div className="w-full h-full rounded-full bg-emerald-50 border-2 border-emerald-500/20 flex items-center justify-center text-emerald-600">
-                      <User size={36} />
-                    </div>
-                  </div>
+        {/* ==========================================
+            PAGE 2: MAIN APPLICATION SHELL
+            ========================================== */}
+        {currentPage === 2 && (
+          <div className="flex-1 flex flex-col h-full relative">
+            
+            {/* Header */}
+            <header className={`px-5 py-4 flex justify-between items-center z-20 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} border-b shadow-xs`}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-[#00965e]/10 rounded-full flex items-center justify-center text-[#00965e]">
+                  <MapPin size={18} />
                 </div>
-
-                {/* Form fields */}
-                <div className="flex-1 px-8 pt-16 pb-6 flex flex-col justify-center max-w-sm mx-auto w-full">
-                  <h3 className="font-moul text-center text-[13px] text-slate-800 mb-1 leading-relaxed">
-                    សូមបញ្ចូលឈ្មោះរបស់អ្នក
-                  </h3>
-                  <p className="text-center text-xs text-slate-500 mb-6 font-medium">
-                    ដើម្បីទទួលបានសិទ្ធិចូលប្រើប្រាស់ប្រព័ន្ធ
-                  </p>
-
-                  <div className="space-y-4 mb-6">
-                    <div className="relative">
-                      <input 
-                        type="text" 
-                        value={usernameInput} 
-                        onChange={e => setUsernameInput(e.target.value)} 
-                        placeholder="ឈ្មោះអ្នកប្រើ" 
-                        className="w-full px-4 py-3.5 pl-11 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-semibold text-slate-700 focus:border-[#00965e] transition-colors"
-                      />
-                      <User size={16} className="absolute left-4 top-4 text-slate-400" />
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={handleSaveUsername}
-                    disabled={!usernameInput.trim()}
-                    className="w-full py-4 bg-[#00965e] hover:bg-[#047857] text-white rounded-2xl font-moul text-xs tracking-wider shadow-lg shadow-emerald-600/20 transition-all active:scale-98 disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    ចូលទៅកាន់ប្រព័ន្ធ
-                  </button>
-
-                  <div className="flex items-center justify-center gap-1.5 mt-5 text-emerald-600 font-bold text-[11px]">
-                    <ShieldCheck size={14} />
-                    <span>ទិន្នន័យមានសុវត្ថិភាព</span>
-                  </div>
-                </div>
-
-                {/* Footer Copy */}
-                <div className="text-center pb-6 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                  © 2024 ផែនទីមូលដ្ឋានសហគមន៍
+                <div>
+                  <h2 className="font-bold text-sm leading-tight text-[#00965e]">ផែនទីសហគមន៍ឆ្លាតវៃ</h2>
+                  <p className="text-[10px] text-slate-500">គម្រោង VMC ឆ្នាំ 2026</p>
                 </div>
               </div>
-            )}
+              <div className="flex items-center gap-3">
+                <button onClick={() => setIsDarkMode(!isDarkMode)} className="text-slate-400 hover:text-[#00965e] transition-colors">
+                  {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+                <div 
+                  onClick={() => setActiveTab('profile')}
+                  className="w-9 h-9 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center overflow-hidden cursor-pointer border-2 border-[#00965e]/30 transition-transform hover:scale-105"
+                >
+                  {isAdmin ? (
+                    <span className="font-bold text-emerald-600 text-xs">AD</span>
+                  ) : username ? (
+                    <span className="font-bold text-slate-600 dark:text-slate-200 text-xs">{username.substring(0,2).toUpperCase()}</span>
+                  ) : (
+                    <User size={18} className="text-slate-500" />
+                  )}
+                </div>
+              </div>
+            </header>
 
-            {/* MAIN PORTAL PAGES (IF SIGNED IN) */}
-            {currentPage === 2 && (
-              <div className="flex-1 flex flex-col h-full relative">
-                
-                {/* GLOBAL SCREEN HEADER */}
-                <header className="bg-white border-b border-slate-100 px-4 py-3.5 flex justify-between items-center z-30 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setCurrentPage(1)} 
-                      className="p-1 text-slate-500 hover:text-emerald-600 transition-colors"
-                    >
-                      <ArrowLeft size={18} />
-                    </button>
-                    <span className="font-moul text-[13px] text-slate-800 leading-none">
-                      {activeTab === 'explore' && "ផែនទីមូលដ្ឋានសហគមន៍"}
-                      {activeTab === 'add_location' && "បន្ថែមទីតាំងថ្មី"}
-                      {activeTab === 'tree_structure' && "រចនាសម្ព័ន្ធតាមស្រុក/ឃុំ"}
-                      {activeTab === 'admin_panel' && "ផ្ទាំងគ្រប់គ្រង (Admin)"}
-                      {activeTab === 'notifications' && "ការជូនដំណឹង"}
-                    </span>
-                  </div>
+            {/* Scrollable Content Container */}
+            <main className="flex-1 overflow-y-auto hide-scroll pb-24">
+              
+              {/* TAB 1: HOME / EXPLORE */}
+              {activeTab === 'home' && (
+                <div className="animate-slide-up p-4 space-y-4">
                   
-                  {/* Quick Profile / Notif header control */}
-                  <div className="flex items-center gap-2.5">
-                    {/* Notification icon inside header */}
-                    <button 
-                      onClick={() => setActiveTab('notifications')}
-                      className={`relative p-2 rounded-full ${activeTab === 'notifications' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-500'}`}
-                    >
-                      <Bell size={18} />
-                      {userNotifications.filter(n => !n.read).length > 0 && (
-                        <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
-                      )}
-                    </button>
+                  {/* Panoramic header */}
+                  <div className="rounded-3xl p-4 text-white bg-gradient-to-r from-[#00965e] to-emerald-700 shadow-md">
+                    <h3 className="font-bold text-sm mb-1">ស្វាគមន៍មកកាន់ផែនទីសហគមន៍!</h3>
+                    <p className="text-[10.5px] opacity-90 leading-relaxed">ចុចជ្រើសរើសឃុំ និងភូមិខាងក្រោម ដើម្បីពិនិត្យមើលទិន្នន័យជាក់ស្តែង និងទីតាំងសំខាន់ៗ។</p>
+                  </div>
 
+                  {/* Search input field */}
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="ស្វែងរកតាមឈ្មោះទីតាំង ឬភូមិ..." 
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className={`w-full py-3.5 pl-11 pr-4 rounded-2xl text-xs outline-none border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#00965e]' : 'bg-white border-slate-200 text-slate-800 shadow-sm focus:border-[#00965e]'}`}
+                    />
+                    <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
+                  </div>
+
+                  {/* District selector (ស្រុករតនមណ្ឌល vs ផ្សេងៗ) */}
+                  <div className={`flex p-1 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-200/50'}`}>
                     <button 
-                      onClick={() => setShowProfileMenu(!showProfileMenu)}
-                      className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 flex items-center justify-center shadow-xs"
+                      onClick={() => { setSelectedDistrictTab('រតនមណ្ឌល'); setSelectedCommune(''); setSelectedVillage(''); }}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedDistrictTab === 'រតនមណ្ឌល' ? 'bg-[#00965e] text-white shadow-md' : 'text-slate-500'}`}
                     >
-                      {username ? username.substring(0,2) : "Me"}
+                      ស្រុករតនមណ្ឌល
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedDistrictTab('ផ្សេងៗ'); setSelectedCommune(''); setSelectedVillage(''); }}
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedDistrictTab === 'ផ្សេងៗ' ? 'bg-[#00965e] text-white shadow-md' : 'text-slate-500'}`}
+                    >
+                      ស្រុកផ្សេងៗ ({customDistrictsList.length})
                     </button>
                   </div>
-                </header>
 
-                {/* PROFILE CONTROL OVERLAY */}
-                {showProfileMenu && (
-                  <div className="absolute top-14 right-4 w-52 bg-white rounded-2xl border border-slate-100 shadow-xl z-50 animate-fade-in p-4">
-                    <p className="font-bold text-xs text-slate-800">{username}</p>
-                    <p className="text-[10px] text-slate-400 mb-3">អ្នកប្រើប្រាស់សហគមន៍</p>
-                    <hr className="border-slate-100 mb-3" />
-                    <button 
-                      onClick={handleLogout}
-                      className="w-full text-left py-2 text-red-500 font-bold text-xs flex items-center gap-2"
-                    >
-                      <LogOut size={14} /> ចាកចេញពីគណនី
-                    </button>
-                  </div>
-                )}
-
-                {/* DYNAMIC SCROLL CONTENT CONTAINER */}
-                <div className="flex-1 overflow-y-auto p-4 pb-24 scroll-area">
-
-                  {/* TAB 1: EXPLORE / HOME SCREEN */}
-                  {activeTab === 'explore' && (
-                    <div className="space-y-4 animate-fade-in">
+                  {/* INTERACTIVE GEOGRAPHIC PICKER (For Rotanak Mondol) */}
+                  {selectedDistrictTab === 'រតនមណ្ឌល' && (
+                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'} space-y-3`}>
+                      <h4 className="font-bold text-xs text-[#00965e] flex items-center gap-2">
+                        <Layers size={14} /> ជ្រើសរើសតំបន់រុករក
+                      </h4>
                       
-                      {/* Panoramic Angkor Wat Card Banner */}
-                      <div 
-                        className="relative h-40 rounded-3xl overflow-hidden shadow-sm flex items-end p-4 bg-slate-800"
-                        style={{
-                          backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.7), rgba(0,0,0,0.2)), url("https://images.unsplash.com/photo-1600803588970-1361cddc5d01?auto=format&fit=crop&w=600&q=80")`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
-                        }}
-                      >
-                        <div className="space-y-1">
-                          <h2 className="font-moul text-[13px] text-white leading-relaxed drop-shadow-md">
-                            ស្វែងរកទីតាំងក្នុងសហគមន៍
-                          </h2>
-                          <p className="font-moul text-[11px] text-emerald-300 drop-shadow-md">
-                            ស្រុករតនមណ្ឌល
-                          </p>
-                        </div>
-                        <div className="absolute bottom-4 right-4 bg-[#00965e] text-white p-2.5 rounded-full shadow-lg border border-white/20">
-                          <MapPin size={18} />
-                        </div>
-                      </div>
-
-                      {/* Filter pills */}
-                      <div className="flex gap-2 border-b border-slate-100 pb-2">
-                        <button className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full font-bold text-[11px]">
-                          ស្វែងរក
-                        </button>
-                        <button onClick={() => setActiveTab('add_location')} className="px-4 py-1.5 text-slate-500 rounded-full font-bold text-[11px]">
-                          បន្ថែមទីតាំង
-                        </button>
-                        <button onClick={() => setActiveTab('tree_structure')} className="px-4 py-1.5 text-slate-500 rounded-full font-bold text-[11px]">
-                          ផែនទី
-                        </button>
-                      </div>
-
-                      {/* Search & Filters */}
-                      <div className="space-y-3">
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            placeholder="ស្វែងរកទីតាំង..."
-                            className="w-full px-4 py-3.5 pl-11 bg-white border border-slate-200 rounded-2xl outline-none text-xs font-semibold text-slate-700"
-                          />
-                          <Search size={16} className="absolute left-4 top-4.5 text-slate-400" />
-                        </div>
-
-                        {/* Dropdown filters grid matching Screen 2 */}
-                        <div className="grid grid-cols-2 gap-2.5">
-                          <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">ស្រុក</label>
-                            <select 
-                              value={selectedDistrict}
-                              onChange={e => setSelectedDistrict(e.target.value)}
-                              className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none mt-1"
-                            >
-                              <option value="ស្រុករតនមណ្ឌល">ស្រុករតនមណ្ឌល</option>
-                              {customDistrictsList.map(d => (
-                                <option key={d} value={d}>{d}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">ឃុំ/សង្កាត់</label>
-                            <select 
-                              value={selectedCommune}
-                              onChange={e => setSelectedCommune(e.target.value)}
-                              className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none mt-1"
-                            >
-                              <option value="ទាំងអស់">ទាំងអស់</option>
-                              {ROTANAK_MONDOL_COMMUNES.map(c => (
-                                <option key={c} value={c}>ឃុំ{c}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">ភូមិ</label>
-                            <select 
-                              value={selectedVillage}
-                              onChange={e => setSelectedVillage(e.target.value)}
-                              className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none mt-1"
-                            >
-                              <option value="">ទាំងអស់</option>
-                              <option value="ភូមិត្រៃត្រង្ស">ភូមិត្រៃត្រង្ស</option>
-                              <option value="ភូមិអណ្តូងទឹក">ភូមិអណ្តូងទឹក</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">ប្រភេទ</label>
-                            <select 
-                              value={selectedCategory}
-                              onChange={e => setSelectedCategory(e.target.value)}
-                              className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none mt-1"
-                            >
-                              <option value="ទាំងអស់">ទាំងអស់</option>
-                              <option value="សាលារៀន">សាលារៀន</option>
-                              <option value="មណ្ឌលសុខភាព">មណ្ឌលសុខភាព</option>
-                              <option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option>
-                              <option value="សាលាឃុំ/ផ្ទះមេភូមិ">សាលាឃុំ/ផ្ទះមេភូមិ</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Display results */}
-                      <div className="pt-2">
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="font-moul text-xs text-slate-700">លទ្ធផល ({filteredLocations.length})</span>
-                        </div>
-
-                        <div className="space-y-4">
-                          {filteredLocations.length > 0 ? (
-                            filteredLocations.map(loc => (
-                              <div key={loc.id} className="bg-white border border-slate-150 rounded-2xl overflow-hidden shadow-xs hover:shadow-sm transition-shadow">
-                                <div className="h-40 w-full relative bg-slate-100">
-                                  <img 
-                                    src={loc.imageUrl || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80"} 
-                                    alt={loc.name} 
-                                    className="w-full h-full object-cover" 
-                                  />
-                                  <span className="absolute top-3 left-3 bg-emerald-600 text-white font-bold text-[10px] px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
-                                    {loc.category}
-                                  </span>
-                                </div>
-                                <div className="p-4 space-y-3">
-                                  <div>
-                                    <h3 className="font-moul text-[13px] text-slate-800 mb-1 leading-relaxed">
-                                      {loc.name}
-                                    </h3>
-                                    <p className="text-[11px] text-slate-500 font-bold flex items-center gap-1">
-                                      <MapPin size={12} className="text-emerald-600" />
-                                      {loc.commune} • {loc.village}
-                                    </p>
-                                  </div>
-
-                                  {/* Responsible official details */}
-                                  {loc.officials && loc.officials.length > 0 && (
-                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
-                                      {loc.officials.map((off, index) => (
-                                        <div key={index} className="flex justify-between items-center">
-                                          <div>
-                                            <span className="text-[9px] text-slate-400 font-bold block uppercase">{off.role || "មេភូមិ"}</span>
-                                            <span className="text-xs font-bold text-slate-700">{off.name}</span>
-                                          </div>
-                                          {off.phone && (
-                                            <a 
-                                              href={`tel:${off.phone}`} 
-                                              className="p-2 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-colors"
-                                            >
-                                              <Phone size={12} />
-                                            </a>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  <a 
-                                    href={loc.mapLink} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="w-full py-3 bg-[#00965e] hover:bg-[#047857] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors"
-                                  >
-                                    <MapIcon size={14} /> មើលទីតាំងលើផែនទី
-                                  </a>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-center py-12 bg-white rounded-2xl border border-slate-150">
-                              <MapPin size={36} className="mx-auto text-slate-300 mb-2" />
-                              <p className="text-slate-500 text-xs font-bold">មិនទាន់មានទីតាំងត្រូវបានចុះបញ្ជីទេ</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                    </div>
-                  )}
-
-                  {/* TAB 2: ADD LOCATION */}
-                  {activeTab === 'add_location' && (
-                    <div className="space-y-4 animate-fade-in">
-                      <form onSubmit={handleSubmitLocation} className="space-y-4">
-                        
-                        {/* Location Details section */}
-                        <div className="bg-white p-4 rounded-2xl border border-slate-150 space-y-3.5">
-                          <h3 className="font-moul text-xs text-slate-700 mb-2 pb-2 border-b border-slate-100">
-                            ព័ត៌មានទីតាំង
-                          </h3>
-                          
-                          <div>
-                            <label className="text-xs font-bold text-slate-600">ឈ្មោះទីតាំង *</label>
-                            <input 
-                              type="text" 
-                              required
-                              value={newLocName} 
-                              onChange={e => setNewLocName(e.target.value)} 
-                              placeholder="បញ្ចូលឈ្មោះទីតាំង" 
-                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-semibold text-slate-700 mt-1 focus:bg-white"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="text-xs font-bold text-slate-600">ប្រភេទ *</label>
-                            <select 
-                              value={newLocCategory} 
-                              onChange={e => setNewLocCategory(e.target.value)} 
-                              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none mt-1 focus:bg-white"
-                            >
-                              <option value="សាលារៀន">សាលារៀន</option>
-                              <option value="មណ្ឌលសុខភាព">មណ្ឌលសុខភាព</option>
-                              <option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option>
-                              <option value="សាលាឃុំ/ផ្ទះមេភូមិ">សាលាឃុំ/ផ្ទះមេភូមិ</option>
-                            </select>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-xs font-bold text-slate-600">ស្រុក/ខេត្ត *</label>
-                              <select 
-                                value={newLocDistrictType} 
-                                onChange={e => setNewLocDistrictType(e.target.value)} 
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none mt-1 focus:bg-white"
-                              >
-                                <option value="ស្រុករតនមណ្ឌល">ស្រុករតនមណ្ឌល</option>
-                                <option value="ផ្សេងៗ">ផ្សេងៗ</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-xs font-bold text-slate-600">ឃុំ/សង្កាត់ *</label>
-                              <select 
-                                value={newLocCommune} 
-                                onChange={e => setNewLocCommune(e.target.value)} 
-                                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none mt-1 focus:bg-white"
-                              >
-                                <option value="">ជ្រើសរើស</option>
-                                {ROTANAK_MONDOL_COMMUNES.map(c => (
-                                  <option key={c} value={c}>ឃុំ{c}</option>
-                                ))}
-                                <option value="ផ្សេងៗ">ផ្សេងៗ</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-xs font-bold text-slate-600">ភូមិ *</label>
-                            <input 
-                              type="text" 
-                              required
-                              value={newLocVillage} 
-                              onChange={e => setNewLocVillage(e.target.value)} 
-                              placeholder="បញ្ចូលឈ្មោះភូមិ" 
-                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-semibold text-slate-700 mt-1 focus:bg-white"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Location on Map */}
-                        <div className="bg-white p-4 rounded-2xl border border-slate-150 space-y-3.5">
-                          <h3 className="font-moul text-xs text-slate-700 mb-2 pb-2 border-b border-slate-100">
-                            ទីតាំងលើផែនទី
-                          </h3>
-                          <button 
-                            type="button" 
-                            onClick={handleAutoGPS}
-                            className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-emerald-200 transition-colors"
-                          >
-                            <Compass size={16} className={isLocating ? 'animate-spin' : ''} />
-                            {isLocating ? "កំពុងកំណត់ទីតាំង..." : "ជ្រើសរើសទីតាំងលើផែនទី"}
-                          </button>
-                          
-                          <div>
-                            <label className="text-[11px] font-bold text-slate-400 uppercase">ឬដាក់ Link ផែនទី</label>
-                            <input 
-                              type="text" 
-                              value={newLocMapLink} 
-                              onChange={e => setNewLocMapLink(e.target.value)} 
-                              placeholder="បញ្ចូលតំណភ្ជាប់ Google Maps" 
-                              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-semibold text-slate-700 mt-1 focus:bg-white"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Image Upload Block matching Screen 3 */}
-                        <div className="bg-white p-4 rounded-2xl border border-slate-150 space-y-3">
-                          <h3 className="font-moul text-xs text-slate-700 mb-1">
-                            រូបភាពទីតាំង
-                          </h3>
-                          <label className="w-full h-40 border-2 border-dashed border-emerald-300 rounded-2xl bg-emerald-50/20 cursor-pointer overflow-hidden flex flex-col items-center justify-center relative hover:bg-emerald-50/40 transition-colors">
-                            {newLocImageBase64 ? (
-                              <img src={newLocImageBase64} alt="preview" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="text-center p-4">
-                                <Camera size={36} className="mx-auto text-emerald-500 mb-2" />
-                                <span className="text-xs font-bold text-slate-600 block mb-1">ចុចដើម្បីជ្រើសរើសរូបភាព</span>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase block">PNG, JPG (ទំហំមិនលើស 5MB)</span>
-                              </div>
-                            )}
-                            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                          </label>
-                        </div>
-
-                        {/* Responsible Person Info */}
-                        <div className="bg-white p-4 rounded-2xl border border-slate-150 space-y-3.5">
-                          <div className="flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
-                            <h3 className="font-moul text-xs text-slate-700">
-                              ព័ត៌មានអ្នកទទួលខុសត្រូវ
-                            </h3>
-                            <button 
-                              type="button" 
-                              onClick={addOff} 
-                              className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors"
-                            >
-                              <Plus size={16} />
-                            </button>
-                          </div>
-
-                          {officials.map((o, i) => (
-                            <div key={i} className="space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-100 relative">
-                              {officials.length > 1 && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => rmOff(i)} 
-                                  className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-50 rounded-full"
-                                >
-                                  <X size={14} />
-                                </button>
-                              )}
-                              <div>
-                                <label className="text-[10px] font-bold text-slate-500">តួនាទី *</label>
-                                <input 
-                                  type="text" 
-                                  required
-                                  value={o.role} 
-                                  onChange={e => updOff(i, 'role', e.target.value)} 
-                                  placeholder="ឧ. មេឃុំ / មេភូមិ" 
-                                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg outline-none text-xs text-slate-700 mt-1"
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-[10px] font-bold text-slate-500">ឈ្មោះ *</label>
-                                  <input 
-                                    type="text" 
-                                    required
-                                    value={o.name} 
-                                    onChange={e => updOff(i, 'name', e.target.value)} 
-                                    placeholder="ឈ្មោះ" 
-                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg outline-none text-xs text-slate-700 mt-1"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="text-[10px] font-bold text-slate-500">លេខទូរស័ព្ទ</label>
-                                  <input 
-                                    type="tel" 
-                                    value={o.phone} 
-                                    onChange={e => updOff(i, 'phone', e.target.value)} 
-                                    placeholder="ទូរស័ព្ទ" 
-                                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg outline-none text-xs text-slate-700 mt-1"
-                                  />
-                                </div>
-                              </div>
-                            </div>
+                      {/* Commune Dropdown */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase ml-1">ជ្រើសរើសឃុំ</label>
+                        <select 
+                          value={selectedCommune} 
+                          onChange={e => { setSelectedCommune(e.target.value); setSelectedVillage(''); }}
+                          className={`w-full p-3 rounded-xl border text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
+                        >
+                          <option value="">-- ជ្រើសរើសឃុំ --</option>
+                          {Object.keys(RatanakMondolData).map(comm => (
+                            <option key={comm} value={comm}>ឃុំ {comm}</option>
                           ))}
-                        </div>
+                        </select>
+                      </div>
 
-                        {/* Action buttons matching Screen 3 */}
-                        <div className="flex gap-3 pt-2">
-                          <button 
-                            type="button" 
-                            onClick={() => setActiveTab('explore')}
-                            className="flex-1 py-4.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-moul text-xs tracking-wider transition-colors"
+                      {/* Village Dropdown */}
+                      {selectedCommune && (
+                        <div className="space-y-1 animate-slide-up">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase ml-1">ជ្រើសរើសភូមិ</label>
+                          <select 
+                            value={selectedVillage} 
+                            onChange={e => setSelectedVillage(e.target.value)}
+                            className={`w-full p-3 rounded-xl border text-xs font-bold outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
                           >
-                            បោះបង់
-                          </button>
-                          <button 
-                            type="submit"
-                            className="flex-1 py-4.5 bg-[#00965e] hover:bg-[#047857] text-white rounded-2xl font-moul text-xs tracking-wider shadow-md transition-all active:scale-98"
-                          >
-                            រក្សាទុកទិន្នន័យ
-                          </button>
+                            <option value="">-- ជ្រើសរើសភូមិ --</option>
+                            {Object.keys(RatanakMondolData[selectedCommune] || {}).map(vil => (
+                              <option key={vil} value={vil}>{vil}</option>
+                            ))}
+                          </select>
                         </div>
-                      </form>
+                      )}
                     </div>
                   )}
 
-                  {/* TAB 3: TREE ACCORDION STRUCTURE (Screen 5) */}
-                  {activeTab === 'tree_structure' && (
-                    <div className="space-y-4 animate-fade-in">
-                      <div className="bg-white p-4 rounded-3xl border border-slate-150 shadow-xs">
-                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-                          <FolderTree className="text-emerald-600" size={20} />
-                          <h3 className="font-moul text-xs text-slate-800">
-                            រចនាសម្ព័ន្ធបែងចែកសហគមន៍
-                          </h3>
+                  {/* INTERACTIVE DEMO DATA (If commune & village is picked) */}
+                  {selectedDistrictTab === 'រតនមណ្ឌល' && activeVillageMeta && (
+                    <div className="space-y-4 animate-slide-up">
+                      
+                      {/* Demographics Card */}
+                      <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'} space-y-3`}>
+                        <h4 className="font-bold text-xs text-[#00965e] pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                          📊 ស្ថិតិភូមិគ្រឹះ {selectedVillage}
+                        </h4>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-center">
+                          <div className={`p-2.5 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                            <span className="text-[10px] text-slate-400 block mb-0.5">គ្រួសារសរុប</span>
+                            <strong className="text-sm text-[#00965e]">{activeVillageMeta.households} គ្រួសារ</strong>
+                          </div>
+                          <div className={`p-2.5 rounded-xl ${isDarkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                            <span className="text-[10px] text-slate-400 block mb-0.5">ប្រជាជនសរុប</span>
+                            <strong className="text-sm text-[#00965e]">{activeVillageMeta.population} នាក់</strong>
+                          </div>
                         </div>
 
-                        {/* Loop through District tree level */}
-                        {Object.entries(buildTreeData).map(([distName, distData]) => (
-                          <div key={distName} className="border border-slate-100 rounded-2xl overflow-hidden bg-slate-50/50 mb-3">
-                            <button 
-                              onClick={() => setExpandedDist(expandedDist === distName ? '' : distName)}
-                              className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-100/50 transition-colors"
-                            >
-                              <span className="font-bold text-slate-800 text-xs flex items-center gap-2">
-                                <FolderTree size={14} className="text-emerald-600" />
-                                {distName}
-                              </span>
-                              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                {distData.total} ទីតាំង
-                              </span>
-                            </button>
-
-                            {expandedDist === distName && (
-                              <div className="p-3 bg-white border-t border-slate-100 space-y-2 pl-6">
-                                {Object.entries(distData.communes).map(([commName, commData]) => (
-                                  <div key={commName} className="border border-slate-50 rounded-xl overflow-hidden">
-                                    <button 
-                                      onClick={() => setExpandedComm(expandedComm === commName ? '' : commName)}
-                                      className="w-full flex justify-between items-center p-3 text-left bg-slate-50/50 hover:bg-slate-50 transition-colors"
-                                    >
-                                      <span className="font-bold text-slate-700 text-xs">
-                                        ឃុំ {commName}
-                                      </span>
-                                      <span className="text-[10px] text-slate-400 font-bold">
-                                        {commData.total} ភូមិ/ទីតាំង
-                                      </span>
-                                    </button>
-
-                                    {expandedComm === commName && (
-                                      <div className="p-2 space-y-2 bg-white border-t border-slate-50 pl-4">
-                                        {Object.entries(commData.villages).map(([villName, villData]) => (
-                                          <div key={villName} className="p-2.5 bg-slate-50 rounded-lg border border-slate-100">
-                                            <div className="flex justify-between items-center mb-1">
-                                              <span className="text-xs font-bold text-slate-600">ភូមិ {villName}</span>
-                                              <span className="text-[9px] bg-slate-200 text-slate-600 font-bold px-1.5 py-0.5 rounded-sm">
-                                                គ្រួសារ: {villData.families} • មនុស្ស: {villData.people}
-                                              </span>
-                                            </div>
-                                            {/* Categories breakdown inside village */}
-                                            <div className="space-y-1 mt-2">
-                                              {Object.entries(villData.categories).map(([catName, list]) => (
-                                                <div key={catName} className="text-[10px] flex items-center justify-between text-slate-500">
-                                                  <span>{catName}</span>
-                                                  <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-sm">{list.length}</span>
-                                                </div>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
+                        {/* Village Leaders with Direct Calling Button */}
+                        {activeVillageMeta.leaders && activeVillageMeta.leaders.map((ldr, i) => (
+                          <div key={i} className={`p-3 rounded-xl flex justify-between items-center ${isDarkMode ? 'bg-slate-800' : 'bg-emerald-50/30 border border-emerald-100/50'}`}>
+                            <div>
+                              <span className="text-[9px] text-slate-400 font-bold block uppercase">{ldr.role}</span>
+                              <strong className="text-xs text-slate-700 dark:text-slate-200">{ldr.name}</strong>
+                            </div>
+                            {ldr.phone && (
+                              <a 
+                                href={`tel:${ldr.phone}`} 
+                                className="px-3 py-1.5 bg-[#00965e] text-white rounded-full text-[10px] font-bold flex items-center gap-1 hover:bg-[#007a4c]"
+                              >
+                                <Phone size={10} /> ហៅទូរស័ព្ទ ({ldr.phone})
+                              </a>
                             )}
                           </div>
                         ))}
                       </div>
+
                     </div>
                   )}
 
-                  {/* TAB 4: ADMIN DASHBOARD (Screen 4) */}
-                  {activeTab === 'admin_panel' && isAdmin && (
-                    <div className="space-y-4 animate-fade-in">
+                  {/* DISPLAY FILTERED LOCATIONS */}
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-xs border-b border-slate-100 dark:border-slate-800 pb-2">
+                      📍 ទីតាំងសំខាន់ៗ ({displayedLocations.length})
+                    </h3>
+                    
+                    {displayedLocations.length > 0 ? (
+                      displayedLocations.map(loc => (
+                        <div key={loc.id} className={`rounded-2xl overflow-hidden border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'} animate-slide-up`}>
+                          <img src={loc.imageUrl} alt={loc.name} className="w-full h-40 object-cover" />
+                          <div className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <h4 className="font-bold text-sm leading-tight">{loc.name}</h4>
+                              <span className="text-[9px] bg-[#00965e]/10 text-[#00965e] px-2.5 py-1 rounded-full font-bold">{loc.category}</span>
+                            </div>
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mb-3">
+                              <MapPin size={12} className="text-slate-400" /> {loc.commune}, {loc.village}
+                            </p>
+                            <button 
+                              onClick={() => alert(`តភ្ជាប់ទៅ Google Maps សម្រាប់ទីតាំង៖ ${loc.name}`)} 
+                              className="w-full py-2.5 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-xl text-xs font-bold flex justify-center items-center gap-2 hover:bg-slate-200 transition-colors"
+                            >
+                              <Compass size={14} /> មើលទីតាំងលើផែនទី
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 opacity-50">
+                        <MapIcon size={36} className="mx-auto mb-2 text-slate-400" />
+                        <p className="text-xs font-bold">មិនទាន់មានទីតាំងចុះបញ្ជីទេ</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: ADD LOCATION FORM */}
+              {activeTab === 'add' && (
+                <div className="animate-slide-up p-4 space-y-4">
+                  <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'}`}>
+                    <h3 className="font-bold text-xs text-[#00965e] mb-4 flex items-center gap-2">
+                      <PlusCircle size={16}/> ស្នើសុំបន្ថែមទីតាំងថ្មី
+                    </h3>
+                    
+                    <form onSubmit={submitLocation} className="space-y-4 text-xs">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">ឈ្មោះទីតាំង *</label>
+                        <input 
+                          type="text" 
+                          required 
+                          value={newLocName} 
+                          onChange={e=>setNewLocName(e.target.value)} 
+                          className={`w-full p-3 rounded-xl border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} 
+                          placeholder="ឧ. សាលាបឋមសិក្សាកិរីឡា" 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 mb-1 block">ស្រុក *</label>
+                          <select 
+                            value={newLocDistrict} 
+                            onChange={e=>setNewLocDistrict(e.target.value)} 
+                            className={`w-full p-3 rounded-xl border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                          >
+                            <option value="ស្រុករតនមណ្ឌល">ស្រុករតនមណ្ឌល</option>
+                            <option value="ផ្សេងៗ">ស្រុកផ្សេងៗ</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 mb-1 block">ប្រភេទទីតាំង *</label>
+                          <select 
+                            value={newLocCategory} 
+                            onChange={e=>setNewLocCategory(e.target.value)} 
+                            className={`w-full p-3 rounded-xl border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                          >
+                            <option value="សាលារៀន">សាលារៀន</option>
+                            <option value="មណ្ឌលសុខភាព">មណ្ឌលសុខភាព</option>
+                            <option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option>
+                            <option value="ផ្សេងៗ">ផ្សេងៗ</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Optional Custom District */}
+                      {newLocDistrict === 'ផ្សេងៗ' && (
+                        <div className="animate-slide-up">
+                          <label className="text-xs font-bold text-slate-500 mb-1 block">ឈ្មោះស្រុកថ្មី *</label>
+                          <input 
+                            type="text" 
+                            required 
+                            value={newLocCustomDistrict} 
+                            onChange={e=>setNewLocCustomDistrict(e.target.value)} 
+                            className={`w-full p-3 rounded-xl border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} 
+                            placeholder="បញ្ចូលឈ្មោះស្រុក" 
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 mb-1 block">ឃុំ/សង្កាត់ *</label>
+                          {newLocDistrict === 'ស្រុករតនមណ្ឌល' ? (
+                            <select 
+                              value={newLocCommune} 
+                              onChange={e=>setNewLocCommune(e.target.value)} 
+                              className={`w-full p-3 rounded-xl border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                            >
+                              {ROTANAK_MONDOL_COMMUNES.map(comm => (
+                                <option key={comm} value={comm}>ឃុំ {comm}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input 
+                              type="text" 
+                              required 
+                              value={newLocCommune} 
+                              onChange={e=>setNewLocCommune(e.target.value)} 
+                              className={`w-full p-3 rounded-xl border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} 
+                              placeholder="ឈ្មោះឃុំ" 
+                            />
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-500 mb-1 block">ភូមិ *</label>
+                          <input 
+                            type="text" 
+                            required 
+                            value={newLocVillage} 
+                            onChange={e=>setNewLocVillage(e.target.value)} 
+                            className={`w-full p-3 rounded-xl border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} 
+                            placeholder="ឧ. ភូមិត្រៃត្រង្ស" 
+                          />
+                        </div>
+                      </div>
                       
-                      {/* Horizontal Admin Sub Tabs */}
-                      <div className="flex gap-2 border-b border-slate-150 pb-2">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 mb-1 block">រូបភាពគំរូនៃទីតាំង</label>
+                        <label className={`w-full h-36 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden relative ${isDarkMode ? 'border-slate-700 bg-slate-800 hover:bg-slate-800/80' : 'border-[#00965e]/30 bg-[#00965e]/5 hover:bg-[#00965e]/10'} transition-colors`}>
+                          {newLocImageBase64 ? (
+                            <img src={newLocImageBase64} className="w-full h-full object-cover" alt="preview" />
+                          ) : (
+                            <>
+                              <Camera className="text-[#00965e] mb-2" size={24} />
+                              <span className="text-[10px] text-slate-400 font-bold">ចុចជ្រើសរើសរូបភាព (Upload)</span>
+                            </>
+                          )}
+                          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        </label>
+                      </div>
+
+                      {/* Friendly warning notice */}
+                      <p className="text-[9.5px] text-slate-400 italic leading-relaxed border-l-2 border-amber-500 pl-2">
+                        * រាល់ទិន្នន័យដែលអ្នកស្នើសុំ នឹងត្រូវឆ្លងកាត់ការត្រួតពិនិត្យ និងយល់ព្រមពី Admin ជាមុនសិន ទើបបង្ហាញជាសាធារណៈ។
+                      </p>
+
+                      <button 
+                        type="submit" 
+                        disabled={isSubmitting} 
+                        className="w-full bg-[#00965e] text-white py-3.5 rounded-xl font-bold mt-2 shadow-md hover:bg-[#007a4c] transition-all active:scale-98 text-xs"
+                      >
+                        {isSubmitting ? 'កំពុងបញ្ជូន...' : '📤 ផ្ញើរកញ្ចប់សំណើរ'}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: ACCOUNT & ADMIN PROFILE */}
+              {activeTab === 'profile' && (
+                <div className="animate-slide-up p-4 space-y-4">
+                  
+                  {/* Account Header Banner */}
+                  <div className={`p-5 rounded-3xl border flex items-center gap-4 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-[#00965e] text-white shadow-lg'}`}>
+                    <div className="w-14 h-14 bg-white/20 rounded-full border border-white/40 flex items-center justify-center text-lg font-black shadow-inner">
+                      {isAdmin ? 'AD' : (username ? username.substring(0,2).toUpperCase() : 'US')}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm leading-tight">{isAdmin ? 'រដ្ឋបាលប្រព័ន្ធ (Admin)' : (username || 'មិនទាន់មានគណនី ID')}</h3>
+                      <p className={`text-[10.5px] ${isDarkMode ? 'text-slate-400' : 'text-emerald-100'}`}>
+                        {isAdmin ? 'សិទ្ធិគ្រប់គ្រងទិន្នន័យពេញលេញ' : 'គណនីសហគមន៍ធម្មតា'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* If not Admin yet, show Admin Login trigger */}
+                  {!isAdmin && (
+                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-2xs'}`}>
+                      <button 
+                        onClick={() => setShowAdminLogin(true)} 
+                        className="w-full py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-xs flex justify-center items-center gap-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors"
+                      >
+                        <ShieldCheck size={16} /> ចូលកាន់កិច្ចការរដ្ឋបាល (Admin)
+                      </button>
+                    </div>
+                  )}
+
+                  {/* ==========================================
+                      ADMIN WORKSPACE & 4 CORE SUB-TABS
+                      ========================================== */}
+                  {isAdmin && (
+                    <div className="space-y-4 animate-slide-up">
+                      
+                      {/* Sub tab selectors */}
+                      <div className="flex gap-1.5 overflow-x-auto hide-scroll pb-1">
                         <button 
-                          onClick={() => setAdminSubTab('approvals')}
-                          className={`px-3 py-1.5 rounded-full font-bold text-[11px] ${adminSubTab === 'approvals' ? 'bg-[#00965e] text-white' : 'text-slate-500'}`}
+                          onClick={() => setAdminSubTab('approvals')} 
+                          className={`px-3 py-2 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${adminSubTab === 'approvals' ? 'bg-[#00965e] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
                         >
-                          ការអនុម័ត ({pendingLocations.length})
+                          📥 សំណើអនុម័ត ({pendingLocations.length})
                         </button>
                         <button 
-                          onClick={() => setAdminSubTab('statistics')}
-                          className={`px-3 py-1.5 rounded-full font-bold text-[11px] ${adminSubTab === 'statistics' ? 'bg-[#00965e] text-white' : 'text-slate-500'}`}
+                          onClick={() => setAdminSubTab('data')} 
+                          className={`px-3 py-2 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${adminSubTab === 'data' ? 'bg-[#00965e] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
                         >
-                          របាយការណ៍
+                          🗂️ ទីតាំងទិន្នន័យ
                         </button>
                         <button 
-                          onClick={() => setAdminSubTab('security')}
-                          className={`px-3 py-1.5 rounded-full font-bold text-[11px] ${adminSubTab === 'security' ? 'bg-[#00965e] text-white' : 'text-slate-500'}`}
+                          onClick={() => setAdminSubTab('stats')} 
+                          className={`px-3 py-2 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${adminSubTab === 'stats' ? 'bg-[#00965e] text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
                         >
-                          សុវត្ថិភាព
+                          📈 របាយការណ៍
+                        </button>
+                        <button 
+                          onClick={() => setAdminSubTab('security')} 
+                          className={`px-3 py-2 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors ${adminSubTab === 'security' ? 'bg-red-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}
+                        >
+                          🛡️ សុវត្ថិភាព
                         </button>
                       </div>
 
-                      {/* Admin SubTab: Approvals & Stats Panel */}
+                      {/* SUB-TAB 1: APPROVAL MANAGER */}
                       {adminSubTab === 'approvals' && (
-                        <div className="space-y-4">
-                          {/* Grid matching Screen 4 Stats precisely */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-white p-3.5 rounded-2xl border border-slate-150 space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">ទីតាំងដែលបានអនុម័ត</span>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-xl font-bold text-slate-800">124</span>
-                                <span className="text-[10px] text-emerald-600 font-bold">+12 នេះសប្តាហ៍</span>
+                        <div className="space-y-3 animate-slide-up">
+                          {pendingLocations.map(loc => (
+                            <div key={loc.id} className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} space-y-3`}>
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-bold text-xs">{loc.name}</h4>
+                                  <p className="text-[10px] text-slate-500">{loc.commune}, {loc.village} • ដោយ៖ {loc.submittedBy}</p>
+                                </div>
+                                <span className="text-[9px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded font-bold uppercase">{loc.category}</span>
+                              </div>
+                              
+                              {loc.imageUrl && <img src={loc.imageUrl} alt="" className="w-full h-24 object-cover rounded-xl" />}
+                              
+                              <div className="flex gap-2 pt-1">
+                                <button 
+                                  onClick={() => adminApprove(loc)} 
+                                  className="flex-1 py-2 bg-emerald-600 text-white font-bold rounded-xl text-[10.5px] hover:bg-emerald-700"
+                                >
+                                  ✓ យល់ព្រម
+                                </button>
+                                <button 
+                                  onClick={() => adminReject(loc)} 
+                                  className="flex-1 py-2 bg-red-50 text-red-600 font-bold rounded-xl text-[10.5px] hover:bg-red-100"
+                                >
+                                  ✗ បដិសេធ
+                                </button>
                               </div>
                             </div>
+                          ))}
+                          
+                          {pendingLocations.length === 0 && (
+                            <div className="text-center py-10 opacity-60">
+                              <Check size={32} className="mx-auto text-emerald-600 mb-2" />
+                              <p className="text-xs font-bold">គ្មានសំណើកំពុងរង់ចាំការអនុម័តទេ</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                            <div className="bg-white p-3.5 rounded-2xl border border-slate-150 space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">កំពុងរង់ចាំការអនុម័ត</span>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-xl font-bold text-slate-800">{pendingLocations.length}</span>
-                                <span className="text-[10px] text-red-500 font-bold">-3 នេះសប្តាហ៍</span>
-                              </div>
-                            </div>
-
-                            <div className="bg-white p-3.5 rounded-2xl border border-slate-150 space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">អ្នកប្រើប្រាស់</span>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-xl font-bold text-slate-800">28</span>
-                                <span className="text-[10px] text-emerald-600 font-bold">+4 នេះសប្តាហ៍</span>
-                              </div>
-                            </div>
-
-                            <div className="bg-white p-3.5 rounded-2xl border border-slate-150 space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">សុវត្ថិភាព</span>
-                              <div className="flex items-baseline gap-2">
-                                <span className="text-xl font-bold text-[#00965e]">98%</span>
-                                <span className="text-[10px] text-[#00965e] font-bold">សុវត្ថិភាពល្អ</span>
-                              </div>
-                            </div>
+                      {/* SUB-TAB 2: DEEP DATA TREE VIEW STRUCTURE */}
+                      {adminSubTab === 'data' && (
+                        <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} animate-slide-up`}>
+                          <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                            <h4 className="font-bold text-xs flex items-center gap-2">
+                              <FileText size={14}/> រចនាសម្ព័ន្ធទិន្នន័យ (ស្រុករតនមណ្ឌល)
+                            </h4>
                           </div>
-
-                          {/* Pending Requests */}
-                          <div className="space-y-3">
-                            <h4 className="font-moul text-xs text-slate-700">ទីតាំងកំពុងរង់ចាំអនុម័ត</h4>
-                            
-                            {pendingLocations.map(loc => (
-                              <div key={loc.id} className="bg-white p-4 rounded-2xl border border-slate-150 flex items-center justify-between shadow-xs">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                                    <img src={loc.imageUrl} alt="" className="w-full h-full object-cover" />
+                          
+                          <div className="p-2.5 space-y-2">
+                            {Object.entries(RatanakMondolData).map(([commName, commData]) => (
+                              <div key={commName} className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden">
+                                <button 
+                                  onClick={() => setExpComm(expComm === commName ? '' : commName)} 
+                                  className="w-full flex justify-between p-3 bg-slate-50 dark:bg-slate-800/30 text-xs font-bold text-left"
+                                >
+                                  ឃុំ {commName} 
+                                  <ChevronDown size={14} className={`transition-transform ${expComm === commName ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {expComm === commName && (
+                                  <div className="p-2 space-y-2 bg-white dark:bg-slate-900">
+                                    {Object.entries(commData).map(([vilName, vilData]) => (
+                                      <div key={vilName} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg space-y-1.5">
+                                        <h5 className="text-xs font-bold text-[#00965e]">{vilName}</h5>
+                                        
+                                        <div className="grid grid-cols-2 gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                                          <span className="text-[10px] text-slate-500">គ្រួសារ៖ <strong>{vilData.households} គ្រួសារ</strong></span>
+                                          <span className="text-[10px] text-slate-500">ប្រជាជន៖ <strong>{vilData.population} នាក់</strong></span>
+                                        </div>
+                                        
+                                        <div className="space-y-2 text-[10px]">
+                                          {vilData.leaders && vilData.leaders.length > 0 && (
+                                            <div>
+                                              <strong className="text-slate-600 dark:text-slate-400 block mb-0.5">👤 ថ្នាក់ដឹកនាំភូមិ៖</strong>
+                                              {vilData.leaders.map((ldr, idx) => (
+                                                <p key={idx} className="text-slate-500 ml-2">• {ldr.role} : {ldr.name} ({ldr.phone})</p>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <div>
+                                            <strong className="text-slate-600 dark:text-slate-400 block mb-0.5">📍 ស្ថាប័នសំខាន់ៗ៖</strong>
+                                            {vilData.schools.map((s, idx) => <p key={`s-${idx}`} className="text-slate-500 ml-2">• 🏫 {s.name}</p>)}
+                                            {vilData.hospitals.map((h, idx) => <p key={`h-${idx}`} className="text-slate-500 ml-2">• 🏥 {h.name}</p>)}
+                                            {vilData.police.map((p, idx) => <p key={`p-${idx}`} className="text-slate-500 ml-2">• 👮 {p.name}</p>)}
+                                            {vilData.schools.length === 0 && vilData.hospitals.length === 0 && vilData.police.length === 0 && (
+                                              <p className="text-slate-400 italic ml-2">មិនទាន់មានស្ថាប័នក្នុងទិន្នន័យ</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
-                                  <div>
-                                    <h5 className="font-bold text-slate-800 text-xs">{loc.name}</h5>
-                                    <p className="text-[10px] text-slate-400">{loc.commune} • {loc.village}</p>
-                                    <p className="text-[9px] text-amber-600 font-bold bg-amber-50 px-1.5 py-0.2 rounded-sm inline-block mt-0.5">រង់ចាំការអនុម័ត</p>
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <button 
-                                    onClick={() => handleApproveLocation(loc)}
-                                    className="p-2.5 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-colors"
-                                  >
-                                    <Check size={16} />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteLocation(loc)}
-                                    className="p-2.5 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors"
-                                  >
-                                    <X size={16} />
-                                  </button>
-                                </div>
+                                )}
                               </div>
                             ))}
-
-                            {pendingLocations.length === 0 && (
-                              <div className="text-center py-10 bg-white rounded-2xl border border-slate-150">
-                                <Check className="text-emerald-500 mx-auto mb-2" size={32} />
-                                <p className="text-slate-500 text-xs font-bold">គ្មានការស្នើសុំកំពុងរង់ចាំការអនុម័តទេ</p>
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
 
-                      {/* Admin Subtab: Statistics */}
-                      {adminSubTab === 'statistics' && (
-                        <div className="space-y-4">
-                          <div className="bg-white p-4 rounded-2xl border border-slate-150 space-y-3">
-                            <h4 className="font-moul text-xs text-slate-700">របាយការណ៍សង្ខេប</h4>
-                            <div className="p-4 bg-[#00965e]/10 rounded-xl flex items-center justify-between">
+                      {/* SUB-TAB 3: REPORTS / ANALYTICS STATISTICS */}
+                      {adminSubTab === 'stats' && (
+                        <div className="space-y-3 animate-slide-up text-xs">
+                          <div className={`p-4 rounded-2xl border flex items-center justify-between ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">ចំនួនអ្នកប្រើប្រាស់សរុប (Active Users)</p>
+                              <h4 className="text-xl font-black text-[#00965e]">1,284 នាក់</h4>
+                            </div>
+                            <Activity size={28} className="text-emerald-300 animate-pulse" />
+                          </div>
+                          
+                          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} space-y-3`}>
+                            <h4 className="font-bold text-xs">ស្ថិតិកំណើនសហគមន៍ (%)</h4>
+                            
+                            <div className="space-y-2">
                               <div>
-                                <span className="text-[10px] text-slate-500 font-bold uppercase block">អ្នកប្រើប្រាស់សរុបប្រចាំឆ្នាំ</span>
-                                <span className="text-2xl font-bold text-[#00965e]">12,500 នាក់</span>
+                                <div className="flex justify-between text-[10px] mb-1">
+                                  <span>កំណើនប្រចាំសប្តាហ៍</span>
+                                  <span className="text-[#00965e] font-bold">15%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
+                                  <div className="bg-[#00965e] h-1.5 rounded-full" style={{ width: '15%' }}></div>
+                                </div>
                               </div>
-                              <BarChart2 size={32} className="text-[#00965e]" />
+
+                              <div>
+                                <div className="flex justify-between text-[10px] mb-1">
+                                  <span>កំណើនប្រចាំខែ</span>
+                                  <span className="text-[#00965e] font-bold">45%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
+                                  <div className="bg-[#00965e] h-1.5 rounded-full" style={{ width: '45%' }}></div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="flex justify-between text-[10px] mb-1">
+                                  <span>កំណើនប្រចាំឆ្នាំ</span>
+                                  <span className="text-[#00965e] font-bold">88%</span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
+                                  <div className="bg-[#00965e] h-1.5 rounded-full" style={{ width: '88%' }}></div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Admin Subtab: Security Logs */}
+                      {/* SUB-TAB 4: SECURITY SYSTEM LOGS */}
                       {adminSubTab === 'security' && (
-                        <div className="space-y-3">
-                          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-2.5 text-xs">
-                            <ShieldAlert size={20} className="shrink-0 mt-0.5" />
-                            <p className="leading-relaxed">
-                              កត់ត្រាសកម្មភាពមិនធម្មតា និងការប៉ុនប៉ងចូលប្រើប្រាស់គណនី Admin ដោយគ្មានការអនុញ្ញាត។
-                            </p>
+                        <div className="space-y-3 animate-slide-up text-[11px]">
+                          <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-xl border border-red-150 dark:border-red-900/30 flex gap-2 text-red-600 dark:text-red-400">
+                            <ShieldAlert size={18} className="shrink-0 mt-0.5" />
+                            <p className="text-[10px] leading-relaxed">កំណត់ហេតុកត់ត្រាពីជនដែលព្យាយាមលួចចូលប្រព័ន្ធ Admin មិនត្រឹមត្រូវ (Security Monitor)។</p>
                           </div>
-
+                          
                           <div className="space-y-2">
                             {securityLogs.length > 0 ? (
                               securityLogs.map(log => (
-                                <div key={log.id} className="bg-white p-3 rounded-xl border border-slate-150 text-[11px] space-y-1 shadow-2xs">
-                                  <div className="flex justify-between font-bold text-red-600 border-b border-slate-50 pb-1.5 mb-1.5">
-                                    <span>បរាជ័យក្នុងការចូលប្រើប្រាស់</span>
+                                <div key={log.id} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-xs'} space-y-1`}>
+                                  <div className="flex justify-between font-bold text-red-500 border-b border-slate-50 dark:border-slate-800 pb-1 mb-1">
+                                    <span>បរាជ័យក្នុងការ Login</span>
                                     <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
                                   </div>
-                                  <p className="text-slate-600"><span className="text-slate-400">Password:</span> {log.attemptedPassword}</p>
-                                  <p className="text-slate-600"><span className="text-slate-400">ឧបករណ៍:</span> {log.deviceInfo}</p>
+                                  <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                                    <p>គណនី៖ <strong className="text-slate-800 dark:text-slate-200">{log.username}</strong></p>
+                                    <p>IP៖ <strong>{log.ipAddress}</strong></p>
+                                    <p className="col-span-2">ឧបករណ៍៖ <strong>{log.deviceModel}</strong></p>
+                                    <p className="col-span-2 text-[9px] opacity-75">Password សាកល្បង៖ <strong className="text-red-400">{log.attemptedPassword}</strong></p>
+                                  </div>
                                 </div>
                               ))
                             ) : (
-                              <p className="text-center py-10 text-xs text-slate-400 font-bold bg-white rounded-xl border border-slate-150">
-                                គ្មានការកត់ត្រាការជ្រៀតជ្រែកទេ
-                              </p>
+                              <p className="text-center py-10 text-xs text-slate-400">មិនទាន់មានកំណត់ត្រាជ្រៀតជ្រែកទេ</p>
                             )}
                           </div>
                         </div>
@@ -1254,196 +994,128 @@ export default function App() {
 
                     </div>
                   )}
-
-                  {/* TAB 5: NOTIFICATIONS / ACTIVITY LOGS (Screen 6) */}
-                  {activeTab === 'notifications' && (
-                    <div className="space-y-3 animate-fade-in">
-                      <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-                        <span className="font-moul text-xs text-slate-700">ការជូនដំណឹងថ្មីៗ</span>
-                        <button 
-                          onClick={clearAllNotifications}
-                          className="text-[10px] text-emerald-600 font-bold hover:underline"
-                        >
-                          សម្អាតទាំងអស់
-                        </button>
-                      </div>
-
-                      <div className="space-y-3">
-                        {userNotifications.length > 0 ? (
-                          userNotifications.map(n => (
-                            <div key={n.id} className={`p-4 rounded-2xl border flex gap-3.5 items-start ${n.read ? 'bg-white border-slate-150 opacity-75' : 'bg-emerald-50/20 border-emerald-100'}`}>
-                              <div className={`p-2.5 rounded-xl shrink-0 ${
-                                n.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 
-                                n.type === 'warning' ? 'bg-orange-100 text-orange-600' :
-                                n.type === 'security' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
-                              }`}>
-                                {n.type === 'success' && <Check size={16} />}
-                                {n.type === 'warning' && <Bell size={16} />}
-                                {n.type === 'security' && <ShieldCheck size={16} />}
-                                {n.type === 'report' && <BarChart2 size={16} />}
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <p className="text-xs font-bold text-slate-800 leading-relaxed">{n.message}</p>
-                                <span className="text-[9px] text-slate-400 flex items-center gap-1">
-                                  <Clock size={10} />
-                                  {new Date(n.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                </span>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-16 bg-white rounded-3xl border border-slate-150">
-                            <Bell size={36} className="mx-auto text-slate-300 mb-2" />
-                            <p className="text-slate-500 text-xs font-bold">គ្មានការជូនដំណឹងថ្មីទេ</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  
+                  {/* Logout actions */}
+                  {username && !isAdmin && (
+                    <button 
+                      onClick={() => { setUsername(''); localStorage.removeItem('vmc_user_session_2026'); setActiveTab('home'); }} 
+                      className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl text-xs flex justify-center items-center gap-2"
+                    >
+                      <LogOut size={14} /> ចាកចេញពីគណនី {username}
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button 
+                      onClick={() => { setIsAdmin(false); setActiveTab('home'); }} 
+                      className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-2xl text-xs flex justify-center items-center gap-2 mt-4"
+                    >
+                      <LogOut size={14} /> ចាកចេញពី Admin
+                    </button>
                   )}
 
                 </div>
+              )}
 
-                {/* VISUAL EXACT BOTTOM NAVIGATION */}
-                <nav className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200/80 px-2 py-2 flex justify-around items-center z-40 shadow-lg">
-                  <button 
-                    onClick={() => { setActiveTab('explore'); setIsAdmin(false); }}
-                    className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-xl transition-all ${activeTab === 'explore' && !isAdmin ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    <Search size={20} />
-                    <span className="text-[9px] font-bold">ទីតាំងដើម</span>
-                  </button>
+            </main>
 
-                  <button 
-                    onClick={() => { if (!username) setShowNeedsAccountAlert(true); else { setActiveTab('add_location'); setIsAdmin(false); } }}
-                    className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-xl transition-all ${activeTab === 'add_location' && !isAdmin ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    <PlusCircle size={20} />
-                    <span className="text-[9px] font-bold">បន្ថែម</span>
-                  </button>
+            {/* BOTTOM NAVIGATION TAB (Smartphone optimized 3 menus) */}
+            <nav className={`absolute bottom-0 w-full flex justify-around items-center pt-2 pb-5 z-30 border-t ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100'}`}>
+              <button 
+                onClick={() => setActiveTab('home')} 
+                className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'home' ? 'text-[#00965e]' : 'text-slate-400'}`}
+              >
+                <Home size={22} className={activeTab === 'home' ? 'fill-current' : ''} />
+                <span className="text-[10px] font-bold">ទំព័រដើម</span>
+              </button>
+              
+              <button 
+                onClick={attemptToAddLocation} 
+                className={`flex flex-col items-center gap-1 w-16 relative -top-3 ${activeTab === 'add' ? 'text-[#00965e]' : 'text-slate-400'}`}
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform ${activeTab === 'add' ? 'bg-[#00965e] text-white scale-110' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                  <Plus size={26} />
+                </div>
+                <span className="text-[10px] font-bold mt-1">បន្ថែម</span>
+              </button>
 
-                  <button 
-                    onClick={() => { setActiveTab('tree_structure'); setIsAdmin(false); }}
-                    className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-xl transition-all ${activeTab === 'tree_structure' && !isAdmin ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    <FolderTree size={20} />
-                    <span className="text-[9px] font-bold">ផែនទី</span>
-                  </button>
-
-                  <button 
-                    onClick={() => { if (isAdmin) { setActiveTab('admin_panel'); } else { setShowAdminLogin(true); } }}
-                    className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-xl transition-all ${isAdmin ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    <ShieldCheck size={20} />
-                    <span className="text-[9px] font-bold">របាយការណ៍</span>
-                  </button>
-
-                  <button 
-                    onClick={() => { setActiveTab('notifications'); setIsAdmin(false); }}
-                    className={`flex flex-col items-center gap-1 py-1 px-3.5 rounded-xl transition-all ${activeTab === 'notifications' && !isAdmin ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
-                  >
-                    <User size={20} />
-                    <span className="text-[9px] font-bold">ខ្ញុំ</span>
-                  </button>
-                </nav>
-
-              </div>
-            )}
+              <button 
+                onClick={() => setActiveTab('profile')} 
+                className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'profile' ? 'text-[#00965e]' : 'text-slate-400'}`}
+              >
+                <User size={22} className={activeTab === 'profile' ? 'fill-current' : ''} />
+                <span className="text-[10px] font-bold">គណនី</span>
+              </button>
+            </nav>
 
           </div>
+        )}
 
-          {/* SIMULATOR MODALS */}
-
-          {/* ADMIN VERIFICATION MODAL */}
-          {showAdminLogin && (
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-6">
-              <div className="bg-white w-full max-w-xs rounded-3xl p-5 border border-slate-100 shadow-2xl relative animate-fade-in text-center">
-                <button 
-                  onClick={() => setShowAdminLogin(false)}
-                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 p-1.5 rounded-full"
-                >
-                  <X size={14} />
-                </button>
-
-                <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <ShieldCheck size={26} />
-                </div>
-                
-                <h3 className="font-moul text-xs text-slate-800 mb-1">ផ្ទៀងផ្ទាត់សិទ្ធិ Admin</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4">Password: ict168mit</p>
-                
-                <form onSubmit={handleAdminLogin} className="space-y-3">
-                  <input 
-                    type="password" 
-                    value={adminPasswordInput}
-                    onChange={e => setAdminPasswordInput(e.target.value)}
-                    placeholder="បញ្ចូលលេខកូដសម្ងាត់"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs text-center font-bold tracking-widest focus:border-emerald-500"
-                  />
-                  {adminError && (
-                    <p className="text-[9px] text-red-500 font-bold bg-red-50 py-1.5 px-2 rounded-lg">
-                      {adminError}
-                    </p>
-                  )}
-                  <button 
-                    type="submit"
-                    className="w-full py-3 bg-[#00965e] hover:bg-[#047857] text-white rounded-xl font-moul text-xs tracking-wider shadow-sm"
-                  >
-                    បញ្ជាក់សិទ្ធិ
-                  </button>
-                </form>
+        {/* ==========================================
+            MODALS & TOASTS OVERLAYS
+            ========================================== */}
+        
+        {/* Username ID registration modal */}
+        {showUsernameModal && (
+          <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-fade-in">
+            <div className={`w-full max-w-sm p-6 rounded-3xl shadow-2xl relative ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+              <div className="w-16 h-16 bg-[#00965e]/10 rounded-full mx-auto flex items-center justify-center mb-4 text-[#00965e]">
+                <User size={30} />
+              </div>
+              <h3 className="text-center font-bold text-base mb-1">បង្កើតគណនីសហគមន៍ ID</h3>
+              <p className="text-center text-[10.5px] text-slate-500 mb-5 leading-relaxed">សូមកំណត់ឈ្មោះ ID របស់អ្នក ដើម្បីទទួលបានសិទ្ធិផ្ញើរស្នើសុំទីតាំងថ្មី</p>
+              
+              <input 
+                type="text" 
+                placeholder="បញ្ចូលឈ្មោះរបស់អ្នក..." 
+                value={usernameInput}
+                onChange={e=>setUsernameInput(e.target.value)}
+                className={`w-full p-4 rounded-xl outline-none border font-bold text-center text-sm mb-4 focus:border-[#00965e] ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+              />
+              
+              <div className="flex gap-3">
+                <button onClick={()=>setShowUsernameModal(false)} className="flex-1 py-3 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-300">បិទ</button>
+                <button onClick={handleSaveUsername} className="flex-1 py-3 bg-[#00965e] text-white rounded-xl font-bold text-xs shadow-md">រក្សាទុក</button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* NEEDS ACCOUNT WARNING MODAL */}
-          {showNeedsAccountAlert && (
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-6">
-              <div className="bg-white w-full max-w-xs rounded-3xl p-5 shadow-2xl text-center relative animate-fade-in">
-                <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <AlertTriangle size={28} />
-                </div>
-                <h3 className="font-moul text-xs text-slate-800 mb-2">តម្រូវឱ្យមានគណនី</h3>
-                <p className="text-[11px] text-slate-500 leading-relaxed mb-4">
-                  សូមចូលទៅកាន់អេក្រង់ចុះឈ្មោះ ដើម្បីអាចផ្ញើសំណើទីតាំងថ្មីបាន។
-                </p>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setShowNeedsAccountAlert(false)}
-                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold"
-                  >
-                    បិទវិញ
-                  </button>
-                  <button 
-                    onClick={() => { setShowNeedsAccountAlert(false); setCurrentPage(1); }}
-                    className="flex-1 py-2.5 bg-[#00965e] hover:bg-[#047857] text-white rounded-xl text-xs font-bold"
-                  >
-                    ទៅចុះឈ្មោះ
-                  </button>
-                </div>
+        {/* Admin Secret Login Modal (Password is hidden securely) */}
+        {showAdminLogin && (
+          <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs animate-fade-in">
+            <div className={`w-full max-w-sm p-6 rounded-3xl shadow-2xl relative ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+              <button onClick={()=>setShowAdminLogin(false)} className="absolute top-4 right-4 text-slate-400 bg-slate-100 dark:bg-slate-800 p-1 rounded-full"><X size={16}/></button>
+              
+              <div className="w-16 h-16 bg-[#00965e]/10 rounded-full mx-auto flex items-center justify-center mb-4 text-[#00965e]">
+                <ShieldCheck size={30} />
               </div>
+              <h3 className="text-center font-bold text-base mb-4">ផ្ទៀងផ្ទាត់លេខកូដរដ្ឋបាល</h3>
+              
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={adminPasswordInput}
+                  onChange={e=>setAdminPasswordInput(e.target.value)}
+                  className={`w-full p-4 rounded-xl outline-none border font-bold text-center tracking-widest text-sm focus:border-[#00965e] ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                />
+                <button type="submit" className="w-full py-3.5 bg-[#00965e] text-white rounded-xl font-bold text-xs shadow-md">ផ្ទៀងផ្ទាត់</button>
+              </form>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* QUICK FLOATING TOAST NOTIFICATION */}
-          {formStatus.show && (
-            <div className="absolute top-16 left-4 right-4 z-50 bg-slate-900 text-white p-3 rounded-xl shadow-2xl flex items-center justify-between border border-slate-800 animate-fade-in">
-              <div className="flex items-center gap-2">
-                <div className={`p-1 rounded-full ${formStatus.success ? 'bg-emerald-500' : 'bg-red-500'}`}>
-                  {formStatus.success ? <Check size={14} /> : <AlertTriangle size={14} />}
-                </div>
-                <p className="text-[11px] font-bold leading-relaxed">{formStatus.message}</p>
-              </div>
-              <button 
-                onClick={() => setFormStatus({ ...formStatus, show: false })}
-                className="text-slate-400 hover:text-white"
-              >
-                <X size={14} />
-              </button>
+        {/* Toast Notification alert */}
+        {toastAlert.show && (
+          <div className="absolute top-4 left-4 right-4 z-[60] flex justify-center animate-slide-up">
+            <div className={`px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 font-bold text-[11px] text-white ${toastAlert.type === 'error' ? 'bg-red-500' : 'bg-[#00965e]'}`}>
+              {toastAlert.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
+              {toastAlert.message}
             </div>
-          )}
+          </div>
+        )}
 
-        </div>
       </div>
-    </>
+    </div>
   );
 }
