@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
-import "./assets/ramit.jpg";
 import { 
   getFirestore, collection, doc, setDoc, addDoc, onSnapshot, updateDoc, deleteDoc
 } from 'firebase/firestore';
