@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
+import "./assets/ramit.jpg";
 import { 
   getFirestore, collection, doc, setDoc, addDoc, onSnapshot, updateDoc, deleteDoc
 } from 'firebase/firestore';
@@ -15,7 +16,7 @@ import {
 // =========================================================================
 // 📸 កន្លែងកែប្រែរូបភាព BACKGROUND ផ្ទាល់ខ្លួន (CHANGE BACKGROUND IMAGES HERE)
 // =========================================================================
-const WELCOME_BACKGROUND_URL = "ramit.png";
+const WELCOME_BACKGROUND_URL = "ramit.jpg";
 const MAIN_APP_BACKGROUND_URL = "https://images.unsplash.com/photo-1548345680-f5475ea5df84?auto=format&fit=crop&w=800&q=80";
 
 // === CONFIGURATION & INITIALIZATION ===
