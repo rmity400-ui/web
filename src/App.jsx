@@ -150,7 +150,7 @@ export default function App() {
   const [language, setLanguage] = useState('kh'); // 'kh' or 'en'
   
   // Modals / Overlays
-  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false); // FIXED state naming
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [toastAlert, setToastAlert] = useState({ show: false, message: '', type: 'success' });
   
@@ -353,7 +353,7 @@ export default function App() {
       console.error("Error saving user:", err);
     }
 
-    setShowUsernameModal(false);
+    setIsUsernameModalOpen(false); 
     showToast(`ស្វាគមន៍ការចូលរួមរបស់, ${finalName}!`);
   };
 
@@ -383,7 +383,7 @@ export default function App() {
 
   const attemptToAddLocation = () => {
     if (!username && !isAdmin) {
-      setShowUsernameModal(true);
+      setIsUsernameModalOpen(true); 
     } else {
       setActiveTab('add');
     }
@@ -621,7 +621,7 @@ export default function App() {
       welcomeSubtitle: "បណ្តាញទិន្នន័យសហគមន៍",
       welcomeProject: "គម្រោង VMC ឆ្នាំ ២០២៦ វិទ្យាល័យស្តៅសន្តិភាព",
       projectIntro: "សេចក្តីណែនាំអំពីគម្រោង",
-      projectDesc: "គម្រោងនេះជួយសម្រួលដល់ប្រជាពលរដ្ឋក្នុងការស្វែងរកទីតាំងសំខាន់ៗ ដូចជាសាលារៀន មន្ទីរពេទ្យ ប៉ុស្តិ៍ប៉ូលីស ក្នុងតំបន់។ អ្នកអាចចូលរួមបន្ថែមទីតាំងថ្មីៗបានដោយផ្ទាល់!",
+      projectDesc: "គម្រោងនេះជួយសម្រួលដល់ប្រជាពលរដ្ឋក្នុងការស្វែងរកទីតាំងសំខាន់ៗ ដូចជាសាលារៀន មន្ទីរពេទ្យ ប៉ុស្តិ៍ប៉ូលីស ក្នុងតំបន់。 អ្នកអាចចូលរួមបន្ថែមទីតាំងថ្មីៗបានដោយផ្ទាល់!",
       btnStart: "ដំណើរការចូលប្រើប្រាស់",
       createdBy: "បង្កើតឡើងដោយយុវជនVMCវិទ្យាល័យស្តៅសន្តិភាព",
       searchPlaceholder: "ស្វែងរកទីតាំង មេភូមិ...",
@@ -1392,7 +1392,7 @@ export default function App() {
                           {/* សប្តាហ៍ ខែ ឆ្នាំ (Visual Statistics) */}
                           <div className="space-y-3">
                             {/* សប្តាហ៍ */}
-                            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} space-y-2`}>
+                            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-100'} space-y-2`}>
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-bold">ស្ថិតិសប្តាហ៍នេះ (Weekly)</span>
                                 <span className="text-[#00965e] font-black">{reportStats.weekly} ទស្សនកិច្ច</span>
@@ -1403,7 +1403,7 @@ export default function App() {
                             </div>
 
                             {/* ខែ */}
-                            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} space-y-2`}>
+                            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-100'} space-y-2`}>
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-bold">ស្ថិតិខែនេះ (Monthly)</span>
                                 <span className="text-blue-500 font-black">{reportStats.monthly} ទស្សនកិច្ច</span>
@@ -1414,7 +1414,7 @@ export default function App() {
                             </div>
 
                             {/* ឆ្នាំ */}
-                            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} space-y-2`}>
+                            <div className={`p-4 rounded-3xl border ${isDarkMode ? 'bg-slate-900/80 border-slate-800' : 'bg-white border-slate-100'} space-y-2`}>
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-bold">ស្ថិតិឆ្នាំនេះ (Yearly)</span>
                                 <span className="text-purple-500 font-black">{reportStats.yearly} ទស្សនកិច្ច</span>
@@ -1521,9 +1521,10 @@ export default function App() {
             ========================================== */}
         
         {/* Username Request Modal */}
-        {showUsernameModal && (
+        {isUsernameModalOpen && (
           <div className="absolute inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
             <div className={`w-full max-w-sm p-6 rounded-3xl shadow-2xl ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+              <button onClick={() => setIsUsernameModalOpen(false)} className="absolute top-4 right-4 text-slate-400 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full"><X size={14}/></button>
               <div className="w-16 h-16 bg-[#00965e]/10 rounded-full mx-auto flex items-center justify-center mb-4 text-[#00965e]">
                 <User size={30} />
               </div>
@@ -1539,7 +1540,7 @@ export default function App() {
               />
               
               <div className="flex gap-3">
-                <button onClick={()=>setShowUsernameModal(false)} className="flex-1 py-3 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-300">បិទ</button>
+                <button onClick={()=>setIsUsernameModalOpen(false)} className="flex-1 py-3 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-300">បិទ</button>
                 <button onClick={handleSaveUsername} className="flex-1 py-3 bg-[#00965e] text-white rounded-xl font-bold text-xs shadow-md">រក្សាទុក</button>
               </div>
             </div>
