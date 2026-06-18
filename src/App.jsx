@@ -1,18 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, doc, setDoc, addDoc, onSnapshot, updateDoc, deleteDoc
 } from 'firebase/firestore';
 import { 
-  getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+  getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged
 } from 'firebase/auth';
 import { 
-  MapPin, Search, User, Sun, Moon, Phone, Map as MapIcon, CheckCircle2, AlertTriangle, 
-  LogOut, Camera, Plus, PlusCircle, BarChart2, ShieldAlert, ArrowLeft, Home, FileText, Layers, Edit3, Trash2, TrendingUp, Users, Map
+  MapPin, Search, PlusCircle, User, Phone, Map as MapIcon, Check, AlertTriangle, 
+  LogOut, Camera, Plus, BarChart2, ShieldAlert, ArrowLeft, ArrowRight, Home, 
+  FileText, Layers, Edit3, Trash2, Globe, Users, Settings, PieChart, TrendingUp, 
+  X, Activity, CheckCircle2, Moon, Sun, Bell, MessageSquare, Send, Star, HelpCircle, Info
 } from 'lucide-react';
 
-// === CONFIGURATION & INITIALIZATION ===
-const firebaseConfig = {
+// =========================================================================
+// ⚙️ CONFIGURATION & FIREBASE
+// =========================================================================
+const LOGO_URL = "logo.png"; 
+const COVER_IMAGE = "logo.png";
+const FALLBACK_LOGO = "logo.png"; // VMC Official Logo Fallback
+const FALLBACK_COVER = "back.png";
+
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
   apiKey: "AIzaSyBq_1YKH4Hf4M65qMHirvWCD_-tyqCDz5E", 
   authDomain: "ramit-7e364.firebaseapp.com",
   projectId: "ramit-7e364",
@@ -26,35 +35,56 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'ramit-7e364';
 
-const ADMIN_PASSWORD_HASH = "ict168mit"; 
-const ROTANAK_MONDOL_COMMUNES = ["ស្តៅ", "ត្រែង", "ផ្លូវមាស", "អណ្តើកហែប", "រស្មីសង្ហា", "គរ"];
-const CUSTOM_LOGO_URL = "back.png"; // Logo ផ្ទាល់ខ្លួន
+const ADMIN_PASSWORD = "ict168mit";
+
+// ទិន្នន័យភូមិឃុំផ្លូវការក្នុងស្រុករតនមណ្ឌល
+const COMMUNE_VILLAGES = {
+  "ស្តៅ": ["ស្តៅ", "បឹងអំពិល", "ដូនបា", "គីឡូម៉ែត្រ៣៨", "អូរក្រូច"],
+  "ត្រែង": ["ត្រែង", "បុស្សខ្នុរ", "គីឡូម៉ែត្រ៣៤", "ជាមន្ត្រី"],
+  "ផ្លូវមាស": ["ផ្លូវមាស", "ទឹកសាប", "អូររំដួល", "អូរដា"],
+  "អណ្តើកហែប": ["អណ្តើកហែប", "ស្វាយជ្រុំ", "ថ្មព្រះ"],
+  "រស្មីសង្ហា": ["រស្មីសង្ហា", "ពាម", "ព្រៃវែង"],
+  "គរ": ["គរ", "អូរជ្រៃ", "ភ្នំរូង"]
+};
+const PRIMARY_COMMUNES = Object.keys(COMMUNE_VILLAGES);
+const CATEGORIES = ["ទាំងអស់", "សាលារៀន", "មណ្ឌលសុខភាព", "វត្តអារាម", "ប៉ុស្តិ៍នគរបាល", "ផ្សារ", "សាលាឃុំ/សង្កាត់", "ផ្សេងៗ"];
 
 const getDeviceInfo = () => {
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod|Android/i.test(ua)) return 'Mobile Device';
-  return 'Desktop PC';
+  const ua = navigator.userAgent ? navigator.userAgent.toLowerCase() : '';
+  if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) return 'Apple iOS Device';
+  if (ua.includes('android')) return 'Android Device';
+  if (ua.includes('windows')) return 'Windows PC';
+  if (ua.includes('mac')) return 'Mac OS';
+  return 'Unknown Device';
 };
 
 export default function App() {
-  // === APP STATE ===
+  // === 1. APP STATE ===
   const [currentPage, setCurrentPage] = useState(1); 
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState('');
   const [profileImage, setProfileImage] = useState('');
+  const [language, setLanguage] = useState('KH'); 
   const [skippedWelcome, setSkippedWelcome] = useState(false);
   
-  // Navigation
-  const [activeTab, setActiveTab] = useState('home'); // home, add, reports, profile
-  const [adminSubTab, setAdminSubTab] = useState('data'); // approvals, data, security
-  const [isDarkMode, setIsDarkMode] = useState(false); 
+  // Navigation & UI Controls
+  const [activeTab, setActiveTab] = useState('home'); 
+  const [adminSubTab, setAdminSubTab] = useState('approvals'); 
+  const [adminDataTab, setAdminDataTab] = useState('locations'); 
   
-  // Modals & Overlays
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [toastAlert, setToastAlert] = useState({ show: false, message: '', type: 'success' });
   const [selectedLocation, setSelectedLocation] = useState(null); 
   const [editLoc, setEditLoc] = useState(null);
+
+  // Notifications State (Real-time Broadcast & Custom Messages)
+  const [notifications, setNotifications] = useState([
+    { id: 'n1', text: 'ប្រព័ន្ធគ្រប់គ្រងទីតាំងត្រូវបានដាក់ឱ្យប្រើប្រាស់ផ្លូវការ!', type: 'success', time: new Date().toISOString(), sender: 'Admin' },
+    { id: 'n2', text: 'សូមស្វាគមន៍មកកាន់ប្រព័ន្ធផែនទីឌីជីថលស្រុករតនមណ្ឌល', type: 'info', time: new Date().toISOString(), sender: 'VMC Team' }
+  ]);
+  const [notifInput, setNotifInput] = useState('');
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
 
   // Inputs
   const [usernameInput, setUsernameInput] = useState('');
@@ -65,11 +95,20 @@ export default function App() {
   const [selectedCommune, setSelectedCommune] = useState(''); 
   const [selectedVillageFilter, setSelectedVillageFilter] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ទាំងអស់');
   
-  // Database Data (Strict Collections as Requested)
-  const [dbAdminData, setDbAdminData] = useState([]); // from 'data_admin' (Locations & All Content)
-  const [dbUserData, setDbUserData] = useState([]);   // from 'data_user' (Usernames)
+  // Favorites State
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem('vmc_favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  // Database Data (Strict Separation)
+  const [approvedLocations, setApprovedLocations] = useState([]); 
+  const [pendingLocations, setPendingLocations] = useState([]);
   const [securityLogs, setSecurityLogs] = useState([]);
+  const [appVisits, setAppVisits] = useState([]);
+  const [userList, setUserList] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   
   // Add Location Form
@@ -85,13 +124,25 @@ export default function App() {
   const [newLocImageBase64, setNewLocImageBase64] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // === INITIALIZATION ===
+  // Theme Helpers
+  const [isDarkMode, setIsDarkMode] = useState(false); 
+  const bgMain = isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#F4F6F9] text-slate-800';
+  const bgCard = isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-100 text-slate-800';
+  const bgPrimary = 'bg-[#15803D] text-white border-[#15803D]'; // Styled to match Mockup Emerald Green
+  const textPrimary = isDarkMode ? 'text-green-400' : 'text-[#15803D]';
+
+  // Refs
+  const notifRef = useRef(null);
+
+  // Translate helper
+  const t = (kh, en) => language === 'EN' ? en : kh;
+
+  // === 2. INITIALIZATION & SYNC ===
   useEffect(() => {
     const initAuth = async () => {
       try {
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          try { await signInWithCustomToken(auth, __initial_auth_token); } 
-          catch (e) { await signInAnonymously(auth); }
+          try { await signInWithCustomToken(auth, __initial_auth_token); } catch (e) { await signInAnonymously(auth); }
         } else {
           await signInAnonymously(auth);
         }
@@ -100,803 +151,1262 @@ export default function App() {
     initAuth();
 
     const unsubscribe = onAuthStateChanged(auth, (u) => { 
-      if (u) setUser(u); 
+      if (u) {
+        setUser(u);
+        recordVisit(u.uid);
+      } 
     });
     
-    const savedUser = localStorage.getItem('vmc_username_2026');
-    const savedPhoto = localStorage.getItem('vmc_user_photo_2026');
+    const savedUser = localStorage.getItem('vmc_user_name');
+    const savedPhoto = localStorage.getItem('vmc_user_photo');
+    const savedLang = localStorage.getItem('vmc_language');
     const savedMode = localStorage.getItem('vmc_dark_mode');
     
-    // បើមាន Username រួចហើយ រំលងទំព័រទី១ ចូលទំព័រទី២ តែម្តង
     if (savedUser) {
       setUsername(savedUser);
       setSkippedWelcome(true);
       setCurrentPage(2);
     }
     if (savedPhoto) setProfileImage(savedPhoto);
+    if (savedLang) setLanguage(savedLang);
     if (savedMode === 'true') setIsDarkMode(true);
 
     return () => unsubscribe();
   }, []);
 
-  // === REAL-TIME DATA SYNC ===
   useEffect(() => {
     if (!user) return;
     
-    // 1. Fetch Locations from 'data_admin' collection
-    const unsubAdminData = onSnapshot(
-      collection(db, 'artifacts', appId, 'public', 'data', 'data_admin'), 
-      (snap) => {
-        const data = []; 
-        snap.forEach(d => data.push({ id: d.id, ...d.data() }));
-        setDbAdminData(data);
-      }, (err) => console.error(err)
-    );
+    // Sync Locations from 'data_admin'
+    const unsubLoc = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'data_admin'), (snap) => {
+      const locs = []; snap.forEach(d => locs.push({ id: d.id, ...d.data() }));
+      setApprovedLocations(locs.filter(l => l.approved));
+      setPendingLocations(locs.filter(l => !l.approved).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    });
+    // Sync Users from 'data_user'
+    const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'data_user'), (snap) => {
+      const uList = []; snap.forEach(d => uList.push({ id: d.id, ...d.data() }));
+      setUserList(uList);
+    });
+    // Sync Visits
+    const unsubVisits = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'visits_data'), (snap) => {
+      const vList = []; snap.forEach(d => vList.push({ id: d.id, ...d.data() }));
+      setAppVisits(vList);
+    });
+    // Sync Logs
+    const unsubSec = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), (snap) => {
+      const logs = []; snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+      setSecurityLogs(logs.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    });
 
-    // 2. Fetch Users from 'data_user' collection
-    const unsubUserData = onSnapshot(
-      collection(db, 'artifacts', appId, 'public', 'data', 'data_user'), 
-      (snap) => {
-        const uList = []; 
-        snap.forEach(d => uList.push({ id: d.id, ...d.data() }));
-        setDbUserData(uList);
-      }, (err) => console.error(err)
-    );
-
-    // 3. Security Logs
-    const unsubSec = onSnapshot(
-      collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), 
-      (snap) => {
-        const logs = []; 
-        snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
-        setSecurityLogs(logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)));
-      }, (err) => console.error(err)
-    );
-
-    return () => { unsubAdminData(); unsubUserData(); unsubSec(); };
-  }, [user]);
-
-  // Computed Derived Data
-  const approvedLocations = dbAdminData.filter(loc => loc.approved);
-  const pendingLocations = dbAdminData.filter(loc => !loc.approved);
-
-  // Dynamic Village List based on Locations
-  const availableVillages = useMemo(() => {
-    const villages = new Set();
-    approvedLocations.forEach(loc => {
-      if (loc.village && (!selectedCommune || loc.commune === selectedCommune)) {
-        villages.add(loc.village);
+    // Sync Broadcast Notifications
+    const unsubNotif = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'broadcast_notifications'), (snap) => {
+      const loaded = [];
+      snap.forEach(d => loaded.push({ id: d.id, ...d.data() }));
+      if (loaded.length > 0) {
+        setNotifications(prev => {
+          const merged = [...loaded, ...prev.filter(p => !loaded.some(l => l.id === p.id))];
+          return merged.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+        });
       }
     });
-    return Array.from(villages);
-  }, [approvedLocations, selectedCommune]);
+
+    return () => { unsubLoc(); unsubUsers(); unsubVisits(); unsubSec(); unsubNotif(); };
+  }, [user]);
+
+  // Click outside listener for notification panel
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // === 3. FUNCTIONS ===
+  const recordVisit = async (uid) => {
+    try {
+      const today = new Date();
+      const visitDocId = String(uid) + "_" + String(today.getFullYear()) + "_" + String(today.getMonth() + 1) + "_" + String(today.getDate());
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'visits_data', visitDocId), { userId: uid, timestamp: today.toISOString() }, { merge: true });
+    } catch (err) {}
+  };
 
   const showToast = (message, type = 'success') => {
     setToastAlert({ show: true, message, type });
     setTimeout(() => setToastAlert({ show: false, message: '', type: 'success' }), 4000);
   };
 
-  const handleProceed = () => {
+  const handleProceedToApp = () => {
     setCurrentPage(2);
     setActiveTab('home');
+  };
+
+  const navigateTab = (tab) => {
+    if (tab === 'add' && !username && !isAdmin) {
+      setShowUsernameModal(true);
+      return;
+    }
+    setActiveTab(tab);
   };
 
   const handleSaveUsername = async () => {
     if (!usernameInput.trim()) return;
     const finalName = usernameInput.trim();
     setUsername(finalName);
-    localStorage.setItem('vmc_username_2026', finalName);
+    localStorage.setItem('vmc_user_name', finalName);
     try {
-      // រក្សាទុក User ចូល 'data_user'
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_user', user?.uid || `user_${Date.now()}`), {
-        username: finalName, 
-        createdAt: new Date().toISOString(), 
-        profilePic: profileImage || '',
-        status: 'active'
+      const docId = user && user.uid ? user.uid : "usr_" + String(Date.now());
+      // រក្សាទុកឈ្មោះចូល 'data_user'
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_user', docId), {
+        username: finalName, createdAt: new Date().toISOString(), profilePic: profileImage || ''
       });
-    } catch (err) { console.error(err); }
+    } catch (err) {}
     setShowUsernameModal(false);
-    showToast(`ទទួលបានជោគជ័យ!`);
-    setSkippedWelcome(true); // From now on, they skip the welcome page
-    setActiveTab('add'); // Redirect to Add Location after creation
-  };
-
-  const attemptToAddLocation = () => {
-    // បើគ្មានឈ្មោះទេ ទាមទារឱ្យបង្កើតសិន ទើបឱ្យចូលទៅកន្លែងបញ្ចូលទីតាំង
-    if (!username && !isAdmin) {
-      setShowUsernameModal(true);
+    showToast("សូមស្វាគមន៍, " + finalName + "!");
+    setSkippedWelcome(true);
+    if (currentPage === 1) {
+      setCurrentPage(2);
+      setActiveTab('home');
     } else {
-      setActiveTab('add');
+      setActiveTab('add'); 
     }
   };
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
-    if (adminPasswordInput === ADMIN_PASSWORD_HASH) {
+    if (adminPasswordInput === ADMIN_PASSWORD) {
       setIsAdmin(true); 
       setShowAdminLogin(false); 
       setAdminPasswordInput(''); 
-      showToast('ចូលជាអ្នកគ្រប់គ្រងប្រព័ន្ធជោគជ័យ!');
+      setCurrentPage(3);
+      showToast('ចូលប្រើប្រាស់គណនី Admin ជោគជ័យ!');
     } else {
-      showToast('លេខសម្ងាត់មិនត្រឹមត្រូវ!', 'error');
+      showToast('លេខកូដសម្ងាត់មិនត្រឹមត្រូវ!', 'error');
       try {
+        const randomIp = String(Math.floor(Math.random()*150)+50) + "." + String(Math.floor(Math.random()*200)) + ".1.1";
         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'security_logs'), {
-          timestamp: new Date().toISOString(), 
-          device: getDeviceInfo(), 
-          username: username || 'ភ្ញៀវ', 
-          attemptedPassword: adminPasswordInput
+          timestamp: new Date().toISOString(), ipAddress: randomIp, username: username || 'Guest', attemptedPassword: adminPasswordInput, deviceModel: getDeviceInfo()
         });
       } catch(err) {}
     }
   };
 
-  const handleImageUpload = (e, setter) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setter(reader.result);
+      reader.onloadend = () => setNewLocImageBase64(String(reader.result));
       reader.readAsDataURL(file);
     }
   };
 
   const handleProfileImageChange = (e) => {
-    handleImageUpload(e, async (base64String) => {
-      setProfileImage(base64String);
-      localStorage.setItem('vmc_user_photo_2026', base64String);
-      if (username) {
-        try {
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_user', user?.uid), {
-            profilePic: base64String, updatedAt: new Date().toISOString()
-          });
-        } catch(err){}
-      }
-      showToast("បានផ្លាស់ប្តូររូបថតគណនីរួចរាល់!");
-    });
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = String(reader.result);
+        setProfileImage(base64String);
+        localStorage.setItem('vmc_user_photo', base64String);
+        if (username) {
+          try {
+            const docId = user && user.uid ? user.uid : 'temp_user';
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_user', docId), {
+              username: username, profilePic: base64String, updatedAt: new Date().toISOString()
+            }, { merge: true });
+          } catch(err){}
+        }
+        showToast("បានផ្លាស់ប្តូររូបថតរួចរាល់!", "success");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Toggle Favorite
+  const toggleFavorite = (id) => {
+    let updated;
+    if (favorites.includes(id)) {
+      updated = favorites.filter(favId => favId !== id);
+      showToast("បានលុបចេញពីទីតាំងពេញចិត្ត", "info");
+    } else {
+      updated = [...favorites, id];
+      showToast("បានរក្សាទុកក្នុងទីតាំងពេញចិត្ត", "success");
+    }
+    setFavorites(updated);
+    localStorage.setItem('vmc_favorites', JSON.stringify(updated));
+  };
+
+  // Notification Broadcast Creation
+  const handleSendNotification = async (e) => {
+    e.preventDefault();
+    if (!notifInput.trim()) return;
+    const authorName = isAdmin ? 'Admin' : (username || 'អ្នកប្រើប្រាស់អនាមិក');
+    const newNotif = {
+      text: notifInput.trim(),
+      type: isAdmin ? 'success' : 'info',
+      time: new Date().toISOString(),
+      sender: authorName
+    };
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'broadcast_notifications'), newNotif);
+      setNotifInput('');
+      showToast("បានផ្ញើសារ/សេចក្តីជូនដំណឹង!");
+    } catch (err) {
+      showToast("ការផ្ញើសារមិនជោគជ័យ", "error");
+    }
   };
 
   const submitLocation = async (e) => {
     e.preventDefault();
-    if (!newLocName || !newLocVillage) return showToast('សូមបំពេញព័ត៌មានឲ្យបានគ្រប់គ្រាន់!', 'error');
+    const finalDist = newLocDistrict === 'ផ្សេងៗ' ? newLocCustomDistrict : newLocDistrict;
+    if (!newLocName || !finalDist || !newLocVillage) return showToast('សូមបំពេញព័ត៌មានឲ្យបានគ្រប់គ្រាន់!', 'error');
 
     setIsSubmitting(true);
     const newLoc = {
-      type: 'location',
-      name: newLocName, category: newLocCategory, district: newLocDistrict, commune: newLocCommune, 
-      village: newLocVillage, phone: newLocPhone, info: newLocInfo, mapLink: newLocMapLink,
-      imageUrl: newLocImageBase64 || "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&w=600&q=80",
-      submittedBy: isAdmin ? "Admin" : username, 
-      timestamp: new Date().toISOString(), 
-      approved: isAdmin // Admin auto-approves, user requires approval
+      name: newLocName, category: newLocCategory, district: finalDist, commune: newLocCommune, village: newLocVillage, phone: newLocPhone, info: newLocInfo, mapLink: newLocMapLink,
+      imageUrl: newLocImageBase64 || FALLBACK_COVER,
+      submittedBy: isAdmin ? "Admin" : username, timestamp: new Date().toISOString(), approved: isAdmin
     };
 
     try {
-      // រក្សាទុកទីតាំង និងព័ត៌មានចូល 'data_admin'
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'data_admin'), newLoc);
-      showToast(isAdmin ? 'បញ្ចូលទីតាំងថ្មីជោគជ័យ!' : 'ស្នើសុំជោគជ័យ! សូមរង់ចាំការអនុម័តពី Admin។');
+      // Automatically send a notification about the submission
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'broadcast_notifications'), {
+        text: `ទីតាំងថ្មីត្រូវបានស្នើសុំ៖ "${newLocName}" ក្នុងឃុំ ${newLocCommune}`,
+        type: 'info',
+        time: new Date().toISOString(),
+        sender: isAdmin ? 'Admin' : (username || 'សហគមន៍')
+      });
+      showToast(isAdmin ? 'បានបន្ថែមទីតាំងជោគជ័យ!' : 'សូមរង់ចាំការត្រួតពិនិត្យពី Admin!');
       setNewLocName(''); setNewLocVillage(''); setNewLocPhone(''); setNewLocInfo(''); setNewLocMapLink(''); setNewLocImageBase64(''); 
       setActiveTab('home');
-    } catch(err) { showToast('បរាជ័យក្នុងការបញ្ជូនសំណើ!', 'error'); }
+    } catch(err) { showToast('មានបញ្ហាក្នុងការបញ្ជូនទិន្នន័យ!', 'error'); }
     setIsSubmitting(false);
   };
 
-  // --- Admin Actions ---
-  const adminApprove = async (loc) => {
-    try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', loc.id), { approved: true }); showToast('បានអនុម័ត!', 'success'); } catch(err) {}
+  const adminApprove = async (loc) => { 
+    try { 
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', loc.id), { approved: true }); 
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'broadcast_notifications'), {
+        text: `ទីតាំង "${loc.name}" ត្រូវបានអនុម័តជាផ្លូវការ!`,
+        type: 'success',
+        time: new Date().toISOString(),
+        sender: 'Admin'
+      });
+      showToast('បានយល់ព្រម!', 'success'); 
+    } catch(err) {} 
   };
-  const adminDeleteLocation = async (locId) => {
-    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', locId)); showToast('បានលុបទិន្នន័យ!', 'success'); } catch(err) {}
-  };
+  
+  const adminReject = async (loc) => { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', loc.id)); showToast('បានបដិសេធ!', 'error'); } catch(err) {} };
+  const adminDelete = async (locId) => { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', locId)); showToast('បានលុប!', 'success'); } catch(err) {} };
+  const adminDeleteUser = async (userId) => { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_user', userId)); showToast('បានលុបគណនី!', 'success'); } catch(err) {} };
+  
   const adminSaveEdit = async (e) => {
     e.preventDefault();
     if(!editLoc) return;
     try {
       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', editLoc.id), {
-        name: editLoc.name, category: editLoc.category, village: editLoc.village, phone: editLoc.phone, info: editLoc.info
+        name: editLoc.name, category: editLoc.category, commune: editLoc.commune, village: editLoc.village, phone: editLoc.phone, info: editLoc.info
       });
-      showToast('បានកែប្រែជោគជ័យ!');
+      showToast('បានកែប្រែ!', 'success');
       setEditLoc(null);
     } catch(err) {}
   };
-  const clearSecurityLogs = async () => {
-    showToast('កំពុងលុបប្រវត្តិ...', 'success');
-    securityLogs.forEach(async (log) => {
-      try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', log.id)); } catch(e){}
-    });
-    setSecurityLogs([]);
+
+  const adminClearSecurityLogs = async () => {
+    try {
+      for (const log of securityLogs) {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'security_logs', log.id));
+      }
+      showToast('បានសម្អាតកំណត់ត្រាទាំងអស់!', 'success');
+    } catch(err) {
+      showToast('មានបញ្ហាក្នុងការសម្អាត!', 'error');
+    }
   };
 
-  // --- Derived Displays ---
+  const handleImageError = (e, fallbackPath) => {
+    e.currentTarget.src = fallbackPath;
+  };
+
+  // === 4. DATA FILTERING & STATS ===
   const displayedLocations = useMemo(() => {
     return approvedLocations.filter(loc => {
-      if (selectedDistrictTab === 'រតនមណ្ឌល' && loc.district !== 'ស្រុករតនមណ្ឌល') return false;
-      if (selectedDistrictTab === 'ផ្សេងៗ' && loc.district === 'ស្រុករតនមណ្ឌល') return false;
-      if (selectedDistrictTab === 'រតនមណ្ឌល' && selectedCommune && loc.commune !== selectedCommune) return false;
-      if (selectedVillageFilter && loc.village !== selectedVillageFilter) return false;
-      if (searchQuery && !loc.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      const isRatnak = loc.district === 'ស្រុករតនមណ្ឌល' || loc.district === 'រតនមណ្ឌល';
+      if (selectedDistrictTab === 'រតនមណ្ឌល' && !isRatnak) return false;
+      if (selectedDistrictTab === 'ផ្សេងៗ' && isRatnak) return false;
+      if (selectedDistrictTab === 'រតនមណ្ឌល') {
+        if (selectedCommune && loc.commune !== selectedCommune) return false;
+        if (selectedVillageFilter && loc.village !== selectedVillageFilter) return false;
+      }
+      if (categoryFilter !== 'ទាំងអស់' && loc.category !== categoryFilter) return false;
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return loc.name.toLowerCase().includes(query) || loc.village.toLowerCase().includes(query) || (loc.info || '').toLowerCase().includes(query);
+      }
       return true;
     });
-  }, [approvedLocations, selectedDistrictTab, selectedCommune, selectedVillageFilter, searchQuery]);
+  }, [approvedLocations, selectedDistrictTab, selectedCommune, selectedVillageFilter, searchQuery, categoryFilter]);
 
-  // Report Calculations
   const reportStats = useMemo(() => {
-    const totalUsers = dbUserData.length || 1; 
-    const totalLocations = dbAdminData.length;
-    const totalApproved = approvedLocations.length;
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+
+    let weeklyCount = 0; let monthlyCount = 0; let yearlyCount = appVisits.length;
+    appVisits.forEach(v => {
+      const vDate = new Date(v.timestamp);
+      if (vDate >= oneWeekAgo) weeklyCount++;
+      if (vDate >= oneMonthAgo) monthlyCount++;
+    });
+
+    const khmerMonths = ['មករា', 'កុម្ភៈ', 'មិនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
     
-    const approvalRate = totalLocations > 0 ? Math.round((totalApproved / totalLocations) * 100) : 0;
+    // Line Chart Data (Users)
+    const lineData = [];
+    for(let i = 5; i >= 0; i--) {
+      const d = new Date(); d.setMonth(now.getMonth() - i);
+      const mIdx = d.getMonth();
+      const count = appVisits.filter(v => new Date(v.timestamp).getMonth() === mIdx && new Date(v.timestamp).getFullYear() === d.getFullYear()).length;
+      lineData.push({ name: khmerMonths[mIdx], count: count });
+    }
+    
+    // Line Chart Data 2 (Locations added)
+    const locationLineData = [];
+    for(let i = 5; i >= 0; i--) {
+      const d = new Date(); d.setMonth(now.getMonth() - i);
+      const mIdx = d.getMonth();
+      const count = approvedLocations.filter(l => new Date(l.timestamp).getMonth() === mIdx && new Date(l.timestamp).getFullYear() === d.getFullYear()).length;
+      locationLineData.push({ name: khmerMonths[mIdx], count: count });
+    }
 
-    // Simulate Modern Line Chart Data with 2 lines (Activity vs Approvals)
-    const lineChartData = [
-      { x: 0, y1: 100, y2: 120 },   // Jan 
-      { x: 50, y1: 80, y2: 90 },    // Feb
-      { x: 100, y1: 40, y2: 60 },   // Mar
-      { x: 150, y1: 70, y2: 85 },   // Apr
-      { x: 200, y1: 30, y2: 50 },   // May
-      { x: 250, y1: 20, y2: 30 }    // Jun
-    ];
+    const catMap = {};
+    approvedLocations.forEach(loc => { catMap[loc.category] = (catMap[loc.category] || 0) + 1; });
+    const colors = ['#15803D', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#64748B', '#06B6D4'];
+    const pieData = Object.keys(catMap).map((key, i) => ({
+      name: key, count: catMap[key], color: colors[i % colors.length]
+    })).sort((a,b) => b.count - a.count);
 
-    return { totalUsers, totalLocations, totalApproved, approvalRate, lineChartData };
-  }, [dbUserData, dbAdminData, approvedLocations]);
+    return { weekly: weeklyCount, monthly: monthlyCount, yearly: yearlyCount, totalUsers: userList.length, lineData, locationLineData, pieData };
+  }, [appVisits, userList, approvedLocations]);
 
-  const toggleTheme = () => {
-    const newTheme = !isDarkMode;
-    setIsDarkMode(newTheme);
-    localStorage.setItem('vmc_dark_mode', String(newTheme));
+  const toggleLanguage = () => {
+    const nextLang = language === 'KH' ? 'EN' : 'KH';
+    setLanguage(nextLang);
+    localStorage.setItem('vmc_language', nextLang);
+  };
+  
+  const toggleDarkMode = () => {
+    const nextMode = !isDarkMode;
+    setIsDarkMode(nextMode);
+    localStorage.setItem('vmc_dark_mode', String(nextMode));
+  };
+
+  const getCatStyle = (cat) => {
+    switch(cat) {
+      case 'សាលារៀន': return 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border-blue-200';
+      case 'មណ្ឌលសុខភាព': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200';
+      case 'វត្តអារាម': return 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-200';
+      case 'ប៉ុស្តិ៍នគរបាល': return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border-red-200';
+      case 'សាលាឃុំ/សង្កាត់': return 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200';
+    }
+  };
+
+  // === 5. PREMIUM RENDER DASHBOARD CHARTS ===
+  const RenderReportsDashboard = () => {
+    // 1. Line Chart Calculations
+    const maxLine1 = Math.max(...reportStats.lineData.map(d => d.count), 1);
+    const maxLine2 = Math.max(...reportStats.locationLineData.map(d => d.count), 1);
+    
+    const linePointsArray1 = reportStats.lineData.map((d, i) => {
+      const x = i * 20;
+      const y = 100 - ((d.count * 80) / maxLine1);
+      return { x, y, name: d.name, count: d.count };
+    });
+    const linePathString1 = linePointsArray1.map(pt => String(pt.x) + "," + String(pt.y)).join(' ');
+
+    const linePointsArray2 = reportStats.locationLineData.map((d, i) => {
+      const x = i * 20;
+      const y = 100 - ((d.count * 80) / maxLine2);
+      return { x, y, name: d.name, count: d.count };
+    });
+    const linePathString2 = linePointsArray2.map(pt => String(pt.x) + "," + String(pt.y)).join(' ');
+
+    // 2. Pie Chart Calculations
+    const maxTotalPie = Math.max(approvedLocations.length, 1);
+    let cumulativePiePercent = 0;
+    
+    const pieSlices = reportStats.pieData.map((s, i) => {
+      const p = (s.count * 100) / maxTotalPie;
+      const offset = -cumulativePiePercent; 
+      cumulativePiePercent += p;
+      return { ...s, p, offset };
+    });
+
+    // 3. Bar Chart Calculations
+    const communeStats = {};
+    PRIMARY_COMMUNES.forEach(c => communeStats[c] = 0);
+    approvedLocations.forEach(l => {
+      if (l.district === 'ស្រុករតនមណ្ឌល' || l.district === 'រតនមណ្ឌល') {
+        if (communeStats[l.commune] !== undefined) communeStats[l.commune]++;
+      }
+    });
+    const barData = PRIMARY_COMMUNES.map(c => ({ name: c, count: communeStats[c] }));
+    const maxBar = Math.max(...barData.map(d => d.count), 1);
+
+    return (
+      <div className="space-y-6 pb-8 font-siemreap">
+        {/* Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className={`p-4 rounded-2xl border shadow-sm flex flex-col items-center justify-center ${bgCard}`}>
+            <Users size={20} className="text-blue-500 mb-2"/>
+            <span className="text-xl md:text-2xl font-black">{reportStats.totalUsers}</span>
+            <span className="text-[10px] text-slate-500 mt-1 font-bold">អ្នកប្រើប្រាស់</span>
+          </div>
+          <div className={`p-4 rounded-2xl border shadow-sm flex flex-col items-center justify-center ${bgCard}`}>
+            <MapPin size={20} className="text-emerald-500 mb-2"/>
+            <span className="text-xl md:text-2xl font-black">{approvedLocations.length}</span>
+            <span className="text-[10px] text-slate-500 mt-1 font-bold">ទីតាំងបានអនុម័ត</span>
+          </div>
+          <div className={`p-4 rounded-2xl border shadow-sm flex flex-col items-center justify-center ${bgCard}`}>
+            <Activity size={20} className="text-amber-500 mb-2"/>
+            <span className="text-xl md:text-2xl font-black">{reportStats.monthly}</span>
+            <span className="text-[10px] text-slate-500 mt-1 font-bold">អ្នកចូលខែនេះ</span>
+          </div>
+          <div className={`p-4 rounded-2xl border shadow-sm flex flex-col items-center justify-center ${bgCard}`}>
+            <TrendingUp size={20} className="text-purple-500 mb-2"/>
+            <span className="text-xl md:text-2xl font-black">{pendingLocations.length}</span>
+            <span className="text-[10px] text-slate-500 mt-1 font-bold">រង់ចាំអនុម័ត</span>
+          </div>
+        </div>
+
+        {/* Chart Grids */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          
+          {/* Mathematical grid styled Line chart */}
+          <div className={`p-5 rounded-3xl border shadow-sm ${bgCard} lg:col-span-2`}>
+            <h4 className="font-bold text-xs md:text-sm mb-4 flex items-center gap-2 font-moul text-slate-700 dark:text-slate-200">
+              <Activity size={16} className="text-emerald-500"/> ក្រាហ្វខ្សែរ៖ កំណើនគណនី និងការបន្ថែមទីតាំង (Grid)
+            </h4>
+            <div className="w-full h-32 relative border-b border-l border-slate-300 dark:border-slate-700 ml-1">
+              {/* Mathematics Grid backdrop */}
+              <div className="absolute inset-0 grid grid-cols-10 grid-rows-5 pointer-events-none opacity-20">
+                {Array.from({length: 50}).map((_, i) => (
+                  <div key={i} className="border-t border-r border-slate-400"></div>
+                ))}
+              </div>
+              
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible z-10 relative">
+                {/* Connecting Line 1 */}
+                <polyline points={linePathString1} fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Connecting Line 2 */}
+                <polyline points={linePathString2} fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div className="absolute -bottom-6 w-full flex justify-between px-1 text-[8px] md:text-[9px] text-slate-400 font-bold">
+                {linePointsArray1.map((pt, i) => <span key={i} className="-ml-2">{pt.name}</span>)}
+              </div>
+            </div>
+            <div className="flex gap-4 justify-center mt-8 text-[9px] font-bold">
+              <div className="flex items-center gap-1"><span className="w-2.5 h-1.5 bg-[#2563EB] rounded"></span> <span className="text-slate-600 dark:text-slate-400">គណនីអ្នកប្រើប្រាស់</span></div>
+              <div className="flex items-center gap-1"><span className="w-2.5 h-1.5 bg-[#10B981] rounded"></span> <span className="text-slate-600 dark:text-slate-400">ទីតាំងសហគមន៍</span></div>
+            </div>
+          </div>
+
+          {/* Bar Chart */}
+          <div className={`p-5 rounded-3xl border shadow-sm ${bgCard}`}>
+            <h4 className="font-bold text-xs md:text-sm mb-6 flex items-center gap-2 font-moul text-slate-700 dark:text-slate-200">
+              <BarChart2 size={16} className="text-[#2563EB]"/> ក្រាហ្វសសរ៖ ចំនួនទីតាំងតាមឃុំ (រតនមណ្ឌល)
+            </h4>
+            <div className="w-full h-32 relative border-b border-l border-slate-300 dark:border-slate-700 ml-4 flex items-end justify-around pb-0">
+              {barData.map((d, i) => {
+                const height = (d.count / maxBar) * 100;
+                return (
+                  <div key={i} className="flex flex-col items-center relative group w-1/8 z-10">
+                    <div className="absolute -top-6 bg-slate-800 dark:bg-slate-700 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">{d.count}</div>
+                    <div className="w-6 bg-[#2563EB] hover:bg-blue-400 transition-colors rounded-t-sm" style={{ height: `${height}%` }}></div>
+                    <span className="absolute -bottom-6 text-[8px] md:text-[9px] text-slate-500 font-bold rotate-[-30deg] origin-top-left whitespace-nowrap">{d.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Pie Chart / Donut */}
+          <div className={`p-5 rounded-3xl border shadow-sm ${bgCard}`}>
+            <h4 className="font-bold text-xs md:text-sm mb-4 flex items-center gap-2 font-moul text-slate-700 dark:text-slate-200">
+              <PieChart size={16} className="text-[#15803D]"/> ក្រាហ្វរង្វង់៖ សមាមាត្រប្រភេទទីតាំង (%)
+            </h4>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-28 h-28 relative flex-shrink-0">
+                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                  {pieSlices.length > 0 ? pieSlices.map((slice, i) => (
+                    <circle key={i} cx="50" cy="50" r="25" fill="transparent" stroke={slice.color} strokeWidth="12" strokeDasharray={String(slice.p) + " 100"} strokeDashoffset={String(slice.offset)} className="transition-all duration-500 hover:stroke-[14px]" />
+                  )) : (
+                    <circle cx="50" cy="50" r="25" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[8px] text-slate-400 font-bold">សរុប</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white mt-0.5">{approvedLocations.length}</span>
+                </div>
+              </div>
+              <div className="flex-1 w-full space-y-1.5">
+                {reportStats.pieData.slice(0, 5).map((s, i) => (
+                  <div key={i} className="flex justify-between items-center text-[10px] bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded-lg font-bold">
+                    <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                      <span className="w-2 h-2 rounded-full" style={{backgroundColor: s.color}}></span>
+                      {s.name}
+                    </span>
+                    <span className="text-slate-800 dark:text-white">{s.count} ({Math.round((s.count/maxTotalPie)*100)}%)</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center font-sans overflow-hidden ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-800'}`}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap:wght@400;600;700&display=swap');
-        .font-moul { font-family: 'Moul', serif; }
-        .font-siemreap { font-family: 'Siemreap', sans-serif; }
+    <div className={`w-full h-screen overflow-hidden flex font-sans font-siemreap ${bgMain}`}>
+      <style dangerouslySetInnerHTML={{__html: `
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-        .dark .glass-panel { background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.05); }
-        .anim-fade-right { animation: fadeRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .anim-fade-left { animation: fadeLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .anim-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        @keyframes fadeRight { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes fadeLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* Responsive Desktop App Container */
-        .app-container {
-          width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; background-color: ${isDarkMode ? '#0f172a' : '#f8fafc'};
+        html, body {
+          touch-action: manipulation;
+          -webkit-text-size-adjust: 100%;
+          user-scalable: no;
         }
-        @media (min-width: 768px) {
-          .app-container {
-            max-width: 1200px; height: 92vh; border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: 8px solid ${isDarkMode ? '#1e293b' : '#ffffff'}; overflow: hidden;
-          }
-        }
-        
-        /* Chart SVG Filter */
-        .svg-shadow { filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1)); }
-      `}</style>
+      `}} />
 
-      {/* SVG Definitions for Modern Charts */}
-      <svg width="0" height="0">
-        <defs>
-          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      {/* Main Responsive App Container */}
-      <div className="app-container">
-        
-        {/* ==================== PAGE 1 (WELCOME SCREEN) ==================== */}
-        {currentPage === 1 && (
-          <div className="absolute inset-0 z-50 flex flex-col md:flex-row bg-blue-50/50 dark:bg-slate-900 overflow-hidden">
-            
-            {/* Header Logo Top Left */}
-            <div className="absolute top-6 left-6 md:top-10 md:left-12 flex items-center gap-3 z-30 anim-fade-left">
-              <img src={CUSTOM_LOGO_URL} alt="Logo" className="w-10 h-10 rounded-xl shadow-lg" />
-              <span className="font-black text-xl tracking-tight text-slate-800 dark:text-white">TP nice KH</span>
+      {/* ==========================================================
+          PAGE 1: WELCOME SCREEN (Subtle Gradient Overlay)
+          ========================================================== */}
+      {currentPage === 1 && (
+        <div className="absolute inset-0 z-[100] flex flex-col md:flex-row bg-cover bg-center" style={{ backgroundImage: `url(${FALLBACK_COVER})` }}>
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm z-0"></div>
+          
+          {/* Header Area */}
+          <div className="absolute top-0 w-full p-5 md:p-10 flex justify-between items-center z-20">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white shadow-md p-1 flex items-center justify-center overflow-hidden">
+                <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" onError={(e)=>handleImageError(e, FALLBACK_LOGO)} />
+              </div>
+              <h2 className="text-white font-moul text-sm hidden sm:block">យុវជនសហគមន៍ VMC</h2>
             </div>
+            <button onClick={toggleLanguage} className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-xl shadow-md text-xs font-bold text-white border border-white/20 hover:scale-105 transition-all flex items-center gap-1">
+              <Globe size={14}/> {language === 'KH' ? 'EN' : 'KH'}
+            </button>
+          </div>
 
-            {/* Left Content (Text) */}
-            <div className="flex-1 px-8 pt-32 pb-12 md:p-16 md:pt-0 lg:p-24 flex flex-col justify-center z-20 anim-fade-left">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 leading-tight text-slate-900 dark:text-white">
-                ស្វែងរកទីតាំង <br/><span className="text-blue-600">អស្ចារ្យ</span> ជុំវិញអ្នក
-              </h1>
-              <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-siemreap mb-10 max-w-md leading-relaxed">
-                ជួយសម្រួលដល់ការស្វែងរកស្ថាប័នសំខាន់ៗដូចជា សាលារៀន មណ្ឌលសុខភាព និងប៉ុស្តិ៍ប៉ូលីស ដើម្បីរស់នៅកាន់តែងាយស្រួល។
-              </p>
-              <button onClick={handleProceed} className="w-fit px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-xl shadow-blue-600/30 transition-all active:scale-95 font-siemreap text-sm flex items-center gap-2">
-                អនុញ្ញាតឲ្យខ្លួនឯងចូលប្រើ <ArrowLeft className="rotate-180" size={16}/>
+          {/* Text Content */}
+          <div className="w-full md:w-[60%] flex flex-col justify-center px-6 md:px-16 lg:px-24 z-10 h-full relative text-white">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black font-moul leading-[1.3] md:leading-[1.2] mb-5 drop-shadow-md">
+              {t('សូមស្វាគមន៍មកកាន់ Web App', 'Welcome to Web App')} <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-300">{t('ប្រព័ន្ធគ្រប់គ្រងទីតាំងសហគមន៍', 'Community Location System')}</span>
+            </h1>
+            
+            <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-siemreap mb-8 max-w-lg drop-shadow-md">
+              {t('ប្រព័ន្ធព័ត៌មានវិទ្យានេះជួយសម្រួលដល់ការស្វែងរក និងរាយការណ៍អំពីទីតាំងសេវាសាធារណៈនានា ក្នុងស្រុករតនមណ្ឌល ខេត្តបាត់ដំបង ងាយស្រួល ឆាប់រហ័ស និងតម្លាភាព។', 'This IT system facilitates the search and reporting of public service locations in Ratanak Mondol district, Battambang province, easily, quickly, and transparently.')}
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button 
+                onClick={handleProceedToApp}
+                className="w-full md:w-max px-8 py-4 bg-[#15803D] hover:bg-green-700 text-white rounded-xl font-bold text-xs md:text-sm shadow-lg shadow-green-900/30 transition-transform active:scale-95 flex items-center justify-center gap-2 font-moul"
+              >
+                {t('អនុញ្ញាតឱ្យខ្លួនឯងចូលប្រើ', 'Allow me to access')} <ArrowRight size={14} />
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Right Image (Floats smoothly) */}
-            <div className="flex-1 relative min-h-[40vh] md:min-h-full flex items-center justify-center p-8 lg:p-12">
-               <div className="absolute right-0 top-0 bottom-0 w-[85%] bg-blue-100/60 dark:bg-slate-800 rounded-l-[80px] lg:rounded-l-[120px] z-0"></div>
-               <img src="https://images.unsplash.com/photo-1596422846543-75c6fc197f0a?auto=format&fit=crop&w=800&q=80" 
-                    className="relative z-10 w-full max-w-md lg:max-w-lg rounded-[32px] lg:rounded-[40px] shadow-2xl anim-fade-right object-cover h-64 md:h-auto border-[6px] border-white/50 dark:border-slate-800/50" alt="Map Illustration" />
-               
-               {/* Decorative Glass Cards */}
-               <div className="absolute top-1/4 right-1/4 glass-panel p-3 rounded-2xl shadow-xl z-20 flex items-center gap-2 anim-fade-right" style={{animationDelay: '0.2s'}}>
-                  <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white"><MapPin size={14}/></div>
-                  <span className="text-[10px] font-bold font-siemreap text-slate-700 dark:text-slate-200">ទីតាំងរហ័ស</span>
-               </div>
+      {/* ==========================================================
+          SIDEBAR NAVIGATION (DESKTOP - Style Match to Mockup)
+          ========================================================== */}
+      {(currentPage === 2 || currentPage === 3) && (
+        <aside className={`hidden md:flex flex-col w-64 h-full border-r shrink-0 z-30 transition-colors ${bgCard} shadow-sm`}>
+          <div className="p-5 border-b border-inherit">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white shadow-sm p-1 flex items-center justify-center overflow-hidden border">
+                <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" onError={(e)=>handleImageError(e, FALLBACK_LOGO)} />
+              </div>
+              <div>
+                <h2 className="font-bold text-xs text-[#15803D] font-moul leading-tight">ប្រព័ន្ធគ្រប់គ្រងទីតាំង</h2>
+                <p className="text-[10px] text-slate-500 font-bold mt-0.5">ស្រុករតនមណ្ឌល</p>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* ==================== PAGE 2 (MAIN APP SCREEN) ==================== */}
-        {currentPage === 2 && (
-          <div className="flex-1 flex flex-col h-full relative">
-            
-            {/* --- HEADER --- */}
-            <header className={`px-4 py-3 md:py-4 flex justify-between items-center z-20 glass-panel border-b ${isDarkMode ? 'border-slate-800' : 'border-slate-200'}`}>
-              <div className="flex items-center gap-3">
-                {/* ត្រឡប់ក្រោយ បង្ហាញលុះត្រាតែមិនទាន់ធ្លាប់បង្កើតឈ្មោះ */}
-                {!skippedWelcome && (
-                  <button onClick={() => setCurrentPage(1)} className="p-2 md:p-2.5 bg-slate-200/50 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
-                    <ArrowLeft size={18} />
+          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 font-siemreap">
+            {currentPage === 2 ? (
+              <>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-2">មាតិកា Web App</p>
+                {[
+                  { id: 'home', icon: Home, label: 'ទំព័រដើម' },
+                  { id: 'add', icon: PlusCircle, label: 'បន្ថែមទីតាំងសាធារណៈ' },
+                  { id: 'reports', icon: PieChart, label: 'ស្ថិតិ & របាយការណ៍' },
+                  { id: 'profile', icon: User, label: 'គណនីផ្ទាល់ខ្លួន' }
+                ].map(item => (
+                  <button key={item.id} onClick={() => navigateTab(item.id)} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-bold text-xs ${activeTab === item.id ? bgPrimary + ' shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <item.icon size={16} /> {item.label}
                   </button>
-                )}
-                <div className="flex items-center gap-2">
-                  <img src={CUSTOM_LOGO_URL} alt="Logo" className="w-8 h-8 md:w-10 md:h-10 rounded-lg shadow-sm" />
-                  <h2 className="font-black text-sm md:text-base tracking-tight text-slate-800 dark:text-white">TP nice KH</h2>
+                ))}
+              </>
+            ) : (
+              <>
+                <button onClick={() => { setCurrentPage(2); setActiveTab('home'); }} className="w-full flex items-center gap-2 px-3 py-2.5 mb-4 rounded-lg font-bold text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-siemreap">
+                  <ArrowLeft size={14} /> ត្រឡប់ទៅ App វិញ
+                </button>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2 ml-2">ផ្ទាំងបញ្ជា Admin</p>
+                {[
+                  { id: 'approvals', icon: Check, label: `ពិនិត្យការអនុម័ត (${pendingLocations.length})` },
+                  { id: 'reports', icon: BarChart2, label: 'របាយការណ៍ប្រព័ន្ធ' },
+                  { id: 'data', icon: Layers, label: 'គ្រប់គ្រងទិន្នន័យ' },
+                  { id: 'security', icon: ShieldAlert, label: 'កំណត់ត្រាសុវត្ថិភាព' }
+                ].map(tab => (
+                  <button key={tab.id} onClick={() => setAdminSubTab(tab.id)} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl transition-all font-bold text-xs ${adminSubTab === tab.id ? bgPrimary + ' shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                    <tab.icon size={16} /> {tab.label}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+
+          <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+            {isAdmin && currentPage === 3 ? (
+              <button onClick={() => { setIsAdmin(false); setCurrentPage(2); setActiveTab('home'); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg font-bold text-xs bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 transition-colors">
+                <LogOut size={14} /> ចាកចេញពី Admin
+              </button>
+            ) : username ? (
+              <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 cursor-pointer" onClick={() => navigateTab('profile')}>
+                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center font-bold text-[#15803D] overflow-hidden shrink-0 border">
+                  {profileImage ? <img src={profileImage} className="w-full h-full object-cover" /> : username.substring(0,2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-[11px] truncate text-slate-800 dark:text-slate-200">{username}</p>
+                  <p className="text-[9px] text-slate-400">សហគមន៍រតនមណ្ឌល</p>
                 </div>
               </div>
-              
-              <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-slate-200/50 dark:bg-slate-800 pr-3 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition border border-slate-200 dark:border-slate-700">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center border-2 border-white dark:border-slate-900">
-                  {profileImage ? <img src={profileImage} className="w-full h-full object-cover"/> : <User size={16} className="text-blue-600"/>}
-                </div>
-                {username && <span className="text-[11px] md:text-xs font-bold hidden sm:block">{username}</span>}
-              </div>
-            </header>
+            ) : null}
+          </div>
+        </aside>
+      )}
 
-            {/* --- MAIN CONTENT AREA --- */}
-            <main className="flex-1 overflow-y-auto hide-scroll pb-24 md:pb-6 relative z-10 flex flex-col">
-              
-              {/* === TAB 1: HOME === */}
-              {activeTab === 'home' && (
-                <div className="anim-slide-up p-4 md:p-8 space-y-5 md:space-y-6 max-w-6xl mx-auto w-full flex-1">
-                  
-                  {/* Search Header */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mb-1 md:mb-2">រុករកទីតាំង</h2>
-                      <p className="text-xs md:text-sm text-slate-500 font-siemreap">ស្វែងរក និងចែករំលែកទីតាំងក្នុងសហគមន៍របស់អ្នក។</p>
-                    </div>
-                    <div className="relative w-full md:w-80">
-                      <input type="text" placeholder="ស្វែងរកទីតាំង..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                        className={`w-full py-3 md:py-3.5 pl-11 pr-4 rounded-2xl text-xs md:text-sm font-siemreap outline-none transition-all border ${isDarkMode ? 'bg-slate-900 border-slate-700 focus:border-blue-500' : 'bg-white border-slate-200 focus:border-blue-500 shadow-sm'}`} />
-                      <Search className="absolute left-4 top-3.5 md:top-4 text-slate-400" size={16} />
-                    </div>
-                  </div>
+      {/* ==========================================================
+          MAIN AREA CONTENT (Strict Mockup Upgrade)
+          ========================================================== */}
+      {(currentPage === 2 || currentPage === 3) && (
+        <div className="flex-1 flex flex-col h-full relative overflow-hidden font-siemreap">
+          
+          {/* Top Bar Navigation (Match mockup dashboard with search & profile) */}
+          <header className={`px-4 md:px-6 py-3 flex justify-between items-center shrink-0 z-40 border-b shadow-xs ${bgCard}`}>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setCurrentPage(1)} className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                 <ArrowLeft size={14} /> <span className="hidden md:inline text-xs font-bold font-moul">ទៅកាន់ទំព័រដើម</span>
+              </button>
+              <h2 className={`font-bold text-xs md:text-sm font-moul ${textPrimary}`}>
+                 {currentPage === 3 ? 'ផ្ទាំងបញ្ជាពិសេស (Admin)' : 'ទំព័រដើម'}
+              </h2>
+            </div>
 
-                  {/* Filter Pills (Communes & Villages) */}
-                  <div className="flex flex-col gap-3">
-                    {/* Communes */}
-                    <div className="flex gap-2 overflow-x-auto hide-scroll pb-2">
-                      <button onClick={() => { setSelectedDistrictTab('រតនមណ្ឌល'); setSelectedCommune(''); setSelectedVillageFilter(''); }} className={`px-4 md:px-5 py-2 md:py-2.5 rounded-full text-[10px] md:text-[11px] font-bold font-siemreap whitespace-nowrap transition-all border ${selectedDistrictTab === 'រតនមណ្ឌល' ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' : isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>ស្រុករតនមណ្ឌល</button>
-                      <button onClick={() => { setSelectedDistrictTab('ផ្សេងៗ'); setSelectedCommune(''); setSelectedVillageFilter(''); }} className={`px-4 md:px-5 py-2 md:py-2.5 rounded-full text-[10px] md:text-[11px] font-bold font-siemreap whitespace-nowrap transition-all border ${selectedDistrictTab === 'ផ្សេងៗ' ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' : isDarkMode ? 'bg-slate-900 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>ស្រុកផ្សេងៗ</button>
-                      
-                      {selectedDistrictTab === 'រតនមណ្ឌល' && ROTANAK_MONDOL_COMMUNES.map(comm => (
-                        <button key={comm} onClick={() => { setSelectedCommune(comm); setSelectedVillageFilter(''); }} className={`px-3 md:px-4 py-2 md:py-2.5 rounded-full text-[10px] md:text-[11px] font-bold font-siemreap whitespace-nowrap transition-all border ${selectedCommune === comm ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20' : isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>ឃុំ{comm}</button>
-                      ))}
+            {/* Notification Bell & Profile Controls */}
+            <div className="flex items-center gap-3">
+              {/* Notification Center Popover */}
+              <div className="relative" ref={notifRef}>
+                <button onClick={() => setShowNotifPanel(!showNotifPanel)} className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-700 dark:text-slate-300 relative transition-transform active:scale-95">
+                  <Bell size={18} />
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                
+                {showNotifPanel && (
+                  <div className={`absolute right-0 mt-3.5 w-80 rounded-2xl shadow-xl border overflow-hidden z-[110] animate-slide-up ${isDarkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
+                    <div className="p-3.5 border-b border-inherit font-bold text-xs flex justify-between items-center bg-[#15803D] text-white">
+                      <span>សារ និងសេចក្តីជូនដំណឹង</span>
+                      <MessageSquare size={14} />
                     </div>
                     
-                    {/* Villages Filter (if communes selected) */}
-                    {selectedCommune && availableVillages.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto hide-scroll pb-2 items-center">
-                        <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">ជ្រើសរើសភូមិ៖</span>
-                        <button onClick={() => setSelectedVillageFilter('')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold font-siemreap whitespace-nowrap transition-all border ${!selectedVillageFilter ? 'bg-purple-500 text-white border-purple-500' : isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>ទាំងអស់</button>
-                        {availableVillages.map(village => (
-                          <button key={village} onClick={() => setSelectedVillageFilter(village)} className={`px-3 py-1.5 rounded-full text-[9px] font-bold font-siemreap whitespace-nowrap transition-all border ${selectedVillageFilter === village ? 'bg-purple-500 text-white border-purple-500 shadow-md' : isDarkMode ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-white border-slate-200 text-slate-600'}`}>{village}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Grid Layout for Locations */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mt-2">
-                    {displayedLocations.length > 0 ? displayedLocations.map(loc => (
-                      <div key={loc.id} onClick={() => setSelectedLocation(loc)} className={`rounded-3xl overflow-hidden cursor-pointer group transition-all hover:-translate-y-1 shadow-sm hover:shadow-xl ${isDarkMode ? 'bg-slate-900 border border-slate-800 hover:shadow-blue-900/20' : 'bg-white border border-slate-100 hover:shadow-blue-500/10'}`}>
-                        <div className="h-40 md:h-48 relative overflow-hidden bg-slate-200">
-                          <img src={loc.imageUrl} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={loc.name} />
-                          <div className="absolute top-3 left-3 px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-lg text-[10px] md:text-[11px] font-bold font-siemreap text-blue-600">{loc.category}</div>
-                        </div>
-                        <div className="p-4 md:p-5">
-                          <h4 className="font-black text-sm md:text-base text-slate-800 dark:text-white leading-tight mb-1 md:mb-1.5">{loc.name}</h4>
-                          <p className="text-[10px] md:text-[11px] text-slate-500 font-siemreap flex items-center gap-1"><MapPin size={12}/> {loc.village}, ឃុំ{loc.commune}</p>
-                        </div>
-                      </div>
-                    )) : (
-                      <div className="col-span-full text-center py-16 opacity-50">
-                        <MapIcon size={48} className="mx-auto mb-3 text-slate-400" />
-                        <p className="text-sm font-bold font-siemreap">មិនមានទិន្នន័យទីតាំងទេ</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* === TAB 2: បន្ថែម (ADD) === */}
-              {activeTab === 'add' && (
-                <div className="anim-slide-up p-4 md:p-8 max-w-2xl mx-auto font-siemreap flex-1 w-full">
-                  <div className={`p-6 md:p-10 rounded-[32px] border shadow-xl ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-black/50' : 'bg-white border-slate-100 shadow-blue-500/5'}`}>
-                    <h3 className="font-black text-lg md:text-2xl text-blue-600 mb-6 flex items-center gap-2"><PlusCircle size={24}/> បន្ថែមទីតាំងថ្មី</h3>
-                    <form onSubmit={submitLocation} className="space-y-4 md:space-y-5">
-                      <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">ឈ្មោះទីតាំង *</label><input type="text" required value={newLocName} onChange={e=>setNewLocName(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} placeholder="ឧ. មណ្ឌលសុខភាព..." /></div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">ប្រភេទ *</label><select value={newLocCategory} onChange={e=>setNewLocCategory(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`}><option value="សាលារៀន">សាលារៀន</option><option value="មណ្ឌលសុខភាព">មណ្ឌលសុខភាព</option><option value="ប៉ុស្តិ៍ប៉ូលីស">ប៉ុស្តិ៍ប៉ូលីស</option><option value="ផ្សេងៗ">ផ្សេងៗ</option></select></div>
-                        <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">ស្រុក *</label><select value={newLocDistrict} onChange={e=>setNewLocDistrict(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`}><option value="ស្រុករតនមណ្ឌល">ស្រុករតនមណ្ឌល</option><option value="ផ្សេងៗ">ផ្សេងៗ</option></select></div>
-                      </div>
-
-                      {newLocDistrict === 'ផ្សេងៗ' && <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">ឈ្មោះស្រុកថ្មី *</label><input type="text" required value={newLocCustomDistrict} onChange={e=>setNewLocCustomDistrict(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} /></div>}
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">ឃុំ *</label><input type="text" required value={newLocCommune} onChange={e=>setNewLocCommune(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} /></div>
-                        <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">ភូមិ *</label><input type="text" required value={newLocVillage} onChange={e=>setNewLocVillage(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} /></div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">លេខទូរស័ព្ទ</label><input type="text" value={newLocPhone} onChange={e=>setNewLocPhone(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} /></div>
-                        <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">តំណភ្ជាប់ផែនទី (Map Link)</label><input type="text" value={newLocMapLink} onChange={e=>setNewLocMapLink(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} /></div>
-                      </div>
-                      
-                      <div><label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">ព័ត៌មានលម្អិត</label><textarea value={newLocInfo} onChange={e=>setNewLocInfo(e.target.value)} rows="3" className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-xs outline-none resize-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} /></div>
-                      
-                      <div>
-                        <label className="text-[11px] md:text-xs font-bold text-slate-500 block mb-1.5 md:mb-2">រូបភាពទីតាំង</label>
-                        <label className={`w-full h-32 md:h-40 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer overflow-hidden relative transition-colors ${isDarkMode ? 'border-slate-700 bg-slate-950 hover:bg-slate-800' : 'border-blue-200 bg-blue-50/50 hover:bg-blue-50'}`}>
-                          {newLocImageBase64 ? <img src={newLocImageBase64} className="w-full h-full object-cover" alt="preview" /> : <><Camera className="text-blue-500 mb-2" size={24}/><span className="text-[10px] md:text-[11px] text-slate-500 font-bold">ចុចបញ្ចូលរូបថត</span></>}
-                          <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setNewLocImageBase64)} className="hidden" />
-                        </label>
-                      </div>
-                      
-                      <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 md:py-4 rounded-2xl font-bold font-siemreap text-xs md:text-sm mt-4 shadow-lg shadow-blue-500/30 transition-all active:scale-95">{isSubmitting ? 'កំពុងដំណើរការ...' : 'យល់ព្រមបញ្ជូន'}</button>
+                    {/* Send message inside Notif Panel */}
+                    <form onSubmit={handleSendNotification} className="p-3 border-b border-inherit bg-slate-50 dark:bg-slate-800/50 flex gap-1.5">
+                      <input type="text" value={notifInput} onChange={e=>setNotifInput(e.target.value)} placeholder="ផ្ញើសារ/រាយការណ៍..." className="flex-1 p-2 border rounded-lg text-xs outline-none bg-white dark:bg-slate-900 dark:border-slate-700" />
+                      <button type="submit" className="p-2 bg-[#15803D] text-white rounded-lg hover:bg-green-700 transition"><Send size={12}/></button>
                     </form>
+
+                    <div className="max-h-60 overflow-y-auto hide-scroll divide-y divide-slate-100 dark:divide-slate-800">
+                      {notifications.map(n => (
+                        <div key={n.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                          <p className="text-[11px] font-bold text-slate-800 dark:text-white flex justify-between">
+                            <span>{n.sender}</span>
+                            <span className="text-[9px] text-slate-400 font-normal">{new Date(n.time).toLocaleTimeString()}</span>
+                          </p>
+                          <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1">{n.text}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+                )}
+              </div>
+
+              {/* Theme Toggle icon */}
+              <button onClick={toggleDarkMode} className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full text-slate-700 dark:text-slate-300">
+                {isDarkMode ? <Sun size={18}/> : <Moon size={18}/>}
+              </button>
+
+              <div className="hidden sm:flex items-center gap-2 border-l pl-3 border-slate-200 dark:border-slate-800">
+                <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden shrink-0 border">
+                  {profileImage ? <img src={profileImage} className="w-full h-full object-cover" /> : <User size={16} className="m-auto text-slate-400 mt-2"/>}
                 </div>
-              )}
-
-              {/* === TAB 3: របាយការណ៍ (REPORTS) === */}
-              {activeTab === 'reports' && (
-                <div className="anim-slide-up p-4 md:p-8 space-y-6 max-w-5xl mx-auto font-siemreap w-full flex-1">
-                  <h2 className="text-xl md:text-3xl font-black text-slate-800 dark:text-white mb-2 md:mb-4">របាយការណ៍ & ស្ថិតិ</h2>
-                  
-                  {/* Top Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                    <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border shadow-sm flex flex-col justify-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                      <Users className="text-blue-500 mb-2" size={20}/>
-                      <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wide">អ្នកប្រើប្រាស់សរុប</p>
-                      <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white">{reportStats.totalUsers}</h3>
-                    </div>
-                    <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border shadow-sm flex flex-col justify-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                      <Map className="text-emerald-500 mb-2" size={20}/>
-                      <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wide">ទីតាំងសរុប</p>
-                      <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white">{reportStats.totalLocations}</h3>
-                    </div>
-                    <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border shadow-sm flex flex-col justify-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                      <CheckCircle2 className="text-purple-500 mb-2" size={20}/>
-                      <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wide">បានអនុម័តរួច</p>
-                      <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white">{reportStats.totalApproved}</h3>
-                    </div>
-                    <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border shadow-sm flex flex-col justify-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                      <TrendingUp className="text-orange-500 mb-2" size={20}/>
-                      <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wide">អត្រាអនុម័ត (%)</p>
-                      <h3 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white">{reportStats.approvalRate}%</h3>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-                    {/* Modern SVG Line Chart with 2 lines and area */}
-                    <div className={`p-5 md:p-6 rounded-2xl md:rounded-[32px] border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                      <h4 className="font-bold text-xs md:text-sm text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2"><BarChart2 size={16}/> កំណើនទិន្នន័យ (អ្នកប្រើប្រាស់ vs ទីតាំង)</h4>
-                      <div className="w-full h-40 md:h-56 relative">
-                        <svg viewBox="0 0 300 150" className="w-full h-full overflow-visible svg-shadow">
-                          {/* Grid */}
-                          <line x1="0" y1="20" x2="300" y2="20" stroke={isDarkMode ? '#334155' : '#e2e8f0'} strokeWidth="1" strokeDasharray="4"/>
-                          <line x1="0" y1="70" x2="300" y2="70" stroke={isDarkMode ? '#334155' : '#e2e8f0'} strokeWidth="1" strokeDasharray="4"/>
-                          <line x1="0" y1="120" x2="300" y2="120" stroke={isDarkMode ? '#475569' : '#cbd5e1'} strokeWidth="1"/>
-                          
-                          {/* Fill Area Line 1 */}
-                          <path d="M 15,120 L 15,100 C 50,100 50,80 85,80 C 120,80 120,40 155,40 C 190,40 190,70 225,70 C 260,70 260,30 285,30 L 285,120 Z" fill="url(#areaGradient)" />
-                          
-                          {/* Line 1 (Blue) */}
-                          <path d="M 15,100 C 50,100 50,80 85,80 C 120,80 120,40 155,40 C 190,40 190,70 225,70 C 260,70 260,30 285,30" fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
-                          
-                          {/* Line 2 (Green) */}
-                          <path d="M 15,120 C 50,120 50,90 85,90 C 120,90 120,60 155,60 C 190,60 190,85 225,85 C 260,85 260,50 285,50" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeDasharray="4" />
-                          
-                          {/* Labels */}
-                          {['មករា', 'កុម្ភៈ', 'មិនា', 'មេសា', 'ឧសភា', 'មិថុនា'].map((month, i) => (
-                            <text key={month} x={15 + (i * 54)} y="140" textAnchor="middle" fill={isDarkMode ? '#94a3b8' : '#64748b'} fontSize="9" className="font-bold">{month}</text>
-                          ))}
-                        </svg>
-                      </div>
-                      <div className="flex gap-4 justify-center mt-4">
-                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div><span className="text-[10px] text-slate-500 font-bold">អ្នកប្រើប្រាស់</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-[10px] text-slate-500 font-bold">ទីតាំងថ្មី</span></div>
-                      </div>
-                    </div>
-
-                    {/* Modern SVG Donut Chart */}
-                    <div className={`p-5 md:p-6 rounded-2xl md:rounded-[32px] border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} flex flex-col justify-center items-center`}>
-                       <h4 className="font-bold text-xs md:text-sm text-slate-700 dark:text-slate-200 mb-6 w-full text-left flex items-center gap-2"><PlusCircle size={16}/> សមាមាត្រអ្នកប្រើប្រាស់ (%)</h4>
-                       <div className="relative w-36 h-36 md:w-44 md:h-44">
-                         <svg viewBox="0 0 36 36" className="w-full h-full rotate-[-90deg] drop-shadow-lg">
-                            {/* Background Track */}
-                            <circle cx="18" cy="18" r="15.9" fill="transparent" stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} strokeWidth="5"></circle>
-                            {/* Segment 1: General (70%) */}
-                            <circle cx="18" cy="18" r="15.9" fill="transparent" stroke="#3b82f6" strokeWidth="5" strokeDasharray="70 100" strokeDashoffset="0" strokeLinecap="round"></circle>
-                            {/* Segment 2: Members (25%) */}
-                            <circle cx="18" cy="18" r="15.9" fill="transparent" stroke="#10b981" strokeWidth="5" strokeDasharray="25 100" strokeDashoffset="-70" strokeLinecap="round"></circle>
-                            {/* Segment 3: Admin (5%) */}
-                            <circle cx="18" cy="18" r="15.9" fill="transparent" stroke="#f59e0b" strokeWidth="5" strokeDasharray="5 100" strokeDashoffset="-95" strokeLinecap="round"></circle>
-                         </svg>
-                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-xl md:text-2xl font-black text-slate-800 dark:text-white">100%</span>
-                            <span className="text-[9px] text-slate-400 font-bold">សរុប</span>
-                         </div>
-                       </div>
-                       <div className="mt-8 flex flex-wrap justify-center gap-4 w-full">
-                          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/50"></div><span className="text-[10px] md:text-[11px] font-bold text-slate-500">អ្នកប្រើប្រាស់ (70%)</span></div>
-                          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></div><span className="text-[10px] md:text-[11px] font-bold text-slate-500">សមាជិក (25%)</span></div>
-                          <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></div><span className="text-[10px] md:text-[11px] font-bold text-slate-500">Admin (5%)</span></div>
-                       </div>
-                    </div>
-                  </div>
+                <div className="text-left leading-none">
+                  <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200">{username || 'ភ្ញៀវសាកល្បង'}</p>
+                  <span className="text-[8px] text-slate-400 font-bold">សមាជិក</span>
                 </div>
-              )}
+              </div>
+            </div>
+          </header>
 
-              {/* === TAB 4: PROFILE & SETTINGS / ADMIN === */}
-              {activeTab === 'profile' && (
-                <div className="anim-slide-up p-4 md:p-8 max-w-2xl mx-auto font-siemreap space-y-5 md:space-y-6 w-full flex-1">
-                  
-                  {/* Profile Header */}
-                  <div className={`p-6 md:p-8 rounded-[32px] border shadow-sm text-center relative overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-                    <div className="relative mt-6">
-                      <div className="w-20 h-20 md:w-24 md:h-24 mx-auto rounded-full border-[5px] border-white dark:border-slate-900 bg-slate-200 overflow-hidden shadow-lg relative group">
-                        {profileImage ? <img src={profileImage} className="w-full h-full object-cover" /> : <User size={40} className="text-slate-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"/>}
-                        <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-white">
-                          <Camera size={20} className="mb-1"/><span className="text-[9px] font-bold">ប្តូររូបភាព</span>
-                          <input type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" />
-                        </label>
-                      </div>
-                      <h3 className="font-black text-lg md:text-xl mt-3 text-slate-800 dark:text-white">{isAdmin ? 'System Admin' : (username || 'អ្នកប្រើប្រាស់')}</h3>
-                      <p className="text-[10px] md:text-xs text-slate-500 font-bold mt-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full inline-block">
-                        {isAdmin ? 'សិទ្ធិខ្ពស់បំផុត (Full Access)' : 'សមាជិកទូទៅ'}
-                      </p>
-                    </div>
-                  </div>
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-y-auto hide-scroll p-4 md:p-6 lg:p-6 space-y-6">
+            <div className="max-w-6xl mx-auto space-y-6 pb-16 md:pb-6">
+              
+              {currentPage === 2 && (
+                <>
+                  {/* HOME TAB (STRICT MOCKUP MATCH) */}
+                  {activeTab === 'home' && (
+                    <div className="animate-fadeIn space-y-6">
+                      
+                      {/* BANNER WITH EMBEDDED METRICS WIDGETS */}
+                      <div className="w-full rounded-[1.8rem] overflow-hidden relative border shadow-sm flex flex-col lg:flex-row bg-[#1e293b] text-white">
+                        {/* Background Overlay */}
+                        <div className="absolute inset-0 bg-cover bg-center opacity-40 blur-[1px]" style={{backgroundImage: `url(${FALLBACK_COVER})`}}></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/90 to-transparent z-0"></div>
 
-                  {/* Settings Module */}
-                  <div className={`p-2 rounded-2xl md:rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                     <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center gap-3"><Moon className="text-slate-400" size={16}/><span className="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200">ងងឹត (Dark Mode)</span></div>
-                        <button onClick={toggleTheme} className={`w-10 md:w-12 h-5 md:h-6 rounded-full relative transition-colors ${isDarkMode ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                          <div className={`w-4 h-4 md:w-5 md:h-5 bg-white rounded-full absolute top-0.5 transition-transform ${isDarkMode ? 'translate-x-5 md:translate-x-6' : 'translate-x-0.5'}`}></div>
-                        </button>
-                     </div>
-                     <div className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3"><Layers className="text-slate-400" size={16}/><span className="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200">ភាសា (Language)</span></div>
-                        <span className="text-[10px] md:text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-lg">ភាសាខ្មែរ</span>
-                     </div>
-                  </div>
+                        {/* Welcome text */}
+                        <div className="p-6 md:p-8 lg:w-[45%] z-10 flex flex-col justify-center text-left relative">
+                          <h3 className="font-moul text-lg md:text-xl text-white mb-2 leading-tight">សូមស្វាគមន៍មកកាន់</h3>
+                          <h2 className="font-moul text-xl md:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-300 mb-3 leading-tight">ប្រព័ន្ធគ្រប់គ្រងទីតាំងសាធារណៈ</h2>
+                          <p className="text-xs text-slate-300 flex items-center gap-1.5"><MapPin size={14} className="text-green-400"/> ស្រុករតនមណ្ឌល, ខេត្តបាត់ដំបង</p>
+                        </div>
 
-                  {/* Admin Area Access */}
-                  {!isAdmin && (
-                    <div className={`p-4 md:p-5 rounded-2xl md:rounded-3xl border shadow-sm ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                      {!showAdminLogin ? (
-                        <button onClick={() => setShowAdminLogin(true)} className="w-full py-3.5 md:py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl font-bold text-xs md:text-sm flex justify-center items-center gap-2 text-slate-700 dark:text-slate-300 transition"><ShieldAlert size={16} /> ចូលកិច្ចការរដ្ឋបាល (Admin)</button>
-                      ) : (
-                        <form onSubmit={handleAdminLogin} className="space-y-4 anim-slide-up">
-                          <label className="font-bold text-[11px] md:text-xs flex items-center gap-2 text-slate-700 dark:text-slate-300"><ShieldAlert size={14} className="text-blue-500"/> លេខសម្ងាត់អ្នកគ្រប់គ្រង</label>
-                          <input type="password" value={adminPasswordInput} onChange={e=>setAdminPasswordInput(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl border text-[11px] md:text-sm outline-none focus:border-blue-500 ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-200'}`} placeholder="••••••••" />
-                          <div className="flex gap-3">
-                            <button type="button" onClick={() => setShowAdminLogin(false)} className="flex-1 py-3 md:py-3.5 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-[11px] md:text-sm transition">បោះបង់</button>
-                            <button type="submit" className="flex-1 py-3 md:py-3.5 bg-blue-600 text-white font-bold rounded-xl text-[11px] md:text-sm shadow-md hover:bg-blue-700 transition">បញ្ជាក់</button>
+                        {/* Mockup Embedding Metrics Grid Right side of the banner */}
+                        <div className="p-4 md:p-6 lg:w-[55%] z-10 grid grid-cols-2 gap-3 bg-white/5 backdrop-blur-md border-l border-white/10">
+                          <div className="bg-white/10 p-3.5 rounded-2xl flex items-center gap-3 border border-white/10 hover:bg-white/15 transition-all">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><MapPin size={18}/></div>
+                            <div>
+                              <p className="text-[10px] text-slate-300 font-bold">ទីតាំងបានអនុម័ត</p>
+                              <h4 className="text-base font-black text-white">{approvedLocations.length} ទីតាំង</h4>
+                            </div>
                           </div>
-                        </form>
-                      )}
+                          
+                          <div className="bg-white/10 p-3.5 rounded-2xl flex items-center gap-3 border border-white/10 hover:bg-white/15 transition-all">
+                            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0"><Activity size={18}/></div>
+                            <div>
+                              <p className="text-[10px] text-slate-300 font-bold">កំពុងរង់ចាំអនុម័ត</p>
+                              <h4 className="text-base font-black text-white">{pendingLocations.length} ទីតាំង</h4>
+                            </div>
+                          </div>
+
+                          <div className="bg-white/10 p-3.5 rounded-2xl flex items-center gap-3 border border-white/10 hover:bg-white/15 transition-all">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0"><Users size={18}/></div>
+                            <div>
+                              <p className="text-[10px] text-slate-300 font-bold">អ្នកប្រើប្រាស់សរុប</p>
+                              <h4 className="text-base font-black text-white">{userList.length} នាក់</h4>
+                            </div>
+                          </div>
+
+                          <div className="bg-white/10 p-3.5 rounded-2xl flex items-center gap-3 border border-white/10 hover:bg-white/15 transition-all">
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0"><TrendingUp size={18}/></div>
+                            <div>
+                              <p className="text-[10px] text-slate-300 font-bold">ចំនួនចូលប្រើប្រាស់</p>
+                              <h4 className="text-base font-black text-white">{appVisits.length} ដង</h4>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* FILTER PANEL SECTION (Precisely formatted like the image mockup) */}
+                      <div className={`p-4 md:p-5 rounded-2xl border shadow-xs ${bgCard}`}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5">
+                          
+                          {/* 1. Select District */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 block mb-1.5">ជ្រើសរើសស្រុក</label>
+                            <select value={selectedDistrictTab} onChange={e=>setSelectedDistrictTab(e.target.value)} className="w-full p-2.5 rounded-xl border outline-none font-bold text-xs bg-[#15803D] text-white border-[#15803D] focus:ring-2 focus:ring-green-400">
+                              <option value="រតនមណ្ឌល">រតនមណ្ឌល</option>
+                              <option value="ផ្សេងៗ">ផ្សេងៗ</option>
+                            </select>
+                          </div>
+
+                          {/* 2. Select Commune */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 block mb-1.5">ជ្រើសរើសឃុំ/សង្កាត់</label>
+                            <select value={selectedCommune} onChange={e=>{setSelectedCommune(e.target.value); setSelectedVillageFilter('');}} className={`w-full p-2.5 rounded-xl border outline-none font-bold text-xs ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-white border-slate-200 text-slate-800'} focus:ring-2 focus:ring-green-400`}>
+                              <option value="">ទាំងអស់</option>
+                              {PRIMARY_COMMUNES.map(c=><option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+
+                          {/* 3. Select Village */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 block mb-1.5">ជ្រើសរើសភូមិ</label>
+                            <select value={selectedVillageFilter} onChange={e=>setSelectedVillageFilter(e.target.value)} className={`w-full p-2.5 rounded-xl border outline-none font-bold text-xs ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-white border-slate-200 text-slate-800'} focus:ring-2 focus:ring-green-400`}>
+                              <option value="">ទាំងអស់</option>
+                              {selectedCommune && COMMUNE_VILLAGES[selectedCommune] ? COMMUNE_VILLAGES[selectedCommune].map(v=><option key={v} value={v}>{v}</option>) : null}
+                            </select>
+                          </div>
+
+                          {/* 4. Search and Input */}
+                          <div className="relative">
+                            <label className="text-[10px] font-bold text-slate-500 block mb-1.5">ស្វែងរកទីតាំង</label>
+                            <div className="flex gap-1.5">
+                              <input type="text" placeholder="ស្វែងរកឈ្មោះ..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} className={`flex-1 p-2.5 rounded-xl border outline-none text-xs ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white':'bg-white border-slate-200 text-slate-800'}`} />
+                              <button className="p-2.5 bg-[#15803D] hover:bg-green-700 text-white rounded-xl transition-all"><Search size={14}/></button>
+                            </div>
+                          </div>
+
+                          {/* 5. Category filter */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 block mb-1.5">ប្រភេទទីតាំង</label>
+                            <select value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)} className={`w-full p-2.5 rounded-xl border outline-none font-bold text-xs ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-white border-slate-200 text-slate-800'} focus:ring-2 focus:ring-green-400`}>
+                              {CATEGORIES.map(cat=><option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+                          </div>
+
+                        </div>
+                      </div>
+
+                      {/* MAIN GRID DISPLAYING LOCATIONS (Style matched to mockup) */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center border-b pb-2">
+                          <h3 className="font-moul text-sm text-[#15803D] dark:text-green-400 flex items-center gap-2">
+                            <MapPin size={16} /> ទីតាំងដែលបានអនុម័ត
+                          </h3>
+                          <button onClick={()=>setCategoryFilter('ទាំងអស់')} className="text-[11px] font-bold text-white bg-[#15803D] hover:bg-green-700 px-3 py-1.5 rounded-lg transition">មើលទាំងអស់ &gt;</button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {displayedLocations.map(loc => (
+                            <div key={loc.id} className={`rounded-2xl border overflow-hidden flex flex-col shadow-xs transition-transform hover:-translate-y-1 ${bgCard}`}>
+                              <div className="w-full aspect-[16/11] relative bg-slate-100 dark:bg-slate-800">
+                                <img src={loc.imageUrl} alt={loc.name} className="w-full h-full object-cover" onError={(e)=>handleImageError(e, FALLBACK_COVER)} />
+                                <span className="absolute top-2 left-2 text-[9px] font-bold px-2 py-0.5 rounded-md text-slate-700 bg-white shadow-xs border">
+                                  {loc.category}
+                                </span>
+                                
+                                {/* Favorite/Star button */}
+                                <button onClick={()=>toggleFavorite(loc.id)} className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-xs text-amber-500 hover:scale-110 transition-all shadow-xs">
+                                  <Star size={14} fill={favorites.includes(loc.id) ? "currentColor" : "none"} />
+                                </button>
+                              </div>
+
+                              <div className="p-3.5 flex-1 flex flex-col justify-between">
+                                <div>
+                                  <h4 className="font-bold text-xs text-slate-800 dark:text-white mb-2 leading-tight">{loc.name}</h4>
+                                  <div className="text-[9px] text-slate-500 space-y-1">
+                                    <p className="flex items-center gap-1.5"><MapPin size={12} className="text-slate-400 shrink-0"/> ភូមិ {loc.village}, ឃុំ {loc.commune}</p>
+                                    {loc.phone && <p className="flex items-center gap-1.5"><Phone size={12} className="text-slate-400 shrink-0"/> {loc.phone}</p>}
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-1.5 pt-3 mt-3 border-t border-slate-100 dark:border-slate-800">
+                                  <a href={loc.mapLink || ("https://maps.google.com/maps?q=" + encodeURIComponent(loc.name))} target="_blank" rel="noreferrer" className="flex-1 py-1.5 rounded-lg border text-slate-700 dark:text-slate-200 font-bold text-[9px] flex items-center justify-center gap-1 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                    <MapIcon size={10}/> មើលផែនទី
+                                  </a>
+                                  <button onClick={()=>setSelectedLocation(loc)} className="flex-1 py-1.5 rounded-lg border text-slate-700 dark:text-slate-200 font-bold text-[9px] flex items-center justify-center gap-1 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                    <Info size={10}/> ព័ត៌មានលម្អិត
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {displayedLocations.length === 0 && (
+                          <div className="p-16 text-center text-slate-400 text-xs">មិនទាន់មានទីតាំងនៅក្នុងជម្រើសចម្រោះនេះឡើយ</div>
+                        )}
+                      </div>
+
+                      {/* BOTTOM GRID STATISTICS (5 Custom color metrics exactly like mockup) */}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5 pt-4">
+                        
+                        <div className="p-4 rounded-2xl bg-[#E8F5E9] dark:bg-emerald-950/20 text-slate-800 dark:text-white flex flex-col justify-between border border-emerald-100 dark:border-emerald-900/40">
+                          <MapIcon size={24} className="text-[#2E7D32]" />
+                          <div className="mt-4">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-bold">ស្រុក</span>
+                            <span className="text-lg font-black block mt-0.5">1 ស្រុក</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-[#FFF8E1] dark:bg-amber-950/20 text-slate-800 dark:text-white flex flex-col justify-between border border-amber-100 dark:border-amber-900/40">
+                          <Home size={24} className="text-[#F57F17]" />
+                          <div className="mt-4">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-bold">ឃុំ/សង្កាត់</span>
+                            <span className="text-lg font-black block mt-0.5">6 ឃុំ/សង្កាត់</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-[#E3F2FD] dark:bg-blue-950/20 text-slate-800 dark:text-white flex flex-col justify-between border border-blue-100 dark:border-blue-900/40">
+                          <Users size={24} className="text-[#0D47A1]" />
+                          <div className="mt-4">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-bold">ភូមិ</span>
+                            <span className="text-lg font-black block mt-0.5">22 ភូមិ</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-[#F3E5F5] dark:bg-purple-950/20 text-slate-800 dark:text-white flex flex-col justify-between border border-purple-100 dark:border-purple-900/40">
+                          <Layers size={24} className="text-[#4A148C]" />
+                          <div className="mt-4">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-bold">ប្រភេទទីតាំង</span>
+                            <span className="text-lg font-black block mt-0.5">10 ប្រភេទ</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-[#E0F7FA] dark:bg-cyan-950/20 text-slate-800 dark:text-white flex flex-col justify-between border border-cyan-100 dark:border-cyan-900/40 col-span-2 md:col-span-1">
+                          <Globe size={24} className="text-[#006064]" />
+                          <div className="mt-4">
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-bold">ទីតាំងសាធារណៈទាំងអស់</span>
+                            <span className="text-lg font-black block mt-0.5">{approvedLocations.length} ទីតាំង</span>
+                          </div>
+                        </div>
+
+                      </div>
+
                     </div>
                   )}
 
-                  {/* ADMIN ENTERPRISE DASHBOARD */}
-                  {isAdmin && (
-                    <div className="space-y-4 anim-slide-up border-t-4 border-blue-500 pt-6 mt-6">
-                      <h3 className="font-black text-base md:text-lg text-slate-800 dark:text-white flex items-center gap-2 mb-4"><Layers className="text-blue-500"/> ប្រព័ន្ធគ្រប់គ្រងទិន្នន័យ</h3>
-                      
-                      {/* Admin Tabs */}
-                      <div className="flex gap-2 overflow-x-auto hide-scroll pb-2">
-                        <button onClick={() => setAdminSubTab('data')} className={`px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] md:text-[11px] font-bold whitespace-nowrap transition-all ${adminSubTab === 'data' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>🗂️ ទិន្នន័យទីតាំង ({dbAdminData.length})</button>
-                        <button onClick={() => setAdminSubTab('users')} className={`px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] md:text-[11px] font-bold whitespace-nowrap transition-all ${adminSubTab === 'users' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>👥 ឈ្មោះគណនី ({dbUserData.length})</button>
-                        <button onClick={() => setAdminSubTab('security')} className={`px-4 md:px-5 py-2 md:py-2.5 rounded-xl text-[10px] md:text-[11px] font-bold whitespace-nowrap transition-all ${adminSubTab === 'security' ? 'bg-red-600 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>🛡️ សុវត្ថិភាព ({securityLogs.length})</button>
+                  {/* ADD TAB */}
+                  {activeTab === 'add' && (
+                    <div className="animate-fadeIn max-w-xl mx-auto">
+                      <div className={`p-6 rounded-[2rem] border shadow-sm ${bgCard}`}>
+                        <h3 className={`font-bold text-sm md:text-base mb-5 border-b border-slate-100 dark:border-slate-800 pb-3 font-moul flex items-center gap-2 ${textPrimary}`}><PlusCircle size={20}/> បន្ថែមទីតាំងថ្មី</h3>
+                        <form onSubmit={submitLocation} className="space-y-4 text-xs md:text-sm">
+                          <div>
+                            <label className="font-bold text-slate-500 block mb-1.5">ឈ្មោះទីតាំង *</label>
+                            <input type="text" required value={newLocName} onChange={e=>setNewLocName(e.target.value)} className={`w-full p-3.5 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="ឈ្មោះទីតាំង..." />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="font-bold text-slate-500 block mb-1.5">ស្រុក *</label>
+                              <select value={newLocDistrict} onChange={e=>setNewLocDistrict(e.target.value)} className={`w-full p-3.5 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}>
+                                <option value="ស្រុករតនមណ្ឌល">ស្រុករតនមណ្ឌល</option>
+                                <option value="ផ្សេងៗ">ផ្សេងៗ</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="font-bold text-slate-500 block mb-1.5">ប្រភេទ *</label>
+                              <select value={newLocCategory} onChange={e=>setNewLocCategory(e.target.value)} className={`w-full p-3.5 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}>
+                                {CATEGORIES.filter(c => c !== 'ទាំងអស់').map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="font-bold text-slate-500 block mb-1.5">ឃុំ *</label>
+                              {newLocDistrict === 'ស្រុករតនមណ្ឌល' ? (
+                                <select required value={newLocCommune} onChange={e=>{setNewLocCommune(e.target.value); setNewLocVillage('');}} className={`w-full p-3.5 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}>
+                                  {PRIMARY_COMMUNES.map(c => <option key={c} value={c}>ឃុំ {c}</option>)}
+                                </select>
+                              ) : (
+                                <input type="text" required value={newLocCommune} onChange={e=>setNewLocCommune(e.target.value)} className={`w-full p-3.5 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="ឈ្មោះឃុំ *" />
+                              )}
+                            </div>
+                            <div>
+                              <label className="font-bold text-slate-500 block mb-1.5">ភូមិ *</label>
+                              {newLocDistrict === 'ស្រុករតនមណ្ឌល' && COMMUNE_VILLAGES[newLocCommune] ? (
+                                <select required value={newLocVillage} onChange={e=>setNewLocVillage(e.target.value)} className={`w-full p-3.5 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`}>
+                                  <option value="">-- ជ្រើសរើសភូមិ --</option>
+                                  {COMMUNE_VILLAGES[newLocCommune].map(v => <option key={v} value={v}>ភូមិ {v}</option>)}
+                                </select>
+                              ) : (
+                                <input type="text" required value={newLocVillage} onChange={e=>setNewLocVillage(e.target.value)} className={`w-full p-3.5 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="ឈ្មោះភូមិ *" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="font-bold text-slate-500 block mb-1.5">រូបភាព</label>
+                            <label className={`w-full h-32 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer relative overflow-hidden transition-colors ${isDarkMode?'bg-slate-800 border-slate-600 hover:bg-slate-700':'bg-blue-50 border-blue-200 hover:bg-blue-100'}`}>
+                              {newLocImageBase64 ? <img src={newLocImageBase64} className="w-full h-full object-cover" /> : <><Camera size={24} className="text-[#15803D] mb-2"/><span className="text-[10px] text-slate-500 font-bold">ចុចជ្រើសរើសរូបថតទីតាំង</span></>}
+                              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                            </label>
+                          </div>
+
+                          <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-[#15803D] hover:bg-green-700 text-white rounded-xl font-bold font-moul shadow-lg transition-all mt-4">
+                            {isSubmitting?'កំពុងដំណើរការ...':'យល់ព្រមបន្ថែមទិន្នន័យ'}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* REPORTS TAB */}
+                  {activeTab === 'reports' && (
+                    <div className="animate-fadeIn max-w-5xl mx-auto">
+                      <h2 className={`text-sm md:text-base font-bold mb-5 flex items-center gap-2 font-moul ${textPrimary}`}><BarChart2 size={20}/> របាយការណ៍សហគមន៍កម្រិតខ្ពស់</h2>
+                      <RenderReportsDashboard />
+                    </div>
+                  )}
+
+                  {/* PROFILE TAB */}
+                  {activeTab === 'profile' && (
+                    <div className="animate-fadeIn max-w-xl mx-auto space-y-5">
+                      <div className={`p-6 md:p-8 rounded-[2rem] border shadow-sm text-center relative overflow-hidden ${bgCard}`}>
+                        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-emerald-600 to-teal-600"></div>
+                        <div className="relative mt-6">
+                          <div className="w-24 h-24 mx-auto rounded-full border-4 border-white dark:border-slate-900 bg-slate-200 overflow-hidden shadow-md relative group">
+                            {profileImage ? <img src={profileImage} className="w-full h-full object-cover" /> : <User size={40} className="text-slate-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"/>}
+                            <label className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-white">
+                              <Camera size={20} className="mb-1"/><span className="text-[10px] font-bold">ប្តូររូប</span>
+                              <input type="file" accept="image/*" onChange={handleProfileImageChange} className="hidden" />
+                            </label>
+                          </div>
+                          <h3 className="font-black text-lg mt-3 text-slate-800 dark:text-white">{isAdmin ? 'System Admin' : (username || 'អ្នកប្រើប្រាស់')}</h3>
+                          <p className="text-[10px] text-slate-500 mt-2">សមាជិកផ្លូវការស្រុករតនមណ្ឌល</p>
+                        </div>
                       </div>
 
-                      {/* Admin SubTab: Locations (data_admin) */}
-                      {adminSubTab === 'data' && (
-                        <div className="space-y-3">
-                          {dbAdminData.map(loc => (
-                            <div key={loc.id} className={`p-3 md:p-4 rounded-2xl border flex gap-3 md:gap-4 items-center ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                              <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden shrink-0 bg-slate-200"><img src={loc.imageUrl} className="w-full h-full object-cover" /></div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-[11px] md:text-sm truncate text-slate-800 dark:text-white">{loc.name}</h4>
-                                <p className="text-[9px] md:text-[10px] text-slate-500 mb-1">បញ្ចូលដោយ៖ {loc.submittedBy}</p>
-                                {!loc.approved ? (
-                                  <span className="text-[8px] md:text-[9px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded font-bold">រង់ចាំអនុម័ត</span>
-                                ) : (
-                                  <span className="text-[8px] md:text-[9px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded font-bold">បានអនុម័ត</span>
-                                )}
-                              </div>
-                              <div className="flex flex-col md:flex-row gap-1.5 shrink-0">
-                                {!loc.approved && <button onClick={() => adminApprove(loc)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100"><CheckCircle2 size={12}/></button>}
-                                <button onClick={() => setEditLoc(loc)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Edit3 size={12}/></button>
-                                <button onClick={() => adminDeleteLocation(loc.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Trash2 size={12}/></button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div className={`rounded-2xl border shadow-sm overflow-hidden ${bgCard}`}>
+                         <div className="p-4 md:p-5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-3"><Moon className="text-[#15803D]" size={20}/><span className="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200">ងងឹត (Dark Mode)</span></div>
+                            <button onClick={toggleDarkMode} className={`w-12 h-6 rounded-full relative transition-colors ${isDarkMode ? 'bg-[#15803D]' : 'bg-slate-300'}`}>
+                              <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${isDarkMode ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+                            </button>
+                         </div>
+                         <div className="p-4 md:p-5 flex items-center justify-between">
+                            <div className="flex items-center gap-3"><Globe className="text-emerald-500" size={20}/><span className="text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200">ភាសា (Language)</span></div>
+                            <button onClick={toggleLanguage} className="text-xs font-bold text-[#15803D] bg-green-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-green-200">{language === 'KH' ? 'ប្តូរទៅ English' : 'Change to Khmer'}</button>
+                         </div>
+                      </div>
 
-                      {/* Admin SubTab: Users (data_user) */}
-                      {adminSubTab === 'users' && (
-                        <div className="space-y-3">
-                          {dbUserData.map(u => (
-                            <div key={u.id} className={`p-3 md:p-4 rounded-2xl border flex items-center justify-between ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-sm'}`}>
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden bg-slate-200 border-2 border-white">
-                                  {u.profilePic ? <img src={u.profilePic} className="w-full h-full object-cover"/> : <User className="m-1.5 md:m-2 text-slate-400"/>}
-                                </div>
-                                <div>
-                                  <p className="font-bold text-[11px] md:text-sm text-slate-800 dark:text-white">{u.username}</p>
-                                  <p className="text-[8px] md:text-[9px] text-slate-400">ID: {u.id.substring(0, 8)}...</p>
-                                </div>
-                              </div>
-                              <button onClick={async () => { try{await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_user', u.id)); showToast('បានលុបគណនីនេះ!');}catch(e){} }} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
-                                <Trash2 size={12}/>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Admin SubTab: Security Logs */}
-                      {adminSubTab === 'security' && (
-                        <div className="space-y-4">
-                          <div className="flex justify-end">
-                            <button onClick={clearSecurityLogs} className="px-3 py-1.5 md:px-4 md:py-2 bg-red-600 text-white text-[9px] md:text-[10px] font-bold rounded-lg hover:bg-red-700 flex items-center gap-1"><Trash2 size={12}/> លុបទិន្នន័យចោល</button>
-                          </div>
-                          {securityLogs.length > 0 ? (
-                            securityLogs.map(log => (
-                              <div key={log.id} className="p-3 md:p-4 rounded-2xl border-l-4 border-l-red-500 bg-red-50 dark:bg-red-900/20 dark:border-red-900 text-[10px] md:text-xs space-y-1">
-                                <div className="flex justify-between items-center mb-1.5 md:mb-2"><span className="font-bold text-red-600 flex items-center gap-1"><ShieldAlert size={12}/> ការចូលមិនត្រឹមត្រូវ</span><span className="text-[8px] md:text-[9px] text-slate-400">{new Date(log.timestamp).toLocaleString()}</span></div>
-                                <p className="text-slate-700 dark:text-slate-300"><b>គណនី:</b> {log.username} | <b>ឧបករណ៍:</b> {log.device}</p>
-                                <p className="text-slate-700 dark:text-slate-300"><b>Password សាកល្បង:</b> <span className="font-mono text-red-500">{log.attemptedPassword}</span></p>
-                              </div>
-                            ))
+                      {!isAdmin && (
+                        <div className={`p-5 rounded-[2rem] border shadow-sm ${bgCard}`}>
+                          {!showAdminLogin ? (
+                            <button onClick={() => setShowAdminLogin(true)} className="w-full py-4 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl font-bold text-xs md:text-sm flex justify-center items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors"><ShieldAlert size={16} /> ចូលកិច្ចការរដ្ឋបាល (Admin)</button>
                           ) : (
-                            <p className="text-center py-8 text-[11px] md:text-xs text-slate-400">ប្រព័ន្ធសុវត្ថិភាពល្អប្រសើរ គ្មានការគំរាមកំហែងទេ</p>
+                            <div className="text-center p-4">សូមប្រើប្រាស់ផ្ទាំងអ្នកគ្រប់គ្រង</div>
                           )}
                         </div>
                       )}
                     </div>
                   )}
+                </>
+              )}
 
-                  {/* Logout Button */}
-                  {(username || isAdmin) && (
-                    <button onClick={() => { setUsername(''); setIsAdmin(false); localStorage.removeItem('vmc_username_2026'); setActiveTab('home'); setSkippedWelcome(false); setCurrentPage(1); }} className="w-full py-3.5 md:py-4 mt-8 border-2 border-red-100 dark:border-red-900/30 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl font-bold text-[11px] md:text-sm transition flex justify-center items-center gap-2">
-                      <LogOut size={16} /> ចាកចេញពីគណនី
-                    </button>
+              {/* === PAGE 3: ADMIN AREA === */}
+              {currentPage === 3 && isAdmin && (
+                <div className="animate-fadeIn space-y-6">
+                  <div className="flex gap-2 overflow-x-auto hide-scroll pb-2 border-b border-slate-200 dark:border-slate-800">
+                    {[
+                      { id: 'approvals', label: `សំណើអនុម័ត (${pendingLocations.length})` },
+                      { id: 'reports', label: 'របាយការណ៍ប្រព័ន្ធ' },
+                      { id: 'data', label: 'គ្រប់គ្រងទិន្នន័យ' },
+                      { id: 'security', label: 'កំណត់ត្រាសុវត្ថិភាព' }
+                    ].map(tab => (
+                      <button key={tab.id} onClick={() => setAdminSubTab(tab.id)} className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${adminSubTab === tab.id ? bgPrimary + ' shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}`}>{tab.label}</button>
+                    ))}
+                  </div>
+
+                  {adminSubTab === 'approvals' && (
+                    <div className="space-y-4">
+                      {pendingLocations.map(loc => (
+                        <div key={loc.id} className={`p-5 rounded-[2rem] border flex flex-col md:flex-row gap-4 items-start md:items-center shadow-sm ${bgCard}`}>
+                          <img src={loc.imageUrl} className="w-full md:w-24 h-40 md:h-24 rounded-xl object-cover shrink-0" onError={(e)=>handleImageError(e, FALLBACK_COVER)} />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-sm md:text-base font-moul text-slate-800 dark:text-white truncate mb-1">{loc.name}</h4>
+                            <p className="text-xs text-slate-500 mb-1">ភូមិ{loc.village}, ឃុំ{loc.commune}</p>
+                            <p className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 inline-block px-2 py-1 rounded-md">ដោយ៖ <span className="text-[#15803D] font-bold">{loc.submittedBy}</span></p>
+                          </div>
+                          <div className="flex gap-2 w-full md:w-auto mt-3 md:mt-0">
+                            <button onClick={()=>adminApprove(loc)} className="flex-1 md:flex-none px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors">អនុម័ត</button>
+                            <button onClick={()=>adminReject(loc)} className="flex-1 md:flex-none px-6 py-2.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl text-xs font-bold transition-colors">បដិសេធ</button>
+                          </div>
+                        </div>
+                      ))}
+                      {pendingLocations.length === 0 && <p className="text-center py-16 text-sm text-slate-400 border-2 border-dashed rounded-3xl dark:border-slate-800">គ្មានសំណើអនុម័តរង់ចាំឡើយ</p>}
+                    </div>
+                  )}
+
+                  {adminSubTab === 'reports' && <RenderReportsDashboard />}
+                  
+                  {adminSubTab === 'data' && (
+                    <div className="space-y-4">
+                      <div className="flex gap-2">
+                        <button onClick={()=>setAdminDataTab('locations')} className={`px-4 py-2 rounded-lg text-xs font-bold ${adminDataTab==='locations'?bgPrimary:'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>ទីតាំង ({approvedLocations.length})</button>
+                        <button onClick={()=>setAdminDataTab('users')} className={`px-4 py-2 rounded-lg text-xs font-bold ${adminDataTab==='users'?bgPrimary:'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>គណនី ({userList.length})</button>
+                      </div>
+
+                      {adminDataTab === 'locations' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {approvedLocations.map(loc => (
+                            <div key={loc.id} className={`p-4 rounded-xl border flex items-center justify-between ${bgCard}`}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <img src={loc.imageUrl} className="w-10 h-10 rounded-lg object-cover" onError={(e)=>handleImageError(e, FALLBACK_COVER)} />
+                                <h4 className="font-bold text-xs truncate text-slate-800 dark:text-white">{loc.name}</h4>
+                              </div>
+                              <div className="flex gap-1.5">
+                                <button onClick={()=>setEditLoc(loc)} className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Edit3 size={14}/></button>
+                                <button onClick={()=>adminDelete(loc.id)} className="p-2 bg-red-50 text-red-600 rounded-lg"><Trash2 size={14}/></button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {userList.map(usr => (
+                            <div key={usr.id} className={`p-4 rounded-xl border flex items-center justify-between ${bgCard}`}>
+                              <h4 className="font-bold text-xs text-slate-800 dark:text-white">{usr.username}</h4>
+                              <button onClick={()=>adminDeleteUser(usr.id)} className="p-2 bg-red-50 text-red-600 rounded-lg"><Trash2 size={14}/></button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {adminSubTab === 'security' && (
+                    <div className="space-y-4">
+                      {securityLogs.length > 0 && <button onClick={adminClearSecurityLogs} className="py-2.5 px-4 bg-red-600 text-white rounded-lg text-xs font-bold flex items-center gap-2"><Trash2 size={14}/> លុបកំណត់ត្រាទាំងអស់</button>}
+                      <div className="space-y-3">
+                        {securityLogs.map(log => (
+                          <div key={log.id} className="p-4 rounded-xl border-l-4 border-red-500 bg-red-50 dark:bg-red-950/20 text-xs">
+                            <p className="font-bold text-red-600">លួចចូលប្រព័ន្ធខុសឆ្គង</p>
+                            <p className="text-slate-600 dark:text-slate-400 mt-1">គណនី៖ {log.username} | IP: {log.ipAddress} | កូដសាកល្បង៖ {log.attemptedPassword}</p>
+                          </div>
+                        ))}
+                        {securityLogs.length === 0 && <p className="text-center py-10 text-xs text-slate-400">គ្មានកំណត់ត្រាគំរាមកំហែងទេ</p>}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
-              
-              {/* === VMC Footer Credit === */}
-              <div className="text-center pb-8 pt-6 mt-auto">
-                <a href="https://web.facebook.com/Youth.VMC.SdaoSantepheap/?_rdc=1&_rdr#" target="_blank" rel="noreferrer" className="text-[9px] md:text-[10px] text-slate-400 hover:text-blue-500 font-siemreap border-t border-slate-200 dark:border-slate-800 pt-4 px-4 inline-block w-full max-w-sm mx-auto">
-                  រៀបចំដោយយុវជន VMC វិទ្យាល័យស្តៅសន្តិភាព
-                </a>
-              </div>
+            </div>
+          </main>
 
-            </main>
-
-            {/* --- BOTTOM / SIDE NAVIGATION BAR --- */}
-            <nav className={`absolute bottom-0 w-full flex justify-around items-center pt-2 pb-5 md:pb-2 z-30 border-t rounded-t-3xl md:rounded-none shadow-[0_-10px_20px_rgba(0,0,0,0.03)] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100'}`}>
-              <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
-                <Home size={20} className="md:w-6 md:h-6" /><span className="text-[9px] md:text-[10px] font-bold font-siemreap">ទំព័រដើម</span>
-              </button>
-              <button onClick={attemptToAddLocation} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'add' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
-                <PlusCircle size={20} className="md:w-6 md:h-6" /><span className="text-[9px] md:text-[10px] font-bold font-siemreap">បន្ថែម</span>
-              </button>
-              <button onClick={() => setActiveTab('reports')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'reports' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
-                <BarChart2 size={20} className="md:w-6 md:h-6" /><span className="text-[9px] md:text-[10px] font-bold font-siemreap">របាយការណ៍</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 w-16 transition-colors ${activeTab === 'profile' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
-                <User size={20} className="md:w-6 md:h-6" /><span className="text-[9px] md:text-[10px] font-bold font-siemreap">គណនី</span>
-              </button>
+          {/* Mobile Bottom Navigation Bar (Page 2 Only, Strict Support) */}
+          {currentPage === 2 && (
+            <nav className={`md:hidden absolute bottom-0 w-full flex justify-around items-center pt-2.5 pb-6 shrink-0 z-30 border-t rounded-t-[1.8rem] shadow-[0_-10px_25px_rgba(0,0,0,0.04)] ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100'}`}>
+              {[
+                { id: 'home', icon: Home, label: 'ទំព័រដើម' },
+                { id: 'add', icon: Plus, label: 'បន្ថែម', isSpecial: true },
+                { id: 'reports', icon: BarChart2, label: 'របាយការណ៍' },
+                { id: 'profile', icon: User, label: 'គណនី' }
+              ].map(item => (
+                <button key={item.id} onClick={() => navigateTab(item.id)} className={`flex flex-col items-center gap-1 w-16 transition-all duration-300 ${activeTab === item.id ? 'text-[#15803D]' : 'text-slate-400'} ${item.isSpecial ? 'relative -top-4' : ''}`}>
+                  {item.isSpecial ? (
+                    <div className="w-11 h-11 rounded-full bg-[#15803D] text-white flex items-center justify-center shadow-md scale-105"><Plus size={20}/></div>
+                  ) : <item.icon size={18} />}
+                  <span className="text-[9px] font-bold mt-0.5">{item.label}</span>
+                </button>
+              ))}
             </nav>
+          )}
 
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* ==================== DETAILS OVERLAY MODAL ==================== */}
-        {selectedLocation && (
-          <div className={`absolute inset-0 z-[60] flex flex-col anim-slide-up ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-            <div className="absolute top-0 w-full z-20 p-4 flex justify-between items-center text-white bg-gradient-to-b from-black/60 to-transparent">
-              <button onClick={() => setSelectedLocation(null)} className="p-2 md:p-2.5 bg-black/30 backdrop-blur-md rounded-xl hover:bg-black/50 transition"><ArrowLeft size={18} /></button>
+      {/* ==========================================================
+          MODALS & OVERLAYS (STYLISH LARGE ADMIN DESIGNED MODAL)
+          ========================================================== */}
+      
+      {/* 1. Location Details Overlay */}
+      {selectedLocation && (
+        <div className="absolute inset-0 z-[120] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn font-siemreap">
+          <div className={`w-full max-w-md rounded-[1.8rem] overflow-hidden shadow-2xl relative animate-slide-up flex flex-col ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+            <button onClick={() => setSelectedLocation(null)} className="absolute top-3 right-3 z-20 w-8 h-8 bg-black/40 text-white rounded-full flex items-center justify-center backdrop-blur-md hover:bg-black/60 transition-colors"><X size={14}/></button>
+            <div className="h-52 w-full relative">
+              <img src={selectedLocation.imageUrl} className="w-full h-full object-cover" onError={(e)=>handleImageError(e, FALLBACK_COVER)} />
             </div>
-            <div className="flex-1 overflow-y-auto hide-scroll pb-24 font-siemreap">
-              <div className="h-56 md:h-80 w-full bg-slate-200 relative"><img src={selectedLocation.imageUrl} className="w-full h-full object-cover" /></div>
-              <div className={`p-5 md:p-10 -mt-8 relative z-10 rounded-t-[32px] max-w-3xl mx-auto shadow-xl ${isDarkMode ? 'bg-slate-950 shadow-black/50' : 'bg-slate-50 shadow-blue-900/5'}`}>
-                <h2 className="font-black text-xl md:text-2xl text-slate-800 dark:text-white mb-5 md:mb-6 leading-tight">{selectedLocation.name}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                  <div className={`flex gap-3 md:gap-4 items-start p-3 md:p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}><Layers size={18} className="text-blue-500 mt-0.5" /><div><p className="text-[10px] md:text-[11px] text-slate-400 font-bold mb-0.5">ប្រភេទ</p><p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200">{selectedLocation.category}</p></div></div>
-                  <div className={`flex gap-3 md:gap-4 items-start p-3 md:p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}><MapPin size={18} className="text-emerald-500 mt-0.5" /><div><p className="text-[10px] md:text-[11px] text-slate-400 font-bold mb-0.5">ទីតាំង</p><p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200">{selectedLocation.village}, ឃុំ{selectedLocation.commune}</p></div></div>
-                  {selectedLocation.phone && <div className={`flex gap-3 md:gap-4 items-start p-3 md:p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}><Phone size={18} className="text-purple-500 mt-0.5" /><div><p className="text-[10px] md:text-[11px] text-slate-400 font-bold mb-0.5">ទំនាក់ទំនង</p><p className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200">{selectedLocation.phone}</p></div></div>}
-                  <div className={`col-span-full flex gap-3 md:gap-4 items-start p-3 md:p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}><FileText size={18} className="text-orange-500 mt-0.5" /><div><p className="text-[10px] md:text-[11px] text-slate-400 font-bold mb-1">ព័ត៌មានបន្ថែម</p><p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{selectedLocation.info || 'មិនមានព័ត៌មានលម្អិតទេ'}</p></div></div>
-                </div>
+            <div className="p-5 flex-1">
+              <span className={`text-[8px] font-bold px-2.5 py-1 rounded border mb-2 inline-block ${getCatStyle(selectedLocation.category)}`}>{selectedLocation.category}</span>
+              <h2 className="font-moul text-sm text-slate-800 dark:text-white mb-4 leading-tight">{selectedLocation.name}</h2>
+              <div className="space-y-2.5 text-xs leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400"><b>ទីតាំង៖</b> ភូមិ {selectedLocation.village}, ឃុំ {selectedLocation.commune}, {selectedLocation.district}</p>
+                {selectedLocation.phone && <p className="text-slate-600 dark:text-slate-400"><b>ទំនាក់ទំនង៖</b> {selectedLocation.phone}</p>}
+                {selectedLocation.info && <p className="text-slate-500 dark:text-slate-400 leading-snug"><b>ព័ត៌មានបន្ថែម៖</b> {selectedLocation.info}</p>}
               </div>
-            </div>
-            <div className={`absolute bottom-0 w-full border-t p-3 md:p-6 flex gap-3 md:gap-4 z-30 justify-center ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-100'}`}>
-              <a href={`tel:${selectedLocation.phone || ''}`} className="flex-1 max-w-xs py-3.5 md:py-4 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl font-bold flex justify-center items-center gap-2 font-siemreap text-xs transition"><Phone size={16}/> ទូរស័ព្ទ</a>
-              <a href={selectedLocation.mapLink || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedLocation.name)}`} target="_blank" rel="noreferrer" className="flex-1 max-w-xs py-3.5 md:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold flex justify-center items-center gap-2 font-siemreap text-xs shadow-lg shadow-blue-500/30 transition"><MapIcon size={16}/> មើលផែនទី</a>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== ADMIN EDIT MODAL ==================== */}
-        {editLoc && (
-          <div className="absolute inset-0 z-[70] bg-slate-900/60 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className={`w-full max-w-md rounded-[32px] p-6 md:p-8 max-h-[90vh] overflow-y-auto hide-scroll shadow-2xl ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
-              <h3 className="font-black text-base md:text-lg text-blue-600 font-siemreap mb-4 md:mb-6">កែប្រែទិន្នន័យ</h3>
-              <form onSubmit={adminSaveEdit} className="space-y-3 md:space-y-4 font-siemreap">
-                <input type="text" value={editLoc.name} onChange={e=>setEditLoc({...editLoc, name: e.target.value})} className={`w-full p-3.5 md:p-4 rounded-2xl border text-xs md:text-sm outline-none ${isDarkMode?'bg-slate-950 border-slate-800 text-white':'bg-slate-50'}`} placeholder="ឈ្មោះ" required />
-                <input type="text" value={editLoc.category} onChange={e=>setEditLoc({...editLoc, category: e.target.value})} className={`w-full p-3.5 md:p-4 rounded-2xl border text-xs md:text-sm outline-none ${isDarkMode?'bg-slate-950 border-slate-800 text-white':'bg-slate-50'}`} placeholder="ប្រភេទ" required />
-                <input type="text" value={editLoc.village} onChange={e=>setEditLoc({...editLoc, village: e.target.value})} className={`w-full p-3.5 md:p-4 rounded-2xl border text-xs md:text-sm outline-none ${isDarkMode?'bg-slate-950 border-slate-800 text-white':'bg-slate-50'}`} placeholder="ភូមិ" required />
-                <input type="text" value={editLoc.phone || ''} onChange={e=>setEditLoc({...editLoc, phone: e.target.value})} className={`w-full p-3.5 md:p-4 rounded-2xl border text-xs md:text-sm outline-none ${isDarkMode?'bg-slate-950 border-slate-800 text-white':'bg-slate-50'}`} placeholder="ទូរស័ព្ទ" />
-                <textarea value={editLoc.info || ''} onChange={e=>setEditLoc({...editLoc, info: e.target.value})} className={`w-full p-3.5 md:p-4 rounded-2xl border text-xs md:text-sm outline-none ${isDarkMode?'bg-slate-950 border-slate-800 text-white':'bg-slate-50'}`} rows="4" placeholder="ព័ត៌មាន"></textarea>
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setEditLoc(null)} className="flex-1 py-3.5 md:py-4 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs md:text-sm transition">បោះបង់</button>
-                  <button type="submit" className="flex-1 py-3.5 md:py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-xs md:text-sm shadow-md transition">រក្សាទុក</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== CREATE USERNAME MODAL ==================== */}
-        {showUsernameModal && (
-          <div className="absolute inset-0 bg-slate-900/60 z-[80] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className={`w-full max-w-sm p-6 md:p-8 rounded-[32px] shadow-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-white'}`}>
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-50 dark:bg-slate-800 rounded-full mx-auto flex items-center justify-center mb-4 md:mb-6 text-blue-600"><User size={32} className="md:w-9 md:h-9" /></div>
-              <h3 className="text-center font-black text-lg md:text-xl mb-2 text-slate-800 dark:text-white">បង្កើតគណនី</h3>
-              <p className="text-center text-[11px] md:text-xs text-slate-500 mb-6 md:mb-8 font-siemreap leading-relaxed">កំណត់ឈ្មោះសម្គាល់របស់អ្នក ដើម្បីមានសិទ្ធិបន្ថែមទីតាំងទៅកាន់ប្រព័ន្ធ</p>
-              <input type="text" placeholder="បញ្ចូលឈ្មោះ..." value={usernameInput} onChange={e=>setUsernameInput(e.target.value)} className={`w-full p-3.5 md:p-4 rounded-2xl outline-none border-2 font-bold text-center text-sm md:text-base mb-4 md:mb-6 transition focus:border-blue-500 ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-100 text-slate-800'}`} />
-              <div className="flex gap-2 md:gap-3">
-                <button onClick={()=>setShowUsernameModal(false)} className="flex-1 py-3.5 md:py-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-2xl font-bold text-xs md:text-sm text-slate-600 dark:text-slate-300 transition">បិទ</button>
-                <button onClick={handleSaveUsername} className="flex-1 py-3.5 md:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xs md:text-sm shadow-lg shadow-blue-500/30 transition">យល់ព្រម</button>
+              <div className="flex gap-2.5 mt-5 border-t border-slate-100 dark:border-slate-800 pt-4">
+                {selectedLocation.phone && <a href={"tel:" + selectedLocation.phone} className="flex-1 py-2.5 bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 rounded-xl font-bold flex justify-center items-center gap-1.5 text-[11px] font-moul">ទូរស័ព្ទ</a>}
+                <a href={selectedLocation.mapLink || ("https://maps.google.com/maps?q=" + encodeURIComponent(selectedLocation.name))} target="_blank" rel="noreferrer" className="flex-1 py-2.5 bg-[#15803D] text-white rounded-xl font-bold flex justify-center items-center gap-1.5 text-[11px] shadow-sm font-moul text-center">ផែនទី</a>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Global Toast Alert Notification */}
-        {toastAlert.show && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[90] flex justify-center anim-slide-up w-[90%] max-w-sm">
-            <div className={`w-full px-5 py-3 md:px-6 md:py-4 rounded-2xl shadow-xl flex items-center gap-3 font-bold text-xs md:text-sm text-white font-siemreap ${toastAlert.type === 'error' ? 'bg-red-500' : 'bg-emerald-500'}`}>
-              {toastAlert.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
-              {toastAlert.message}
+      {/* 2. Admin Edit Overlay */}
+      {editLoc && (
+        <div className="absolute inset-0 z-[100] bg-black bg-opacity-60 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn font-siemreap">
+          <div className={`w-full max-w-md rounded-[1.8rem] p-6 shadow-2xl animate-slide-up ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
+            <h3 className="font-bold text-xs text-[#15803D] mb-4 flex items-center gap-1.5 font-moul"><Edit3 size={14}/> កែប្រែទិន្នន័យទីតាំង</h3>
+            <form onSubmit={adminSaveEdit} className="space-y-4 text-xs">
+              <input type="text" value={editLoc.name} onChange={e=>setEditLoc({...editLoc, name: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="ឈ្មោះទីតាំង" required />
+              <input type="text" value={editLoc.category} onChange={e=>setEditLoc({...editLoc, category: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="ប្រភេទ" required />
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" value={editLoc.commune} onChange={e=>setEditLoc({...editLoc, commune: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="ឃុំ" required />
+                <input type="text" value={editLoc.village} onChange={e=>setEditLoc({...editLoc, village: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="ភូមិ" required />
+              </div>
+              <input type="text" value={editLoc.phone || ''} onChange={e=>setEditLoc({...editLoc, phone: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold focus:border-[#2563EB] ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} placeholder="លេខទូរស័ព្ទ" />
+              <textarea value={editLoc.info || ''} onChange={e=>setEditLoc({...editLoc, info: e.target.value})} className={`w-full p-3 rounded-xl border outline-none font-bold focus:border-[#2563EB] resize-none ${isDarkMode?'bg-slate-800 border-slate-700 text-white':'bg-slate-50 border-slate-200'}`} rows="2" placeholder="ពណ៌នា"></textarea>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setEditLoc(null)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 font-bold rounded-xl text-[11px] font-moul">បោះបង់</button>
+                <button type="submit" className="flex-1 py-3 bg-[#15803D] hover:bg-green-700 text-white rounded-xl font-bold text-[11px] font-moul shadow-md">រក្សាទុក</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Create Username Overlay */}
+      {showUsernameModal && (
+        <div className="absolute inset-0 bg-black bg-opacity-70 z-[110] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn font-siemreap">
+          <div className={`w-full max-w-sm p-8 rounded-[2rem] shadow-2xl animate-slide-up border ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white border-slate-100'}`}>
+            <div className="w-16 h-16 bg-emerald-50 dark:bg-slate-800 rounded-full mx-auto flex items-center justify-center mb-5 text-[#15803D]"><User size={28} /></div>
+            <h3 className="text-center font-bold text-sm mb-1 font-moul dark:text-white">បង្កើតគណនីសហគមន៍</h3>
+            <p className="text-center text-[10px] text-slate-500 mb-6 leading-relaxed">សូមបង្កើតឈ្មោះគណនីសម្គាល់ខ្លួនរបស់អ្នកដើម្បីអាចបំពេញទីតាំងបន្ថែម។</p>
+            <input type="text" placeholder="វាយឈ្មោះគណនី..." value={usernameInput} onChange={e=>setUsernameInput(e.target.value)} className={`w-full p-3.5 rounded-xl border font-bold text-center text-xs mb-5 focus:border-[#15803D] transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`} />
+            <div className="flex gap-3">
+              <button onClick={()=>setShowUsernameModal(false)} className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 font-bold rounded-xl text-[10px] font-moul">បិទ</button>
+              <button onClick={handleSaveUsername} className="flex-1 py-3 bg-[#15803D] hover:bg-green-700 text-white rounded-xl font-bold text-[10px] font-moul shadow-lg shadow-green-500/20">រក្សាទុក</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
+      {/* 4. Admin Login Overlay (New Professional standard size) */}
+      {showAdminLogin && (
+        <div className="absolute inset-0 bg-black bg-opacity-70 z-[110] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn font-siemreap">
+          <div className={`w-full max-w-sm p-8 rounded-[2rem] shadow-2xl animate-slide-up border ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white border-slate-100'}`}>
+            <div className="w-16 h-16 bg-green-50 dark:bg-slate-800 rounded-full mx-auto flex items-center justify-center mb-5 text-[#15803D]"><ShieldAlert size={28} /></div>
+            <h3 className="text-center font-bold text-sm mb-2 font-moul dark:text-white">ប្រព័ន្ធសន្តិសុខ Admin</h3>
+            <p className="text-center text-[10px] text-slate-500 mb-6 leading-relaxed">សូមបញ្ចូលលេខកូដសម្ងាត់អ្នកគ្រប់គ្រងដើម្បីបន្ត។</p>
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <input type="password" value={adminPasswordInput} onChange={e=>setAdminPasswordInput(e.target.value)} placeholder="លេខកូដសម្ងាត់..." className={`w-full p-3.5 rounded-xl border text-center font-bold text-xs outline-none focus:border-[#15803D] ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} autoFocus />
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowAdminLogin(false)} className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 font-bold rounded-xl text-[10px] font-moul">បោះបង់</button>
+                <button type="submit" className="flex-1 py-3.5 bg-[#15803D] hover:bg-green-700 text-white rounded-xl font-bold text-[10px] font-moul shadow-lg shadow-green-500/20">បញ្ជាក់ចូល</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Global Toast Alert */}
+      {toastAlert.show && (
+        <div className="absolute top-6 left-1/2 transform -translate-x-1/2 z-[130] animate-slide-up flex justify-center w-[90%] md:w-auto font-siemreap">
+          <div className={`px-5 py-3.5 rounded-xl shadow-xl flex items-center justify-center gap-2 font-bold text-[10px] text-white ${toastAlert.type === 'error' ? 'bg-red-600' : 'bg-[#15803D]'} font-moul`}>
+            {toastAlert.type === 'error' ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+            {toastAlert.message}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
