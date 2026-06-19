@@ -18,7 +18,7 @@ import {
 // =========================================================================
 const LOGO_URL = "logo.png"; 
 const COVER_IMAGE = "logo.png";
-const FALLBACK_LOGO = "logo.png"; // VMC Official Logo Fallback
+const FALLBACK_LOGO = "/logo.png"; // VMC Official Logo Fallback
 const FALLBACK_COVER = "back.png";
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -521,29 +521,34 @@ export default function App() {
     const maxLine1 = Math.max(...reportStats.lineData.map(d => d.count), 1);
     const maxLine2 = Math.max(...reportStats.locationLineData.map(d => d.count), 1);
     
+    // Distribute points evenly across 100% width
+    const xStep = 100 / Math.max(reportStats.lineData.length - 1, 1);
+    
     const linePointsArray1 = reportStats.lineData.map((d, i) => {
-      const x = i * 20;
-      const y = 100 - ((d.count * 80) / maxLine1);
+      const x = i * xStep;
+      const y = 100 - (d.count === 0 ? 0 : (d.count / maxLine1) * 80);
       return { x, y, name: d.name, count: d.count };
     });
-    const linePathString1 = linePointsArray1.map(pt => String(pt.x) + "," + String(pt.y)).join(' ');
+    const linePathString1 = linePointsArray1.map(pt => `${pt.x},${pt.y}`).join(' ');
 
     const linePointsArray2 = reportStats.locationLineData.map((d, i) => {
-      const x = i * 20;
-      const y = 100 - ((d.count * 80) / maxLine2);
+      const x = i * xStep;
+      const y = 100 - (d.count === 0 ? 0 : (d.count / maxLine2) * 80);
       return { x, y, name: d.name, count: d.count };
     });
-    const linePathString2 = linePointsArray2.map(pt => String(pt.x) + "," + String(pt.y)).join(' ');
+    const linePathString2 = linePointsArray2.map(pt => `${pt.x},${pt.y}`).join(' ');
 
     // 2. Pie Chart Calculations
     const maxTotalPie = Math.max(approvedLocations.length, 1);
     let cumulativePiePercent = 0;
+    const C = 2 * Math.PI * 25; // Circumference of r=25 is ~157.08
     
     const pieSlices = reportStats.pieData.map((s, i) => {
-      const p = (s.count * 100) / maxTotalPie;
-      const offset = -cumulativePiePercent; 
+      const p = s.count / maxTotalPie;
+      const dash = p * C;
+      const offset = -cumulativePiePercent * C;
       cumulativePiePercent += p;
-      return { ...s, p, offset };
+      return { ...s, p, dash, offset };
     });
 
     // 3. Bar Chart Calculations
@@ -591,27 +596,38 @@ export default function App() {
             <h4 className="font-bold text-xs md:text-sm mb-4 flex items-center gap-2 font-moul text-slate-700 dark:text-slate-200">
               <Activity size={16} className="text-emerald-500"/> ក្រាហ្វខ្សែរ៖ កំណើនគណនី និងការបន្ថែមទីតាំង (Grid)
             </h4>
-            <div className="w-full h-32 relative border-b border-l border-slate-300 dark:border-slate-700 ml-1">
+            <div className="w-full h-40 relative border-b border-l border-slate-300 dark:border-slate-700 ml-2 mt-4">
               {/* Mathematics Grid backdrop */}
-              <div className="absolute inset-0 grid grid-cols-10 grid-rows-5 pointer-events-none opacity-20">
-                {Array.from({length: 50}).map((_, i) => (
-                  <div key={i} className="border-t border-r border-slate-400"></div>
-                ))}
+              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+                <div className="border-t border-slate-400 w-full h-0"></div>
+                <div className="border-t border-slate-400 w-full h-0"></div>
+                <div className="border-t border-slate-400 w-full h-0"></div>
+                <div className="border-t border-slate-400 w-full h-0"></div>
+                <div className="border-t border-slate-400 w-full h-0"></div>
               </div>
               
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible z-10 relative">
-                {/* Connecting Line 1 */}
-                <polyline points={linePathString1} fill="none" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                {/* Connecting Line 2 */}
-                <polyline points={linePathString2} fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Connecting Lines */}
+                <polyline points={linePathString1} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points={linePathString2} fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                
+                {/* Data Points */}
+                {linePointsArray1.map((pt, i) => <circle key={`c1-${i}`} cx={pt.x} cy={pt.y} r="2" fill="#2563EB" />)}
+                {linePointsArray2.map((pt, i) => <circle key={`c2-${i}`} cx={pt.x} cy={pt.y} r="2" fill="#10B981" />)}
               </svg>
-              <div className="absolute -bottom-6 w-full flex justify-between px-1 text-[8px] md:text-[9px] text-slate-400 font-bold">
-                {linePointsArray1.map((pt, i) => <span key={i} className="-ml-2">{pt.name}</span>)}
+
+              {/* Labels */}
+              <div className="absolute -bottom-6 w-full flex text-[8px] md:text-[9px] text-slate-400 font-bold">
+                {linePointsArray1.map((pt, i) => (
+                  <span key={i} style={{left: `${pt.x}%`, position: 'absolute', transform: 'translateX(-50%)'}}>{pt.name}</span>
+                ))}
               </div>
+              <div className="absolute top-0 -left-6 text-[8px] text-slate-400">{maxLine1}</div>
             </div>
-            <div className="flex gap-4 justify-center mt-8 text-[9px] font-bold">
-              <div className="flex items-center gap-1"><span className="w-2.5 h-1.5 bg-[#2563EB] rounded"></span> <span className="text-slate-600 dark:text-slate-400">គណនីអ្នកប្រើប្រាស់</span></div>
-              <div className="flex items-center gap-1"><span className="w-2.5 h-1.5 bg-[#10B981] rounded"></span> <span className="text-slate-600 dark:text-slate-400">ទីតាំងសហគមន៍</span></div>
+            
+            <div className="flex gap-4 justify-center mt-10 text-[10px] font-bold">
+              <div className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#2563EB] rounded"></span> <span className="text-slate-600 dark:text-slate-400">អ្នកប្រើប្រាស់</span></div>
+              <div className="flex items-center gap-1.5"><span className="w-3 h-1.5 bg-[#10B981] rounded"></span> <span className="text-slate-600 dark:text-slate-400">ទីតាំងថ្មី</span></div>
             </div>
           </div>
 
@@ -620,18 +636,23 @@ export default function App() {
             <h4 className="font-bold text-xs md:text-sm mb-6 flex items-center gap-2 font-moul text-slate-700 dark:text-slate-200">
               <BarChart2 size={16} className="text-[#2563EB]"/> ក្រាហ្វសសរ៖ ចំនួនទីតាំងតាមឃុំ (រតនមណ្ឌល)
             </h4>
-            <div className="w-full h-32 relative border-b border-l border-slate-300 dark:border-slate-700 ml-4 flex items-end justify-around pb-0">
+            <div className="w-full h-40 relative border-b border-l border-slate-300 dark:border-slate-700 ml-4 flex items-end justify-around pb-0 px-2 mt-4">
+              {/* Y-axis marks */}
+              <div className="absolute -left-5 top-0 text-[8px] text-slate-400">{maxBar}</div>
+              <div className="absolute -left-5 bottom-0 text-[8px] text-slate-400">0</div>
+
               {barData.map((d, i) => {
-                const height = (d.count / maxBar) * 100;
+                const height = (d.count === 0) ? 0 : (d.count / maxBar) * 100;
                 return (
-                  <div key={i} className="flex flex-col items-center relative group w-1/8 z-10">
-                    <div className="absolute -top-6 bg-slate-800 dark:bg-slate-700 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">{d.count}</div>
-                    <div className="w-6 bg-[#2563EB] hover:bg-blue-400 transition-colors rounded-t-sm" style={{ height: `${height}%` }}></div>
-                    <span className="absolute -bottom-6 text-[8px] md:text-[9px] text-slate-500 font-bold rotate-[-30deg] origin-top-left whitespace-nowrap">{d.name}</span>
+                  <div key={i} className="flex flex-col items-center relative w-8 z-10 group h-full justify-end">
+                    <div className="absolute -top-6 bg-slate-800 dark:bg-slate-700 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20">{d.count}</div>
+                    <div className="w-5 md:w-8 bg-[#15803D] hover:bg-green-500 transition-colors rounded-t-sm shadow-sm" style={{ height: `${height}%` }}></div>
+                    <span className="absolute -bottom-7 text-[8px] md:text-[9px] text-slate-500 font-bold rotate-[-35deg] origin-top-left whitespace-nowrap">{d.name}</span>
                   </div>
                 );
               })}
             </div>
+            <div className="mt-12 text-center text-[9px] text-slate-400">ទិន្នន័យស្រុករតនមណ្ឌល</div>
           </div>
 
           {/* Pie Chart / Donut */}
@@ -639,19 +660,15 @@ export default function App() {
             <h4 className="font-bold text-xs md:text-sm mb-4 flex items-center gap-2 font-moul text-slate-700 dark:text-slate-200">
               <PieChart size={16} className="text-[#15803D]"/> ក្រាហ្វរង្វង់៖ សមាមាត្រប្រភេទទីតាំង (%)
             </h4>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="w-28 h-28 relative flex-shrink-0">
-                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+            <div className="flex flex-col sm:flex-row items-center gap-5 mt-4">
+              <div className="w-28 h-28 relative flex-shrink-0 drop-shadow-md">
+                <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90 rounded-full overflow-hidden">
                   {pieSlices.length > 0 ? pieSlices.map((slice, i) => (
-                    <circle key={i} cx="50" cy="50" r="25" fill="transparent" stroke={slice.color} strokeWidth="12" strokeDasharray={String(slice.p) + " 100"} strokeDashoffset={String(slice.offset)} className="transition-all duration-500 hover:stroke-[14px]" />
+                    <circle key={i} cx="50" cy="50" r="25" fill="transparent" stroke={slice.color} strokeWidth="50" strokeDasharray={`${slice.dash} ${C}`} strokeDashoffset={`${slice.offset}`} className="transition-all duration-500 hover:opacity-80 cursor-pointer" />
                   )) : (
-                    <circle cx="50" cy="50" r="25" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
+                    <circle cx="50" cy="50" r="25" fill="transparent" stroke="#e2e8f0" strokeWidth="50" />
                   )}
                 </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[8px] text-slate-400 font-bold">សរុប</span>
-                  <span className="text-sm font-black text-slate-800 dark:text-white mt-0.5">{approvedLocations.length}</span>
-                </div>
               </div>
               <div className="flex-1 w-full space-y-1.5">
                 {reportStats.pieData.slice(0, 5).map((s, i) => (
@@ -689,7 +706,8 @@ export default function App() {
           ========================================================== */}
       {currentPage === 1 && (
         <div className="absolute inset-0 z-[100] flex flex-col md:flex-row bg-cover bg-center" style={{ backgroundImage: `url(${FALLBACK_COVER})` }}>
-          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm z-0"></div>
+          {/* កែប្រែពណ៌ Overlay ងងឹតតែខាងក្រោមដើម្បីកុំឱ្យបាំងរូបភាពខាងលើ */}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
           
           {/* Header Area */}
           <div className="absolute top-0 w-full p-5 md:p-10 flex justify-between items-center z-20">
@@ -699,20 +717,20 @@ export default function App() {
               </div>
               <h2 className="text-white font-moul text-sm hidden sm:block">យុវជនសហគមន៍ VMC</h2>
             </div>
-            <button onClick={toggleLanguage} className="px-4 py-2 bg-white/10 backdrop-blur-md rounded-xl shadow-md text-xs font-bold text-white border border-white/20 hover:scale-105 transition-all flex items-center gap-1">
+            <button onClick={toggleLanguage} className="px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl shadow-md text-xs font-bold text-white border border-white/30 hover:scale-105 transition-all flex items-center gap-1">
               <Globe size={14}/> {language === 'KH' ? 'EN' : 'KH'}
             </button>
           </div>
 
-          {/* Text Content */}
-          <div className="w-full md:w-[60%] flex flex-col justify-center px-6 md:px-16 lg:px-24 z-10 h-full relative text-white">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black font-moul leading-[1.3] md:leading-[1.2] mb-5 drop-shadow-md">
+          {/* Text Content - Moved down for mobile */}
+          <div className="w-full flex flex-col justify-end pb-16 pt-48 px-6 md:px-16 lg:px-24 z-10 h-full relative text-white">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black font-moul leading-[1.3] md:leading-[1.2] mb-5 drop-shadow-lg">
               {t('សូមស្វាគមន៍មកកាន់ Web App', 'Welcome to Web App')} <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-300">{t('ប្រព័ន្ធគ្រប់គ្រងទីតាំងសហគមន៍', 'Community Location System')}</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-300">{t('បណ្តាញប្រាស្រ័យទាក់ទងសហគមន៍', 'Community Communication Network')}</span>
             </h1>
             
-            <p className="text-xs md:text-sm text-slate-200 leading-relaxed font-siemreap mb-8 max-w-lg drop-shadow-md">
-              {t('ប្រព័ន្ធព័ត៌មានវិទ្យានេះជួយសម្រួលដល់ការស្វែងរក និងរាយការណ៍អំពីទីតាំងសេវាសាធារណៈនានា ក្នុងស្រុករតនមណ្ឌល ខេត្តបាត់ដំបង ងាយស្រួល ឆាប់រហ័ស និងតម្លាភាព។', 'This IT system facilitates the search and reporting of public service locations in Ratanak Mondol district, Battambang province, easily, quickly, and transparently.')}
+            <p className="text-xs md:text-sm text-slate-100 leading-relaxed font-siemreap mb-8 max-w-xl drop-shadow-md">
+              {t('ប្រព័ន្ធព័ត៌មានវិទ្យានេះជួយសម្រួលដល់ការប្រាស្រ័យទាក់ទង ការស្វែងរក និងការរាយការណ៍អំពីទីតាំងនានាក្នុងសហគមន៍បានយ៉ាងងាយស្រួល ឆាប់រហ័ស និងតម្លាភាព។', 'This IT system facilitates communication, searching, and reporting of locations in the community easily, quickly, and transparently.')}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -882,15 +900,15 @@ export default function App() {
                       
                       {/* BANNER WITH EMBEDDED METRICS WIDGETS */}
                       <div className="w-full rounded-[1.8rem] overflow-hidden relative border shadow-sm flex flex-col lg:flex-row bg-[#1e293b] text-white">
-                        {/* Background Overlay */}
-                        <div className="absolute inset-0 bg-cover bg-center opacity-40 blur-[1px]" style={{backgroundImage: `url(${FALLBACK_COVER})`}}></div>
-                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/90 to-transparent z-0"></div>
+                        {/* Background Overlay - កែប្រែជាពណ៌ស្រអាប់ស្មើគ្នា */}
+                        <div className="absolute inset-0 bg-cover bg-center" style={{backgroundImage: `url(${FALLBACK_COVER})`}}></div>
+                        <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] z-0"></div>
 
                         {/* Welcome text */}
                         <div className="p-6 md:p-8 lg:w-[45%] z-10 flex flex-col justify-center text-left relative">
-                          <h3 className="font-moul text-lg md:text-xl text-white mb-2 leading-tight">សូមស្វាគមន៍មកកាន់</h3>
-                          <h2 className="font-moul text-xl md:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-300 mb-3 leading-tight">ប្រព័ន្ធគ្រប់គ្រងទីតាំងសាធារណៈ</h2>
-                          <p className="text-xs text-slate-300 flex items-center gap-1.5"><MapPin size={14} className="text-green-400"/> ស្រុករតនមណ្ឌល, ខេត្តបាត់ដំបង</p>
+                          <h3 className="font-moul text-lg md:text-xl text-white mb-2 leading-tight drop-shadow-md">សូមស្វាគមន៍មកកាន់</h3>
+                          <h2 className="font-moul text-xl md:text-2xl text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-300 mb-3 leading-tight drop-shadow-md">បណ្តាញប្រាស្រ័យទាក់ទងសហគមន៍</h2>
+                          <p className="text-xs text-slate-100 flex items-center gap-1.5 drop-shadow-md"><MapPin size={14} className="text-green-400"/> ស្រុករតនមណ្ឌល, ខេត្តបាត់ដំបង</p>
                         </div>
 
                         {/* Mockup Embedding Metrics Grid Right side of the banner */}
