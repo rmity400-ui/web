@@ -65,13 +65,16 @@ const injectStyles = (colorHex) => {
   styleEl.innerHTML = `
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&display=swap');
     :root { --font-khmer: 'Noto Sans Khmer', sans-serif; --theme-color: ${colorHex}; }
+    body.dark { background-color: #0B1220; color: #FFFFFF; }
     .font-khmer { font-family: var(--font-khmer); }
-    .glass-panel { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.4); }
-    .dark .glass-panel { background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.05); }
+    .glass-panel { background: #FFFFFF; border: 1px solid rgba(0, 0, 0, 0.05); }
+    .dark .glass-panel { background: #111827; border: 1px solid #1E293B; }
+    .secondary-panel { background: #F8FAFC; border: 1px solid #E2E8F0; }
+    .dark .secondary-panel { background: #1E293B; border: 1px solid #334155; }
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .soft-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08); }
-    .dark .soft-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5); }
+    .soft-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
+    .dark .soft-shadow { box-shadow: 0 4px 20px -2px rgba(0,0,0,0.3); }
     .bg-theme { background-color: var(--theme-color) !important; }
     .text-theme { color: var(--theme-color) !important; }
     .border-theme { border-color: var(--theme-color) !important; }
@@ -89,8 +92,8 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   
   const [currentPage, setCurrentPage] = useState('gateway'); 
-  const [theme, setTheme] = useState('light');
-  const [themeColor, setThemeColor] = useState('#4f46e5');
+  const [theme, setTheme] = useState('dark');
+  const [themeColor, setThemeColor] = useState('#6366F1');
   const [currentView, setCurrentView] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -111,6 +114,14 @@ export default function App() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => { injectStyles(themeColor); }, [themeColor]);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+  }, [theme]);
 
   useEffect(() => {
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
@@ -179,101 +190,93 @@ export default function App() {
   const approvedLocations = useMemo(() => locations.filter(l => l.status === 'approved'), [locations]);
   const pendingLocations = useMemo(() => locations.filter(l => l.status === 'pending'), [locations]);
 
-  if (isAuthLoading) return <div className={`flex items-center justify-center min-h-screen ${theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50'}`}><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 bg-theme"></div></div>;
+  if (isAuthLoading) return <div className={`flex items-center justify-center min-h-screen ${theme === 'dark' ? 'bg-[#0B1220]' : 'bg-slate-50'}`}><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 bg-theme"></div></div>;
 
   // --- GATEWAY PAGE 1 ---
   if (currentPage === 'gateway') {
     return (
-      <div className="fixed inset-0 z-[100] bg-[#f8fafd] dark:bg-slate-900 flex flex-col md:flex-row font-khmer overflow-y-auto md:overflow-hidden selection:bg-[#0c2340] selection:text-white">
+      <div className="fixed inset-0 z-[100] bg-[#f8fafd] dark:bg-[#0B1220] flex flex-col md:flex-row font-khmer overflow-y-auto md:overflow-hidden selection:bg-theme selection:text-white">
         
         {/* Language Toggle */}
         <div className="absolute top-4 right-4 z-50">
-            <button onClick={() => setLanguage(l => l === 'km' ? 'en' : 'km')} className="px-4 py-2 bg-white/60 dark:bg-slate-800/80 backdrop-blur-md rounded-full text-xs font-bold text-[#0c2340] dark:text-blue-300 border border-slate-200 dark:border-slate-700 hover:bg-white shadow-sm transition-colors">
+            <button onClick={() => setLanguage(l => l === 'km' ? 'en' : 'km')} className="px-3 py-1.5 glass-panel rounded-full text-[10px] font-bold text-slate-800 dark:text-white shadow-sm transition-colors flex items-center gap-1.5">
                 {language === 'km' ? '🇰🇭 ខ្មែរ' : '🇬🇧 EN'}
             </button>
         </div>
 
         {/* =========================================
             MOBILE LAYOUT (Hidden on Desktop)
-            Matches p.jpg exactly without bottom icons
         =========================================== */}
-        <div className="md:hidden flex flex-col w-full min-h-screen relative z-10 bg-[#eef3f9] dark:bg-slate-900">
+        <div className="md:hidden flex flex-col w-full min-h-screen relative z-10 bg-[#eef3f9] dark:bg-[#0B1220]">
           
-          {/* Top Section (Logo & Text) */}
-          <div className="flex flex-col items-center pt-14 px-4 shrink-0 relative z-20">
-             <div className="w-24 h-24 rounded-full border-[5px] border-white dark:border-slate-800 shadow-md mb-4 overflow-hidden bg-white shrink-0">
+          {/* Top Section */}
+          <div className="flex flex-col items-center pt-12 px-4 shrink-0 relative z-20">
+             <div className="w-20 h-20 rounded-full border-4 border-white dark:border-[#1E293B] shadow-md mb-4 overflow-hidden bg-white shrink-0">
                <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
              </div>
-             <h1 className="text-2xl font-black text-[#0c2340] dark:text-blue-200 mb-2 tracking-wide text-center">
-               {language === 'km' ? 'សាលារៀនជ័យវរ្ម័នទី៧' : 'Khmer TP'}
+             <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-1.5 text-center">
+               {language === 'km' ? 'សូមស្វាគមន៍មកកាន់ TP nice ' : 'Khmer TP'}
              </h1>
-             <p className="text-[#0c2340]/80 dark:text-blue-300 text-xs font-bold flex items-center gap-1.5 opacity-90 mb-4">
-               <span>មូលដ្ឋានសិក្សា</span> • <span>គុណភាព</span> • <span>វិន័យ:</span>
+             <p className="text-slate-600 dark:text-[#94A3B8] text-[10px] font-bold flex items-center gap-1.5 opacity-90 mb-4">
+               <span>អាចស្វែងរកទិន្នន័យ</span> • <span>ជូនដំណឹងអាសន្ន</span> • <span>រាយការណ៍ណាមួយដែលកើតឡើងក្នុងតំបន់របស់អ្នក!</span>
              </p>
           </div>
 
           {/* Middle Image Area */}
-          <div className="flex-1 w-full px-5 py-2 relative z-20 flex flex-col justify-center min-h-[220px]">
-             <img src="back.png" className="w-full h-full object-cover rounded-[1.5rem] shadow-xl border-[4px] border-white dark:border-slate-800" />
+          <div className="flex-1 w-full px-4 py-2 relative z-20 flex flex-col justify-center min-h-[200px]">
+             <img src="back.png" className="w-full h-full object-cover rounded-[24px] shadow-lg border-[3px] border-white dark:border-[#1E293B]" />
           </div>
 
           {/* Buttons Section */}
-          <div className="w-full px-8 pt-4 pb-8 shrink-0 relative z-30">
-             <div className="space-y-4 max-w-sm mx-auto">
-               <button onClick={() => setCurrentPage('app')} className="w-full bg-[#0c2340] dark:bg-blue-600 text-white rounded-full py-2 px-2 flex items-center justify-between shadow-lg active:scale-95 transition border border-transparent">
-                 <div className="w-12"></div>
-                 <span className="font-black text-lg tracking-wide">{language === 'km' ? 'ចូលប្រើ' : 'Enter App'}</span>
-                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                    <ArrowRight className="text-[#0c2340] w-6 h-6"/>
+          <div className="w-full px-6 pt-4 pb-8 shrink-0 relative z-30">
+             <div className="space-y-3 max-w-sm mx-auto">
+               <button onClick={() => setCurrentPage('app')} className="w-full bg-slate-900 dark:bg-theme text-white rounded-full p-1.5 flex items-center justify-between shadow-lg active:scale-95 transition border border-transparent">
+                 <div className="w-10"></div>
+                 <span className="font-bold text-[13px] tracking-wide text-center flex-1">{language === 'km' ? 'អនុញ្ញាតឱ្យខ្លួនឯងចូលប្រើប្រាស់' : 'Allow Access'}</span>
+                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0">
+                    <ArrowRight className="text-slate-900 dark:text-theme w-5 h-5"/>
                  </div>
-               </button>
-               <button className="w-full bg-white text-[#0c2340] dark:bg-slate-800 dark:text-blue-300 border-2 border-[#0c2340] dark:border-blue-500 rounded-full py-3.5 px-6 font-bold text-lg shadow-md active:scale-95 transition">
-                 {language === 'km' ? 'មានបញ្ហា?' : 'Need Help?'}
                </button>
              </div>
           </div>
 
-          {/* Very Bottom Dark Blue Curve (No Icons) */}
-          <div className="w-full h-[15vh] shrink-0 relative mt-auto z-10 overflow-hidden">
-             <svg viewBox="0 0 1440 320" className="absolute top-0 w-full h-[100px] drop-shadow-[0_-5px_15px_rgba(0,0,0,0.1)]" preserveAspectRatio="none">
-                <path fill="#cda85c" d="M0,160L80,176C160,192,320,224,480,213.3C640,203,800,149,960,138.7C1120,128,1280,160,1360,176L1440,192L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
-                <path fill="#0c2340" className="dark:fill-slate-950" d="M0,192L80,202.7C160,213,320,235,480,218.7C640,203,800,149,960,144C1120,139,1280,181,1360,202.7L1440,224L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
+          {/* Very Bottom Dark Curve */}
+          <div className="w-full h-[12vh] shrink-0 relative mt-auto z-10 overflow-hidden">
+             <svg viewBox="0 0 1440 320" className="absolute top-0 w-full h-[80px]" preserveAspectRatio="none">
+                <path fill="#cda85c" className="dark:fill-[#1E293B]" d="M0,160L80,176C160,192,320,224,480,213.3C640,203,800,149,960,138.7C1120,128,1280,160,1360,176L1440,192L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
+                <path fill="#0f172a" className="dark:fill-[#0B1220]" d="M0,192L80,202.7C160,213,320,235,480,218.7C640,203,800,149,960,144C1120,139,1280,181,1360,202.7L1440,224L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
              </svg>
-             <div className="absolute inset-0 top-[80px] bg-[#0c2340] dark:bg-slate-950"></div>
+             <div className="absolute inset-0 top-[60px] bg-[#0f172a] dark:bg-[#0B1220]"></div>
           </div>
         </div>
 
         {/* =========================================
-            DESKTOP LAYOUT (Hidden on Mobile)
-            Clean Split Screen Layout
+            DESKTOP LAYOUT
         =========================================== */}
         <div className="hidden md:flex flex-row w-full h-screen relative z-10">
-           <div className="flex-[1.2] flex flex-col justify-center items-center p-12 bg-white dark:bg-slate-900 z-20 shadow-[10px_0_40px_rgba(0,0,0,0.08)]">
-              <div className="w-36 h-36 rounded-full border-4 border-slate-100 dark:border-slate-800 shadow-xl mb-6 bg-white p-1 shrink-0">
+           <div className="flex-[1.2] flex flex-col justify-center items-center p-12 bg-white dark:bg-[#111827] z-20 shadow-[10px_0_40px_rgba(0,0,0,0.05)] border-r dark:border-[#1E293B]">
+              <div className="w-32 h-32 rounded-full border-4 border-slate-100 dark:border-[#1E293B] shadow-lg mb-6 bg-white p-1 shrink-0">
                 <img src={appLogo} alt="Logo" className="w-full h-full object-cover rounded-full" />
               </div>
-              <h1 className="text-4xl font-black text-[#0c2340] dark:text-blue-200 mb-4 tracking-wide text-center">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3 tracking-wide text-center">
                 {language === 'km' ? 'សាលារៀនជ័យវរ្ម័នទី៧' : 'Khmer TP'}
               </h1>
-              <p className="text-[#0c2340] dark:text-blue-300 text-sm font-bold flex items-center gap-2 mb-10 opacity-90">
+              <p className="text-slate-600 dark:text-[#94A3B8] text-sm font-bold flex items-center gap-2 mb-10 opacity-90">
                 <span>មូលដ្ឋានសិក្សា</span> • <span>គុណភាព</span> • <span>វិន័យ</span>
               </p>
               <div className="w-full max-w-sm space-y-4">
-                <button onClick={() => setCurrentPage('app')} className="w-full bg-[#0c2340] dark:bg-blue-600 text-white rounded-full py-4 px-3 flex items-center justify-between shadow-lg active:scale-95 transition hover:bg-[#1e3a8a] border border-transparent">
+                <button onClick={() => setCurrentPage('app')} className="w-full bg-slate-900 dark:bg-theme text-white rounded-full p-2 flex items-center justify-between shadow-md active:scale-95 transition hover:opacity-90">
                   <div className="w-12"></div>
-                  <span className="font-black text-lg tracking-wide">{language === 'km' ? 'ចូលប្រើ' : 'Enter App'}</span>
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-1 shadow-sm">
-                      <ArrowRight className="text-[#0c2340] w-6 h-6"/>
+                  <span className="font-bold text-base tracking-wide">{language === 'km' ? 'អនុញ្ញាតឱ្យខ្លួនឯងចូលប្រើប្រាស់' : 'Allow Access'}</span>
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                      <ArrowRight className="text-slate-900 dark:text-theme w-5 h-5"/>
                   </div>
-                </button>
-                <button className="w-full bg-white text-[#0c2340] dark:bg-slate-800 dark:text-blue-300 border-2 border-[#0c2340] dark:border-blue-500 rounded-full py-4 px-6 font-bold text-lg shadow-sm hover:bg-slate-50 transition active:scale-95">
-                  {language === 'km' ? 'មានបញ្ហា?' : 'Need Help?'}
                 </button>
               </div>
            </div>
            <div className="flex-[1.8] relative h-full">
               <img src="back.png" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#0c2340]/10 to-[#0c2340]/40 dark:to-slate-900/80"></div>
+              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-slate-900/10 to-slate-900/40 dark:to-[#0B1220]/80"></div>
            </div>
         </div>
       </div>
@@ -283,12 +286,12 @@ export default function App() {
   // --- MAIN APP PAGE 2 ---
   return (
     <div className={`min-h-screen font-khmer transition-colors duration-300 ${theme === 'dark' ? 'dark' : ''}`}>
-      <div className="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex selection:bg-theme selection:text-white">
+      <div className="bg-[#F8FAFC] dark:bg-[#0B1220] text-slate-800 dark:text-[#FFFFFF] min-h-screen flex selection:bg-theme/30 selection:text-theme">
         
         {toast && (
-          <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-5">
-            <div className={`px-6 py-3 rounded-full shadow-2xl font-bold text-sm flex items-center gap-2 ${toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>
-              {toast.type === 'error' ? <XCircle className="w-5 h-5"/> : <CheckCircle className="w-5 h-5"/>} {toast.msg}
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top-4">
+            <div className={`px-4 py-2.5 rounded-full shadow-lg font-bold text-[12px] flex items-center gap-2 ${toast.type === 'error' ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>
+              {toast.type === 'error' ? <XCircle className="w-4 h-4"/> : <CheckCircle className="w-4 h-4"/>} {toast.msg}
             </div>
           </div>
         )}
@@ -298,13 +301,15 @@ export default function App() {
         <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
           <TopBar theme={theme} toggleTheme={toggleTheme} searchQuery={searchQuery} setSearchQuery={setSearchQuery} notificationsOpen={notificationsOpen} setNotificationsOpen={setNotificationsOpen} notifications={notifications} appLogo={appLogo} setAppLogo={setAppLogo} db={db} appId={appId} showToast={showToast} user={user} setCurrentPage={setCurrentPage} language={language} />
 
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
-            {currentView === 'home' && <HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} language={language} appLogo={appLogo} />}
-            {currentView === 'data' && <DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} language={language} />}
-            {currentView === 'reports' && <ReportsView locations={approvedLocations} usersList={usersList} language={language} />}
-            {currentView === 'chat' && <ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} language={language} />}
-            {currentView === 'account' && <AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} themeColor={themeColor} setThemeColor={setThemeColor} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} language={language} />}
-            {currentView === 'admin' && isAdmin && <AdminDashboard locations={locations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} profile={profile} user={user} setIsAdmin={setIsAdmin} />}
+          <div className="flex-1 overflow-y-auto px-4 py-4 md:p-6 pb-24 md:pb-6">
+            <div className="max-w-5xl mx-auto h-full">
+              {currentView === 'home' && <HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} language={language} appLogo={appLogo} />}
+              {currentView === 'data' && <DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} language={language} />}
+              {currentView === 'reports' && <ReportsView locations={approvedLocations} usersList={usersList} language={language} />}
+              {currentView === 'chat' && <ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} language={language} />}
+              {currentView === 'account' && <AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} themeColor={themeColor} setThemeColor={setThemeColor} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} language={language} />}
+              {currentView === 'admin' && isAdmin && <AdminDashboard locations={locations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} profile={profile} user={user} setIsAdmin={setIsAdmin} />}
+            </div>
           </div>
           
           <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} language={language} />
@@ -331,25 +336,21 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, setAppLogo, se
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: language === 'km' ? 'អ្នកគ្រប់គ្រង' : 'Admin' });
 
   return (
-    <aside className="hidden md:flex flex-col w-72 glass-panel border-r border-slate-200 dark:border-slate-800 z-10">
-      <div className="p-6 flex items-center gap-3">
-        <label className="cursor-pointer relative group shrink-0">
-          <div className="w-10 h-10 bg-slate-200 rounded-xl flex items-center justify-center shadow-lg overflow-hidden p-0.5 border border-slate-300 dark:border-slate-700">
-            <img src={appLogo} alt="Logo" className="w-full h-full object-cover rounded-[10px] group-hover:opacity-50 transition" />
-          </div>
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files[0]) { const r = new FileReader(); r.onload = () => setAppLogo(r.result); r.readAsDataURL(e.target.files[0]); } }} />
-        </label>
+    <aside className="hidden md:flex flex-col w-64 glass-panel z-10 border-r-0 border-r-slate-200 dark:border-r-[#1E293B]">
+      <div className="p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-slate-200 dark:border-[#1E293B]">
+          <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+        </div>
         <div>
-          <h1 className="font-bold text-xl text-theme">Khmer TP</h1>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400">ស្វែងយល់ពីកម្ពុជា</p>
+          <h1 className="font-bold text-lg text-slate-800 dark:text-white">Khmer TP</h1>
         </div>
       </div>
       
-      <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 mb-4 px-3 uppercase tracking-wider">{language === 'km' ? 'ម៉ឺនុយ' : 'Menu'}</div>
+      <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <div className="text-[10px] font-bold text-[#94A3B8] mb-2 px-3 uppercase tracking-wider">{language === 'km' ? 'ម៉ឺនុយ' : 'Menu'}</div>
         {navItems.map(item => (
-          <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${currentView === item.id ? 'bg-theme text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-            <item.icon className={`w-5 h-5 transition-transform duration-300 ${currentView === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
+          <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${currentView === item.id ? 'bg-theme text-white' : 'text-[#94A3B8] hover:bg-slate-100 dark:hover:bg-[#1E293B] hover:text-slate-800 dark:hover:text-white'}`}>
+            <item.icon className={`w-4 h-4 ${currentView === item.id ? '' : 'group-hover:scale-110 transition-transform'}`} />
             <div className="font-medium text-sm">{item.label}</div>
           </button>
         ))}
@@ -369,17 +370,16 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin, language }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0c2340] dark:bg-slate-950 rounded-t-[1.5rem] pb-safe pt-2 px-1 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
-      <div className="flex justify-between items-center px-2">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t-0 border-t-slate-200 dark:border-t-[#1E293B] pb-safe pt-1 px-1 z-50">
+      <div className="flex justify-between items-center px-1">
         {navItems.map(item => (
           <button 
             key={item.id} 
             onClick={() => setCurrentView(item.id)} 
-            className={`flex flex-col items-center justify-center w-[60px] h-14 relative transition-all duration-300 ${currentView === item.id ? 'text-yellow-400' : 'text-blue-200 hover:text-white'}`}
+            className={`flex flex-col items-center justify-center w-full h-[60px] relative transition-colors ${currentView === item.id ? 'text-theme' : 'text-[#94A3B8]'}`}
           >
-            <div className={`absolute top-0 w-8 h-1 bg-yellow-400 rounded-b-md transition-opacity duration-300 ${currentView === item.id ? 'opacity-100' : 'opacity-0'}`}></div>
-            <item.icon className={`w-6 h-6 mb-1 transition-transform duration-300 ${currentView === item.id ? 'scale-110 stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
-            <span className="text-[9px] font-bold whitespace-nowrap">{item.label}</span>
+            <item.icon className={`w-6 h-6 mb-1 ${currentView === item.id ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
+            <span className="text-[10px] font-bold whitespace-nowrap">{item.label}</span>
           </button>
         ))}
       </div>
@@ -389,55 +389,58 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin, language }) => {
 
 const TopBar = ({ theme, toggleTheme, searchQuery, setSearchQuery, notificationsOpen, setNotificationsOpen, notifications, appLogo, setAppLogo, db, appId, showToast, user, setCurrentPage, language }) => {
   return (
-    <header className="px-4 py-3 md:px-8 glass-panel sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
-      <div className="md:hidden flex items-center gap-2 shrink-0">
-        <button onClick={()=>setCurrentPage('gateway')} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 hover:text-theme transition"><ArrowLeft className="w-5 h-5"/></button>
-        <label className="cursor-pointer relative ml-1">
-          <div className="w-9 h-9 bg-slate-200 rounded-full flex items-center justify-center border border-slate-300 dark:border-slate-700 overflow-hidden shadow-sm">
-            <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
-          </div>
-        </label>
+    <header className="px-4 py-2 md:py-3 md:px-8 glass-panel sticky top-0 z-40 flex items-center justify-between gap-3 border-b-0 border-b-slate-200 dark:border-b-[#1E293B]">
+      
+      {/* Mobile Back & Brand */}
+      <div className="md:hidden flex items-center gap-3 shrink-0">
+        <button onClick={()=>setCurrentPage('gateway')} className="text-slate-500 dark:text-[#94A3B8] p-1"><ArrowLeft className="w-5 h-5"/></button>
+        <div className="w-8 h-8 rounded-full flex items-center justify-center border border-slate-200 dark:border-[#1E293B] overflow-hidden bg-white">
+          <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+        </div>
       </div>
 
-      <button onClick={()=>setCurrentPage('gateway')} className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm font-bold text-slate-500 transition shrink-0">
-         <ArrowLeft className="w-4 h-4"/> ត្រឡប់ទៅទំព័រទី១
+      {/* Desktop Back */}
+      <button onClick={()=>setCurrentPage('gateway')} className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-[#1E293B] rounded-lg text-xs font-bold text-slate-600 dark:text-[#94A3B8] hover:bg-slate-200 dark:hover:bg-slate-700 transition shrink-0">
+         <ArrowLeft className="w-4 h-4"/> ត្រឡប់
       </button>
 
-      <div className="w-full order-last md:order-none md:flex-1 md:max-w-xl relative group mt-3 md:mt-0 px-1 md:px-0">
-        <Search className="absolute left-5 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-theme transition-colors" />
+      {/* Search Bar */}
+      <div className="flex-1 w-full max-w-sm relative group">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-[#94A3B8]" />
         <input 
-          type="text" placeholder={language === 'km' ? "ស្វែងរកទីតាំង..." : "Search locations..."} 
+          type="text" placeholder={language === 'km' ? "ស្វែងរកទីតាំង..." : "Search..."} 
           value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 rounded-full py-3 md:py-2.5 pl-12 pr-4 outline-none border border-slate-200 dark:border-slate-700 focus:border-theme/50 focus:ring-2 focus:ring-theme/10 transition-all text-sm md:text-base font-medium shadow-sm"
+          className="w-full secondary-panel text-slate-800 dark:text-white placeholder-[#94A3B8] rounded-full py-2 pl-9 pr-4 outline-none focus:ring-1 focus:ring-theme transition-all text-xs font-medium"
         />
       </div>
 
-      <div className="flex items-center gap-2 relative shrink-0">
-        <button onClick={toggleTheme} className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400">
-          {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+      {/* Action Icons */}
+      <div className="flex items-center gap-3 shrink-0">
+        <button onClick={toggleTheme} className="text-[#94A3B8] hover:text-slate-800 dark:hover:text-white transition-colors">
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
         
         <div className="relative">
-          <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400 relative">
-            <Bell className="w-6 h-6" />
-            {notifications.length > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>}
+          <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="text-[#94A3B8] hover:text-slate-800 dark:hover:text-white transition-colors relative mt-1">
+            <Bell className="w-5 h-5" />
+            {notifications.length > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-[#111827]"></span>}
           </button>
           
           {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 glass-panel soft-shadow rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
-              <div className="p-4 border-b border-slate-100 dark:border-slate-700 font-bold flex justify-between bg-slate-50 dark:bg-slate-800/50">
-                <span>ការជូនដំណឹង</span><button onClick={() => setNotificationsOpen(false)}><XCircle className="w-5 h-5 text-slate-400" /></button>
+            <div className="absolute right-0 mt-3 w-72 glass-panel soft-shadow rounded-2xl overflow-hidden z-50">
+              <div className="p-3 border-b border-slate-100 dark:border-[#1E293B] font-bold text-xs flex justify-between items-center bg-slate-50 dark:bg-[#111827]">
+                <span>ការជូនដំណឹង</span><button onClick={() => setNotificationsOpen(false)}><XCircle className="w-4 h-4 text-[#94A3B8]" /></button>
               </div>
-              <div className="max-h-64 overflow-y-auto">
-                {notifications.length === 0 ? <p className="p-6 text-center text-sm font-medium text-slate-500">គ្មានសារថ្មីទេ</p> : 
+              <div className="max-h-60 overflow-y-auto bg-white dark:bg-[#111827]">
+                {notifications.length === 0 ? <p className="p-4 text-center text-xs font-medium text-[#94A3B8]">គ្មានសារថ្មីទេ</p> : 
                   notifications.map(n => (
-                    <div key={n.id} className="p-4 border-b border-slate-50 dark:border-slate-800/50 flex justify-between items-start gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-lg">{n.type === 'success' ? '✅' : n.type === 'error' ? '❌' : '⏳'}</div>
+                    <div key={n.id} className="p-3 border-b border-slate-50 dark:border-[#1E293B] flex justify-between items-start gap-2">
+                      <div className="mt-0.5">{n.type === 'success' ? '✅' : n.type === 'error' ? '❌' : '⏳'}</div>
                       <div className="flex-1">
-                        <p className={`text-sm font-bold ${n.type === 'error' ? 'text-red-500' : 'text-theme'}`}>{n.title}</p>
-                        <p className="text-[11px] text-slate-500 mt-1 font-medium">{n.msg}</p>
+                        <p className={`text-[11px] font-bold ${n.type === 'error' ? 'text-red-500' : 'text-theme'}`}>{n.title}</p>
+                        <p className="text-[10px] text-[#94A3B8] mt-0.5 font-medium line-clamp-2">{n.msg}</p>
                       </div>
-                      <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'notifications', n.id)); }} className="text-slate-400 hover:text-red-500 shrink-0"><XCircle className="w-4 h-4"/></button>
+                      <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'notifications', n.id)); }} className="text-[#94A3B8] hover:text-red-500 shrink-0"><XCircle className="w-3.5 h-3.5"/></button>
                     </div>
                   ))
                 }
@@ -455,42 +458,34 @@ const HomeView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
   const filtered = locations.filter(l => l.title?.toLowerCase().includes(searchQuery.toLowerCase()) || l.desc?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       
-      {/* Horizontal Banner (Matches 5a73...jpg) */}
-      <div className="relative rounded-[1.5rem] md:rounded-[2rem] overflow-hidden h-[160px] md:h-[300px] soft-shadow group bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 flex shadow-sm">
-        
-        <div className="w-[55%] md:w-[45%] bg-gradient-to-br from-blue-50 to-blue-100/90 dark:from-slate-800 dark:to-slate-900 p-4 md:p-10 flex flex-col justify-center relative z-10">
-          <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-white shadow-md p-1 mb-2 md:mb-4 border border-blue-100 dark:border-slate-700">
-             <img src={appLogo} alt="Logo" className="w-full h-full object-cover rounded-full" />
-          </div>
-          <h1 className="text-[#0c2340] dark:text-blue-200 text-sm md:text-3xl font-black mb-1 md:mb-2 leading-tight drop-shadow-sm">
+      {/* Banner */}
+      <div className="glass-panel p-4 md:p-6 rounded-2xl flex flex-row items-center gap-4 soft-shadow">
+        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-slate-200 dark:border-[#1E293B] overflow-hidden shrink-0">
+           <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+        </div>
+        <div className="flex-1">
+          <h1 className="text-lg md:text-2xl font-black text-slate-800 dark:text-white mb-1 leading-tight">
              {language === 'km' ? 'សាលារៀនជ័យវរ្ម័នទី៧' : 'Khmer TP'}
           </h1>
-          <p className="text-[#0c2340]/80 dark:text-blue-300 text-[8px] md:text-sm font-bold flex items-center gap-1 md:gap-2">
-            <span>មូលដ្ឋានសិក្សា</span> • <span>គុណភាព</span> • <span>វិន័យ</span>
+          <p className="text-[10px] md:text-xs text-[#94A3B8] font-bold">
+            មូលដ្ឋានសិក្សា • គុណភាព • វិន័យ
           </p>
-        </div>
-
-        <div className="absolute top-0 right-0 w-[55%] md:w-[65%] h-full z-0 overflow-hidden">
-          <div className="absolute -left-6 md:-left-10 top-0 h-[120%] w-12 md:w-20 bg-gradient-to-r from-yellow-400 to-yellow-200 transform -skew-x-12 z-20 shadow-[-5px_0_20px_rgba(0,0,0,0.15)] origin-top"></div>
-          <div className="absolute -left-4 md:-left-8 top-0 h-[120%] w-12 md:w-20 bg-blue-100 dark:bg-slate-800 transform -skew-x-12 z-10 origin-top"></div>
-          
-          <img src="back.png" alt="Hero" className="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-700" />
         </div>
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-4 md:mb-6">
-          <h2 className="text-base md:text-xl font-bold flex items-center gap-2 border-l-4 border-theme pl-3">
+        <div className="flex items-center justify-between mb-3 border-l-4 border-theme pl-2">
+          <h2 className="text-sm md:text-base font-bold text-slate-800 dark:text-white">
              ទីតាំងសំខាន់ៗដែលបានដាក់បញ្ចូល
           </h2>
         </div>
 
         {filtered.length === 0 ? (
-           <div className="text-center py-10 md:py-12 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 font-bold text-sm">គ្មានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកទេ</div>
+           <div className="text-center py-8 text-[#94A3B8] glass-panel rounded-2xl font-bold text-xs">គ្មានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកទេ</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
             {filtered.map((loc, i) => (
               <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} index={i} isAdmin={false} />
             ))}
@@ -544,7 +539,7 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'data_admin'), { ...submitData, status: isAdmin ? 'approved' : 'pending', likes: 0 });
       if (isAdmin) showToast('ទិន្នន័យត្រូវបានបញ្ចូលដោយជោគជ័យ ✅');
       else {
-        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'notifications'), { title: 'សំណើថ្មីបានបញ្ជូន', msg: `រាល់សំណើររបស់អ្នកនឹងត្រូវឆ្លងកាត់ការត្រួតពិនិត្យពីផ្នែករដ្ឋបាលសិន ដើម្បីបញ្ជាក់ថាទិន្នន័យពិតប្រាកដ ឬក្លែងក្លាយ។ សូមរង់ចាំ! ⏳`, type: 'info', timestamp: Date.now() });
+        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'notifications'), { title: 'សំណើថ្មីបានបញ្ជូន', msg: `រាល់សំណើររបស់អ្នកនឹងត្រូវឆ្លងកាត់ការត្រួតពិនិត្យ។ សូមរង់ចាំ! ⏳`, type: 'info', timestamp: Date.now() });
         showToast('បានផ្ញើរសំណើរ (Admin) ⏳');
       }
       setIsAddModalOpen(false);
@@ -554,39 +549,36 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
 
   if (!profile.username && !isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in zoom-in duration-300 py-20">
-         <div className="w-24 h-24 bg-theme/10 text-theme rounded-full flex items-center justify-center mb-6 shadow-inner"><User className="w-12 h-12" /></div>
-         <h2 className="text-2xl font-bold mb-3">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 mb-8 max-w-md">សូមចូលទៅកាន់គណនី (Account) ដើម្បីកំណត់ឈ្មោះរបស់អ្នកជាមុនសិន ទើបអ្នកអាចចូលប្រើប្រាស់មុខងារទិន្នន័យនេះបាន។</p>
-         <button onClick={() => setCurrentView('account')} className="bg-theme hover:opacity-90 text-white px-8 py-3.5 rounded-xl font-bold shadow-md transition-transform active:scale-95 flex items-center gap-2">
-            <User className="w-5 h-5"/> ទៅកំណត់ឈ្មោះឥឡូវនេះ
+      <div className="flex flex-col items-center justify-center h-[70vh] text-center px-4 animate-in fade-in">
+         <div className="w-16 h-16 bg-theme/10 text-theme rounded-full flex items-center justify-center mb-4"><User className="w-8 h-8" /></div>
+         <h2 className="text-lg font-bold mb-2 text-slate-800 dark:text-white">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
+         <p className="text-[#94A3B8] mb-6 text-xs font-medium max-w-[260px]">ចូលទៅកំណត់ឈ្មោះក្នុងគណនី (Account) ទើបអាចប្រើប្រាស់មុខងារនេះបាន។</p>
+         <button onClick={() => setCurrentView('account')} className="bg-theme text-white px-6 py-2.5 rounded-full font-bold text-xs shadow-md">
+            ទៅកំណត់ឈ្មោះឥឡូវនេះ
          </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full">
-             <h1 className="text-2xl font-bold flex items-center gap-2">ទិន្នន័យ</h1>
-             <div className="flex bg-slate-200/50 dark:bg-slate-800 p-1 rounded-xl w-full sm:w-auto">
-                {['រតនមណ្ឌល', 'ស្រុកផ្សេងៗ'].map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white dark:bg-slate-700 text-theme shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{tab}</button>
-                ))}
-             </div>
+    <div className="space-y-4 animate-in fade-in duration-300">
+      <div className="flex items-center justify-between">
+         <div className="flex secondary-panel p-1 rounded-lg w-[70%] sm:w-auto">
+            {['រតនមណ្ឌល', 'ស្រុកផ្សេងៗ'].map(tab => (
+                <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 sm:flex-none px-3 py-1.5 rounded text-[11px] font-bold transition-all whitespace-nowrap ${activeTab === tab ? 'glass-panel text-theme shadow-sm border-transparent dark:border-transparent' : 'text-[#94A3B8]'}`}>{tab}</button>
+            ))}
          </div>
-         <button onClick={handleOpenAdd} className="w-full md:w-auto bg-theme text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm whitespace-nowrap"><Plus className="w-5 h-5"/> បន្ថែមទីតាំង</button>
+         <button onClick={handleOpenAdd} className="bg-theme text-white p-2 rounded-lg font-bold flex items-center justify-center shadow-sm shrink-0"><Plus className="w-4 h-4"/></button>
       </div>
 
-      <div className="flex items-center gap-2 p-1 overflow-x-auto hide-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
         {['ទាំងអស់', 'ស្រុក', 'ឃុំ', 'ភូមិ'].map(cat => (
-          <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${activeFilter === cat ? 'bg-theme text-white' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'}`}>{cat}</button>
+          <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all whitespace-nowrap ${activeFilter === cat ? 'bg-theme text-white' : 'secondary-panel text-[#94A3B8]'}`}>{cat}</button>
         ))}
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.length === 0 ? <p className="col-span-full text-center text-slate-500 py-10 font-bold">គ្មានទិន្នន័យ</p> : 
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {filtered.length === 0 ? <p className="col-span-full text-center text-[#94A3B8] py-8 font-bold text-xs">គ្មានទិន្នន័យ</p> : 
           filtered.map((loc, i) => (
              <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} index={i} isAdmin={false} />
           ))
@@ -594,103 +586,91 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
       </div>
 
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
-          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden soft-shadow max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700">
-            <div className="p-4 md:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-              <h2 className="text-base md:text-lg font-bold text-theme">បន្ថែមទិន្នន័យក្នុង {activeTab}</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-red-100 hover:text-red-500 rounded-full"><XCircle className="w-5 h-5"/></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in">
+          <div className="absolute inset-0 bg-[#0B1220]/80 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
+          <div className="relative w-full max-w-sm glass-panel rounded-2xl overflow-hidden soft-shadow max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 dark:border-[#1E293B] flex justify-between items-center secondary-panel">
+              <h2 className="text-sm font-bold text-theme">បន្ថែមទិន្នន័យ</h2>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-[#94A3B8] hover:text-red-500"><XCircle className="w-4 h-4"/></button>
             </div>
             
-            <div className="p-4 md:p-6 overflow-y-auto flex-1">
-              <form id="addForm" onSubmit={handleAddSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 overflow-y-auto flex-1 bg-white dark:bg-[#111827]">
+              <form id="addForm" onSubmit={handleAddSubmit} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">ប្រភេទ</label>
-                    <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold">
+                    <label className="text-[10px] font-bold text-[#94A3B8] block mb-1">ប្រភេទ</label>
+                    <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full secondary-panel rounded-lg p-2 text-xs outline-none focus:ring-1 focus:ring-theme font-medium text-slate-800 dark:text-white">
                       <option value="សាលារៀន">សាលារៀន</option><option value="មន្ទីរពេទ្យ">មន្ទីរពេទ្យ</option><option value="ប៉ុស្តិ៍ប៉ូលិស">ប៉ុស្តិ៍ប៉ូលិស</option>
                       <option value="មេភូមិ">មេភូមិ</option><option value="មេឃុំ">មេឃុំ</option><option value="ផ្សេងៗ">ផ្សេងៗ</option>
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">ឈ្មោះ (Name)</label>
-                    <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold" />
+                    <label className="text-[10px] font-bold text-[#94A3B8] block mb-1">ឈ្មោះ (Name)</label>
+                    <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full secondary-panel rounded-lg p-2 text-xs outline-none focus:ring-1 focus:ring-theme font-medium text-slate-800 dark:text-white" />
                   </div>
                 </div>
 
                 <div>
-                    <label className="text-xs font-bold text-slate-500 block mb-1">ឈ្មោះស្ថាប័ន</label>
-                    <input type="text" required value={form.institution} onChange={e=>setForm({...form, institution: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold" />
+                    <label className="text-[10px] font-bold text-[#94A3B8] block mb-1">ឈ្មោះស្ថាប័ន</label>
+                    <input type="text" required value={form.institution} onChange={e=>setForm({...form, institution: e.target.value})} className="w-full secondary-panel rounded-lg p-2 text-xs outline-none focus:ring-1 focus:ring-theme font-medium text-slate-800 dark:text-white" />
                 </div>
 
                 {activeTab === 'រតនមណ្ឌល' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-2 gap-3 p-3 secondary-panel rounded-lg">
                         <div>
-                            <label className="text-xs font-bold text-slate-500 block mb-1">ឃុំ</label>
-                            <select required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value, village: ''})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold">
+                            <label className="text-[10px] font-bold text-[#94A3B8] block mb-1">ឃុំ</label>
+                            <select required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value, village: ''})} className="w-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded p-1.5 text-[10px] outline-none font-medium">
                                 <option value="">ជ្រើសរើស</option>
                                 {Object.keys(REGIONS["រតនមណ្ឌល"] || {}).map(c=><option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500 block mb-1">ភូមិ</label>
-                            <select required disabled={!form.commune} value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold">
+                            <label className="text-[10px] font-bold text-[#94A3B8] block mb-1">ភូមិ</label>
+                            <select required disabled={!form.commune} value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded p-1.5 text-[10px] outline-none font-medium">
                                 <option value="">ជ្រើសរើស</option>
                                 {form.commune && REGIONS["រតនមណ្ឌល"][form.commune] && REGIONS["រតនមណ្ឌល"][form.commune].map(v=><option key={v} value={v}>{v}</option>)}
                             </select>
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-2 gap-3 p-3 secondary-panel rounded-lg">
                         <div>
-                            <label className="text-xs font-bold text-slate-500 block mb-1">ខេត្ត</label>
-                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold" placeholder="វាយបញ្ចូល..."/>
+                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded p-1.5 text-[10px] outline-none font-medium" placeholder="ខេត្ត"/>
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-slate-500 block mb-1">ស្រុក/ខណ្ឌ</label>
-                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold" placeholder="វាយបញ្ចូល..."/>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 block mb-1">ឃុំ (ជម្រើស)</label>
-                            <input type="text" value={form.commune} onChange={e=>setForm({...form, commune: e.target.value})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold" placeholder="វាយបញ្ចូល..."/>
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 block mb-1">ភូមិ (ជម្រើស)</label>
-                            <input type="text" value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold" placeholder="វាយបញ្ចូល..."/>
+                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-[#334155] rounded p-1.5 text-[10px] outline-none font-medium" placeholder="ស្រុក/ខណ្ឌ"/>
                         </div>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div><input type="tel" value={form.phone} onChange={e=>setForm({...form, phone: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold" placeholder="លេខទូរស័ព្ទ..." /></div>
-                  <div><input type="url" value={form.mapUrl} onChange={e=>setForm({...form, mapUrl: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold" placeholder="Google Map Link..." /></div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="tel" value={form.phone} onChange={e=>setForm({...form, phone: e.target.value})} className="w-full secondary-panel rounded-lg p-2 text-xs outline-none focus:ring-1 focus:ring-theme font-medium text-slate-800 dark:text-white" placeholder="លេខទូរស័ព្ទ..." />
+                  <input type="url" value={form.mapUrl} onChange={e=>setForm({...form, mapUrl: e.target.value})} className="w-full secondary-panel rounded-lg p-2 text-xs outline-none focus:ring-1 focus:ring-theme font-medium text-slate-800 dark:text-white" placeholder="Google Map..." />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-slate-500 block mb-2">រូបភាព (Upload Picture) *</label>
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 relative overflow-hidden transition-colors">
+                  <label className="text-[10px] font-bold text-[#94A3B8] block mb-1">រូបភាព *</label>
+                  <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-slate-300 dark:border-[#334155] rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-[#1E293B] relative overflow-hidden">
                      {form.image ? (
                         <>
                            <img src={form.image} alt="Preview" className="w-full h-full object-cover" />
-                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"><span className="text-white font-bold bg-black/50 px-4 py-2 rounded-full text-xs">ប្តូររូបភាព</span></div>
+                           <div className="absolute inset-0 bg-[#0B1220]/60 flex items-center justify-center opacity-0 hover:opacity-100"><span className="text-white font-bold text-[10px]">ប្តូររូបភាព</span></div>
                         </>
                      ) : (
-                        <div className="flex flex-col items-center justify-center text-slate-500">
-                           <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
-                           <span className="text-sm font-bold">ចុចដើម្បី Upload</span>
+                        <div className="flex flex-col items-center justify-center text-[#94A3B8]">
+                           <ImageIcon className="w-5 h-5 mb-1" />
+                           <span className="text-[10px] font-bold">Upload</span>
                         </div>
                      )}
                      <input type="file" accept="image/*" required className="hidden" onChange={e=>{ if(e.target.files[0]){ const r=new FileReader(); r.onload=()=>setForm({...form, image: r.result}); r.readAsDataURL(e.target.files[0]); } }} />
                   </label>
                 </div>
-
-                <textarea value={form.desc} onChange={e=>setForm({...form, desc: e.target.value})} placeholder="ការពណ៌នា..." className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme h-20 resize-none font-bold"></textarea>
               </form>
             </div>
 
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
-               <button onClick={() => setIsAddModalOpen(false)} className="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition">បោះបង់</button>
-               <button type="submit" form="addForm" disabled={loading} className="px-5 py-2.5 rounded-xl font-bold bg-theme text-white hover:opacity-90 disabled:opacity-50 transition shadow-md">ផ្ញើរសំណើរ (Admin)</button>
+            <div className="p-3 border-t border-slate-100 dark:border-[#1E293B] secondary-panel flex justify-end gap-2">
+               <button onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 rounded-lg font-bold text-[#94A3B8] text-xs">បោះបង់</button>
+               <button type="submit" form="addForm" disabled={loading} className="px-4 py-2 rounded-lg font-bold bg-theme text-white text-xs">បញ្ជូន</button>
             </div>
           </div>
         </div>
@@ -701,9 +681,6 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
 
 // --- View: Reports ---
 const ReportsView = ({ locations, usersList, language }) => {
-  const [footerText, setFooterText] = useState('រក្សាសិទ្ធិដោយយុវជន VMC វិ.ស.ស @');
-  const [editFooter, setEditFooter] = useState(false);
-
   const now = Date.now();
   const dayAgo = now - 86400000;
   const weekAgo = now - 604800000;
@@ -723,32 +700,32 @@ const ReportsView = ({ locations, usersList, language }) => {
   ];
 
   const cats = locations.reduce((acc, l) => { acc[l.category] = (acc[l.category]||0)+1; return acc; }, {});
-  const chartColors = ['bg-[#10b981]', 'bg-[#3b82f6]', 'bg-[#6366f1]', 'bg-[#f43f5e]', 'bg-[#f59e0b]', 'bg-[#8b5cf6]', 'bg-[#06b6d4]'];
+  const chartColors = ['bg-[#6366f1]', 'bg-[#10b981]', 'bg-[#f59e0b]', 'bg-[#f43f5e]', 'bg-[#8b5cf6]', 'bg-[#06b6d4]'];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><PieChart className="w-5 h-5 md:w-6 md:h-6 text-theme" /> {language === 'km' ? 'របាយការណ៍' : 'Reports'}</h1>
+    <div className="space-y-4 animate-in fade-in duration-300">
+      <h1 className="text-lg font-bold flex items-center gap-2"><PieChart className="w-5 h-5 text-theme" /> {language === 'km' ? 'របាយការណ៍' : 'Reports'}</h1>
       
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-3">
          {stats.map((s, i) => (
-           <div key={i} className="glass-panel p-4 md:p-5 rounded-2xl soft-shadow border border-slate-200 dark:border-slate-800 text-center">
-              <p className="text-[10px] md:text-[11px] font-bold text-slate-500 mb-1">{s.label}</p>
-              <h3 className={`text-2xl md:text-3xl font-black ${s.color}`}>{s.count}</h3>
+           <div key={i} className="glass-panel p-3 rounded-2xl text-center">
+              <p className="text-[10px] font-bold text-[#94A3B8] mb-1">{s.label}</p>
+              <h3 className={`text-xl font-black ${s.color}`}>{s.count}</h3>
            </div>
          ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-4">
-        <div className="glass-panel p-5 md:p-6 rounded-2xl md:rounded-3xl soft-shadow border border-slate-200 dark:border-slate-800">
-           <h3 className="text-sm font-bold mb-4">ស្ថិតិទីតាំង (រង្វង់ភាគរយ)</h3>
-           <div className="space-y-4">
-             {Object.keys(cats).length === 0 ? <p className="text-xs font-bold text-slate-500">គ្មានទិន្នន័យ (0%)</p> : Object.entries(cats).map(([name, count], i) => {
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="glass-panel p-4 rounded-2xl">
+           <h3 className="text-xs font-bold mb-3 text-slate-800 dark:text-white">ស្ថិតិទីតាំង (រង្វង់ភាគរយ)</h3>
+           <div className="space-y-3">
+             {Object.keys(cats).length === 0 ? <p className="text-[10px] font-bold text-[#94A3B8]">គ្មានទិន្នន័យ (0%)</p> : Object.entries(cats).map(([name, count], i) => {
                const pct = totalUsers > 0 ? Math.round((count/Math.max(locations.length, 1))*100) : 0;
                return (
                  <div key={name}>
                    <div className="flex justify-between text-[10px] font-bold mb-1"><span>{name}</span><span>{pct}%</span></div>
-                   <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                     <div className={`h-full ${chartColors[i%7]} rounded-full`} style={{width:`${pct}%`}}></div>
+                   <div className="w-full h-1.5 bg-slate-100 dark:bg-[#1E293B] rounded-full overflow-hidden">
+                     <div className={`h-full ${chartColors[i%6]} rounded-full`} style={{width:`${pct}%`}}></div>
                    </div>
                  </div>
                )
@@ -756,46 +733,23 @@ const ReportsView = ({ locations, usersList, language }) => {
            </div>
         </div>
 
-        <div className="glass-panel p-5 md:p-6 rounded-2xl md:rounded-3xl soft-shadow border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-           <h3 className="text-sm font-bold mb-4">ស្ថិតិសកម្មភាពអ្នកប្រើប្រាស់ (Line & Bar)</h3>
-           <div className="flex-1 flex items-end gap-4 h-32 border-b border-l border-slate-200 dark:border-slate-700 pl-2 pb-2 relative mt-4">
+        <div className="glass-panel p-4 rounded-2xl flex flex-col justify-between">
+           <h3 className="text-xs font-bold mb-3 text-slate-800 dark:text-white">ស្ថិតិសកម្មភាពអ្នកប្រើប្រាស់</h3>
+           <div className="flex-1 flex items-end gap-3 h-24 border-b border-l border-slate-200 dark:border-[#1E293B] pl-2 pb-2 relative mt-2 w-full">
                {[
                    {label: 'សប្តាហ៍', pct: totalUsers ? Math.round((weeklyUsers/totalUsers)*100) : 0},
                    {label: 'ខែ', pct: totalUsers ? Math.round((monthlyUsers/totalUsers)*100) : 0},
                    {label: 'ឆ្នាំ', pct: totalUsers ? Math.round((yearlyUsers/totalUsers)*100) : 0}
                ].map((d, i) => (
-                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                       <div className="w-full max-w-[30px] bg-theme/80 rounded-t-sm relative transition-all" style={{height: `${Math.max(d.pct, 5)}%`}}>
-                           <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold">{d.pct}%</div>
+                   <div key={i} className="flex-1 flex flex-col items-center gap-1 w-full">
+                       <div className="w-full max-w-[20px] bg-theme/80 rounded-t-[4px] relative" style={{height: `${Math.max(d.pct, 5)}%`}}>
+                           <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-bold">{d.pct}%</div>
                        </div>
-                       <span className="text-[10px] text-slate-500 mt-1">{d.label}</span>
+                       <span className="text-[9px] text-[#94A3B8]">{d.label}</span>
                    </div>
                ))}
            </div>
         </div>
-      </div>
-      
-      <div className="glass-panel p-6 rounded-3xl soft-shadow border border-slate-200 dark:border-slate-800">
-           <h3 className="text-sm font-bold mb-4">ទិន្នន័យទើបបញ្ចូលថ្មី</h3>
-           <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-             {locations.slice(-5).reverse().map(l => (
-               <div key={l.id} className="flex justify-between items-center p-3 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                  <span className="font-bold text-xs truncate">{l.title}</span>
-                  <span className="text-[10px] text-slate-500 font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{new Date(l.timestamp||Date.now()).toLocaleString('km-KH')}</span>
-               </div>
-             ))}
-           </div>
-      </div>
-
-      <div className="pt-4 flex justify-center pb-6">
-        {editFooter ? (
-          <div className="flex gap-2">
-            <input type="text" value={footerText} onChange={e=>setFooterText(e.target.value)} className="bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 outline-none w-48" />
-            <button onClick={()=>setEditFooter(false)} className="bg-theme text-white px-3 py-1.5 rounded-lg text-xs font-bold">Save</button>
-          </div>
-        ) : (
-          <p onClick={()=>setEditFooter(true)} className="text-[10px] text-slate-400 font-bold cursor-pointer hover:text-theme transition">© {footerText}</p>
-        )}
       </div>
     </div>
   );
@@ -810,12 +764,11 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
 
   useEffect(() => { 
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
-      if(chats.length > 0 && chats[chats.length-1].userId !== user?.uid) playPingSound();
   }, [chats]);
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!profile.username) { showToast('សូមបង្កើតឈ្មោះក្នុងគណនីសិន', 'error'); setCurrentView('account'); return; }
+    if (!profile.username) { showToast('សូមបង្កើតឈ្មោះសិន', 'error'); return; }
     if (!msgText.trim()) return;
     
     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'chats'), {
@@ -831,43 +784,43 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
 
   if (!profile.username) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in py-20">
-         <div className="w-24 h-24 bg-theme/10 text-theme rounded-full flex items-center justify-center mb-6 shadow-inner"><MessageCircle className="w-12 h-12" /></div>
-         <h2 className="text-2xl font-bold mb-3">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 mb-8 max-w-md font-bold">សូមបង្កើតឈ្មោះរបស់អ្នកជាមុនសិន ទើបអាចចូលទៅកាន់ប្រព័ន្ធផ្ញើសារបាន។</p>
-         <button onClick={() => setCurrentView('account')} className="bg-theme hover:opacity-90 text-white px-8 py-3.5 rounded-xl font-bold">ទៅកំណត់ឈ្មោះឥឡូវនេះ</button>
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4 animate-in fade-in">
+         <div className="w-16 h-16 bg-theme/10 text-theme rounded-full flex items-center justify-center mb-4"><MessageCircle className="w-8 h-8" /></div>
+         <h2 className="text-lg font-bold mb-2">តម្រូវឲ្យមានឈ្មោះ</h2>
+         <p className="text-[#94A3B8] mb-6 text-xs font-medium max-w-[240px]">សូមបង្កើតឈ្មោះរបស់អ្នកជាមុនសិន ទើបអាចចូលទៅកាន់ប្រព័ន្ធផ្ញើសារបាន។</p>
+         <button onClick={() => setCurrentView('account')} className="bg-theme text-white px-6 py-2.5 rounded-full font-bold text-xs shadow-sm">ទៅកំណត់ឈ្មោះ</button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] glass-panel rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden soft-shadow">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-theme text-white flex items-center justify-center font-bold shrink-0">TP</div>
+    <div className="flex flex-col h-[calc(100vh-130px)] glass-panel rounded-2xl overflow-hidden soft-shadow">
+      <div className="p-3 border-b border-slate-100 dark:border-[#1E293B] secondary-panel flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-theme text-white flex items-center justify-center font-bold text-xs shrink-0">TP</div>
             <div>
-                <h2 className="font-bold text-sm">Chat TP</h2>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> User ↔ {activeTarget}
+                <h2 className="font-bold text-xs">Chat TP</h2>
+                <div className="flex items-center gap-1 text-[9px] text-[#94A3B8] font-bold">
+                    User ↔ {activeTarget}
                 </div>
             </div>
         </div>
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar">
             {targets.map(t => (
-                <button key={t} onClick={() => setActiveTarget(t)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activeTarget === t ? 'bg-theme text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}`}>{t}</button>
+                <button key={t} onClick={() => setActiveTarget(t)} className={`px-3 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${activeTarget === t ? 'bg-theme text-white' : 'glass-panel text-[#94A3B8] border-transparent'}`}>{t}</button>
             ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/20">
-        {filteredChats.length === 0 ? <p className="text-center text-slate-400 py-10 font-bold">មិនទាន់មានសារទេ</p> : 
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-white dark:bg-[#0B1220]/30">
+        {filteredChats.length === 0 ? <p className="text-center text-[#94A3B8] py-8 font-bold text-[11px]">មិនទាន់មានសារទេ</p> : 
           filteredChats.map(msg => {
             const isMe = msg.userId === user?.uid;
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`flex max-w-[80%] flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                  {!isMe && <span className="text-[10px] font-bold text-slate-500 ml-2">{msg.userName}</span>}
-                  <div className={`px-4 py-2.5 rounded-2xl text-sm font-bold ${isMe ? 'bg-theme text-white rounded-br-sm' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-sm border border-slate-100 dark:border-slate-700'}`}>
+                <div className={`flex max-w-[80%] flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
+                  {!isMe && <span className="text-[9px] font-bold text-[#94A3B8] ml-2">{msg.userName}</span>}
+                  <div className={`px-3 py-2 rounded-xl text-xs font-medium ${isMe ? 'bg-theme text-white rounded-br-sm' : 'secondary-panel text-slate-800 dark:text-white rounded-bl-sm'}`}>
                     <p>{msg.text}</p>
                   </div>
                 </div>
@@ -878,10 +831,10 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800">
+      <div className="p-2 secondary-panel border-t border-slate-100 dark:border-[#1E293B]">
         <form onSubmit={handleSend} className="flex items-center gap-2">
-          <input type="text" value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="វាយសាររបស់អ្នក..." className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2.5 md:py-3 px-4 md:px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-theme" />
-          <button type="submit" disabled={!msgText.trim()} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-theme text-white flex items-center justify-center disabled:opacity-50 shrink-0"><Send className="w-4 h-4 md:w-5 md:h-5 ml-1" /></button>
+          <input type="text" value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="សរសេរសារ..." className="flex-1 h-10 glass-panel border-transparent rounded-full px-4 text-xs font-medium outline-none focus:ring-1 focus:ring-theme" />
+          <button type="submit" disabled={!msgText.trim()} className="w-10 h-10 rounded-full bg-theme text-white flex items-center justify-center disabled:opacity-50 shrink-0"><Send className="w-4 h-4 ml-0.5" /></button>
         </form>
       </div>
     </div>
@@ -889,12 +842,12 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
 };
 
 // --- View: Account ---
-const AccountView = ({ user, profile, db, appId, showToast, themeColor, setThemeColor, theme, setTheme, setCurrentPage, language, setLanguage, setIsAdmin }) => {
+const AccountView = ({ user, profile, db, appId, showToast, themeColor, setThemeColor, theme, setTheme, setCurrentPage, setIsAdmin }) => {
   const [pwd, setPwd] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [localName, setLocalName] = useState(profile.username || '');
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const tColors = ['#4f46e5', '#10b981', '#3b82f6', '#f43f5e', '#f59e0b', '#8b5cf6', '#06b6d4'];
+  const tColors = ['#6366F1', '#10b981', '#3b82f6', '#f43f5e', '#f59e0b', '#8b5cf6', '#06b6d4'];
 
   const handleAdminLogin = async () => {
     if (pwd === ADMIN_PASSWORD) {
@@ -904,75 +857,76 @@ const AccountView = ({ user, profile, db, appId, showToast, themeColor, setTheme
     } else {
       showToast('លេខសម្ងាត់ខុស', 'error');
       const info = getDeviceInfo();
-      let ipAddr = 'Unknown';
-      try { const res = await fetch('https://api.ipify.org?format=json'); const data = await res.json(); ipAddr = data.ip; } catch(e) {}
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'cyber_logs'), {
-         username: profile.username || 'Anonymous', ...info, ip: ipAddr, timestamp: Date.now()
+         username: profile.username || 'Anonymous', ...info, ip: 'Hidden', timestamp: Date.now()
       });
       setPwd('');
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
-      <div className="glass-panel p-6 rounded-[2rem] flex flex-col items-center soft-shadow border border-slate-200 dark:border-slate-800">
-        <h1 className="text-xl font-bold mb-4 w-full text-left">គណនី</h1>
-        <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-800 mb-4 overflow-hidden border-2 border-theme relative group">
+    <div className="max-w-sm mx-auto space-y-4 animate-in fade-in duration-300">
+      
+      {/* Profile Card */}
+      <div className="glass-panel p-5 rounded-2xl flex flex-col items-center text-center">
+        <div className="w-[80px] h-[80px] rounded-full secondary-panel mb-3 overflow-hidden border-2 border-theme relative group">
              <img src={profile.avatar} className="w-full h-full object-cover" alt="av"/>
-             <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition">
+             <label className="absolute inset-0 bg-[#0B1220]/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">
                 <Edit3 className="w-5 h-5 text-white" />
                 <input type="file" accept="image/*" onChange={e=>{ if(e.target.files[0]){ const r=new FileReader(); r.onload=()=>updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid),{avatar:r.result}); r.readAsDataURL(e.target.files[0]); } }} className="hidden"/>
              </label>
         </div>
-        <div className="w-full space-y-2">
-           <label className="text-xs font-bold text-slate-500">ឈ្មោះ</label>
+        <div className="w-full space-y-1.5">
+           <label className="text-[10px] font-bold text-[#94A3B8] text-left block">ឈ្មោះ (Name)</label>
            <div className="flex gap-2">
-               <input type="text" value={localName} onChange={e => setLocalName(e.target.value)} className="flex-1 bg-slate-100 dark:bg-slate-800 border-none px-4 py-2.5 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-theme" />
-               <button onClick={()=>updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid),{username: localName})} className="bg-theme text-white px-4 py-2.5 rounded-xl text-sm font-bold">Save</button>
+               <input type="text" value={localName} onChange={e => setLocalName(e.target.value)} className="flex-1 h-10 secondary-panel border-none px-3 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-theme" />
+               <button onClick={()=>updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid),{username: localName})} className="h-10 bg-theme text-white px-4 rounded-lg text-xs font-bold shadow-sm">Save</button>
            </div>
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-[2rem] soft-shadow border border-slate-200 dark:border-slate-800 space-y-3">
-         <h2 className="text-lg font-bold mb-3 flex items-center gap-2"><Settings className="w-4 h-4"/> ការកំណត់</h2>
+      {/* Settings Section */}
+      <div className="glass-panel p-2 rounded-2xl space-y-1">
          
-         <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-            <span className="font-bold text-sm">Dark Mode</span>
-            <button onClick={()=>setTheme(theme==='light'?'dark':'light')} className="p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg">
-              {theme === 'dark' ? <Moon className="w-4 h-4"/> : <Sun className="w-4 h-4"/>}
+         <div className="flex items-center justify-between p-3">
+            <span className="font-bold text-xs text-slate-800 dark:text-white">Dark Mode</span>
+            <button onClick={()=>setTheme(theme==='light'?'dark':'light')} className="text-[#94A3B8]">
+              {theme === 'dark' ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
             </button>
          </div>
 
-         <div className="relative flex flex-col p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 gap-3">
+         <div className="flex flex-col p-3 border-t border-slate-100 dark:border-[#1E293B]">
             <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowColorPicker(!showColorPicker)}>
-               <span className="font-bold text-sm">ប្តូរពណ៌ (Theme Color)</span>
-               <div className="w-6 h-6 rounded-full border border-slate-300" style={{backgroundColor: themeColor}}></div>
-               <ChevronDown className="w-4 h-4 text-slate-400" />
+               <span className="font-bold text-xs text-slate-800 dark:text-white">ប្តូរពណ៌ (Theme Color)</span>
+               <div className="flex items-center gap-2">
+                 <div className="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-600" style={{backgroundColor: themeColor}}></div>
+                 <ChevronDown className="w-3 h-3 text-[#94A3B8]" />
+               </div>
             </div>
             {showColorPicker && (
-               <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-700 justify-center animate-in slide-in-from-top-2">
-                 {tColors.map(c => <button key={c} onClick={()=>setThemeColor(c)} className={`w-8 h-8 rounded-full shadow-sm transition-transform ${themeColor===c?'ring-2 ring-slate-400 scale-110':'hover:scale-110'}`} style={{backgroundColor: c}}></button>)}
+               <div className="flex gap-2 pt-3 justify-center">
+                 {tColors.map(c => <button key={c} onClick={()=>setThemeColor(c)} className={`w-6 h-6 rounded-full transition-transform ${themeColor===c?'ring-1 ring-offset-1 ring-slate-400 scale-110':'hover:scale-110'}`} style={{backgroundColor: c}}></button>)}
                </div>
             )}
          </div>
 
-         <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button onClick={() => setShowAdminLogin(true)} className="w-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-sm">
+         <div className="p-2 border-t border-slate-100 dark:border-[#1E293B]">
+            <button onClick={() => setShowAdminLogin(true)} className="w-full secondary-panel text-[#94A3B8] h-10 rounded-lg font-bold flex items-center justify-center gap-1.5 text-xs">
                <ShieldAlert className="w-4 h-4"/> កិច្ចការរដ្ឋបាល (Admin)
             </button>
          </div>
       </div>
 
       {showAdminLogin && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAdminLogin(false)}></div>
-           <div className="relative w-full max-w-sm mx-4 bg-white dark:bg-slate-900 rounded-3xl p-6 soft-shadow border border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-[#0B1220]/80 backdrop-blur-sm" onClick={() => setShowAdminLogin(false)}></div>
+           <div className="relative w-full max-w-[280px] glass-panel rounded-2xl p-5 shadow-2xl">
               <div className="flex justify-between items-center mb-4">
-                 <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-theme"/> បញ្ចូលលេខសម្ងាត់</h3>
-                 <button onClick={() => setShowAdminLogin(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><XCircle className="w-5 h-5"/></button>
+                 <h3 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2"><ShieldAlert className="w-4 h-4 text-theme"/> បញ្ចូលលេខសម្ងាត់</h3>
+                 <button onClick={() => setShowAdminLogin(false)} className="text-[#94A3B8]"><XCircle className="w-4 h-4"/></button>
               </div>
-              <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="Password..." className="w-full bg-slate-100 dark:bg-slate-800 p-3 rounded-xl mb-4 text-center tracking-widest outline-none font-bold focus:ring-2 focus:ring-theme"/>
-              <button onClick={handleAdminLogin} className="w-full bg-theme text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90">ចូលប្រព័ន្ធ</button>
+              <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="Password" className="w-full h-10 secondary-panel px-3 rounded-lg mb-4 text-center tracking-[0.2em] outline-none font-bold text-sm"/>
+              <button onClick={handleAdminLogin} className="w-full h-10 bg-theme text-white rounded-lg font-bold text-xs shadow-sm">ចូលប្រព័ន្ធ</button>
            </div>
         </div>
       )}
@@ -981,19 +935,15 @@ const AccountView = ({ user, profile, db, appId, showToast, themeColor, setTheme
 };
 
 // --- View: Admin Dashboard ---
-const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, chats, db, appId, showToast, setCurrentView, profile, user, setIsAdmin }) => {
+const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, chats, db, appId, showToast, setCurrentView, setIsAdmin }) => {
   const [activeTab, setActiveTab] = useState('approvals');
-  const [monitoringUser, setMonitoringUser] = useState(null);
-  const [editingLoc, setEditingLoc] = useState(null);
   
   const handleApprove = async (id) => {
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', id), { status: 'approved' });
-    await addDoc(collection(db, 'artifacts', appId, 'users', id, 'notifications'), { title: 'អនុម័តជោគជ័យ ✅', msg: 'សំណើររបស់អ្នកជោគជ័យ! ទិន្នន័យត្រូវបានបញ្ចូលទៅក្នុងប្រព័ន្ធ។', type: 'success', timestamp: Date.now() });
     showToast('អនុម័តជោគជ័យ ✅');
   };
   const handleReject = async (id) => {
     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', id));
-    await addDoc(collection(db, 'artifacts', appId, 'users', id, 'notifications'), { title: 'បដិសេធ ❌', msg: 'សំណើររបស់អ្នកមិនជោគជ័យទេ! សូមពិនិត្យមើលទិន្នន័យឡើងវិញឲ្យបានច្បាស់លាស់!', type: 'error', timestamp: Date.now() });
     showToast('លុបចោលរួចរាល់ ❌', 'error');
   };
   const clearLog = async (id = null) => {
@@ -1007,46 +957,37 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
     showToast('ចាកចេញពី Admin រួចរាល់');
   };
 
-  const handleEditSave = async (e) => {
-      e.preventDefault();
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', editingLoc.id), editingLoc);
-      setEditingLoc(null);
-      showToast('កែប្រែទិន្នន័យជោគជ័យ ✅');
-  };
-
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-100 dark:bg-slate-800 p-6 rounded-3xl border border-slate-200 dark:border-slate-700">
-        <div><h1 className="text-xl font-bold flex items-center gap-2"><ShieldCheck className="w-6 h-6 text-theme"/> គ្រប់គ្រងរដ្ឋបាល</h1></div>
-        <button onClick={handleAdminLogout} className="mt-4 md:mt-0 px-4 py-2 bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut className="w-4 h-4"/> ចាកចេញ</button>
+    <div className="space-y-4 animate-in fade-in duration-300">
+      <div className="flex items-center justify-between glass-panel p-4 rounded-2xl">
+        <h1 className="text-base font-bold flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-theme"/> Admin</h1>
+        <button onClick={handleAdminLogout} className="h-8 px-3 bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-lg text-[10px] font-bold flex items-center gap-1.5"><LogOut className="w-3.5 h-3.5"/> ចាកចេញ</button>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+      <div className="flex gap-2 overflow-x-auto hide-scrollbar">
         {[
-          {id: 'approvals', label: 'អនុម័ត'}, {id: 'data', label: 'ទិន្នន័យ'}, {id: 'monitor', label: 'តាមដាន'}, {id: 'security', label: 'សន្តិសុខ'}
+          {id: 'approvals', label: `អនុម័ត (${pendingLocations.length})`}, {id: 'data', label: 'ទិន្នន័យ'}, {id: 'security', label: 'សន្តិសុខ'}
         ].map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-5 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${activeTab === t.id ? 'bg-theme text-white' : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 h-8 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors ${activeTab === t.id ? 'bg-theme text-white' : 'glass-panel text-[#94A3B8]'}`}>{t.label}</button>
         ))}
       </div>
 
       {activeTab === 'approvals' && (
-        <div className="glass-panel p-4 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-           <h3 className="font-bold mb-4">សំណើររង់ចាំ ({pendingLocations.length})</h3>
+        <div className="glass-panel p-4 rounded-2xl">
            <div className="space-y-3">
-             {pendingLocations.length === 0 ? <p className="text-sm text-slate-500 font-bold text-center py-10">គ្មានសំណើរថ្មី</p> : 
+             {pendingLocations.length === 0 ? <p className="text-xs text-[#94A3B8] font-bold text-center py-6">គ្មានសំណើរថ្មី</p> : 
                pendingLocations.map(loc => (
-                 <div key={loc.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-4 border border-slate-100 dark:border-slate-700">
-                    <div className="flex items-center gap-4">
-                      <img src={loc.image} className="w-16 h-16 object-cover rounded-lg bg-slate-200 shrink-0" alt="loc"/>
+                 <div key={loc.id} className="p-3 secondary-panel rounded-xl flex items-center justify-between gap-2 border-none">
+                    <div className="flex items-center gap-3">
+                      <img src={loc.image} className="w-10 h-10 object-cover rounded-lg shrink-0 bg-slate-200" alt=""/>
                       <div>
-                        <p className="font-bold text-sm text-theme">{loc.title}</p>
-                        <p className="text-[10px] text-slate-500 font-bold mb-1">ស្ថាប័ន: {loc.institution}</p>
-                        <p className="text-[10px] text-slate-500">អ្នកស្នើ: {loc.author}</p>
+                        <p className="font-bold text-xs text-slate-800 dark:text-white line-clamp-1">{loc.title}</p>
+                        <p className="text-[9px] text-[#94A3B8]">{loc.author}</p>
                       </div>
                     </div>
-                    <div className="flex gap-2 w-full md:w-auto">
-                      <button onClick={()=>handleApprove(loc.id)} className="flex-1 md:flex-none bg-emerald-100 text-emerald-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> ព្រម</button>
-                      <button onClick={()=>handleReject(loc.id)} className="flex-1 md:flex-none bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"><XCircle className="w-4 h-4"/> បដិសេធ</button>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={()=>handleApprove(loc.id)} className="w-8 h-8 bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400 rounded-lg flex items-center justify-center"><CheckCircle className="w-4 h-4"/></button>
+                      <button onClick={()=>handleReject(loc.id)} className="w-8 h-8 bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400 rounded-lg flex items-center justify-center"><XCircle className="w-4 h-4"/></button>
                     </div>
                  </div>
                ))
@@ -1056,117 +997,31 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
       )}
 
       {activeTab === 'data' && (
-        <div className="space-y-6">
-           {/* Ratanak Mondul Data */}
-           <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold mb-4 text-theme">ស្រុករតនមណ្ឌល (Data)</h3>
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                {locations.filter(l=>l.status==='approved' && l.district === 'រតនមណ្ឌល').length === 0 ? <p className="text-xs text-slate-500 font-bold">គ្មានទិន្នន័យ</p> :
-                  locations.filter(l=>l.status==='approved' && l.district === 'រតនមណ្ឌល').map(l => (
-                    <div key={l.id} className="p-3 flex justify-between items-center text-xs bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                      <div><span className="font-bold block text-sm">{l.title}</span><span className="text-[10px] text-slate-500">ឃុំ {l.commune} • ភូមិ {l.village}</span></div>
-                      <div className="flex gap-2">
-                          <button onClick={()=>setEditingLoc(l)} className="p-1.5 bg-amber-50 text-amber-500 rounded hover:bg-amber-100"><Edit3 className="w-4 h-4"/></button>
-                          <button onClick={()=>handleReject(l.id)} className="p-1.5 bg-red-50 text-red-500 rounded hover:bg-red-100"><Trash2 className="w-4 h-4"/></button>
-                      </div>
-                    </div>
-                  ))
-                }
-              </div>
+        <div className="glass-panel p-4 rounded-2xl">
+           <div className="space-y-2 max-h-60 overflow-y-auto">
+             {locations.filter(l=>l.status==='approved').map(l => (
+               <div key={l.id} className="p-2 secondary-panel rounded-lg flex justify-between items-center text-[11px] border-none">
+                 <span className="font-bold truncate max-w-[180px]">{l.title}</span>
+                 <button onClick={()=>handleReject(l.id)} className="p-1 text-red-500 hover:bg-red-100 rounded"><Trash2 className="w-3.5 h-3.5"/></button>
+               </div>
+             ))}
            </div>
-
-           {/* Other Districts Data */}
-           <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <h3 className="font-bold mb-4 text-slate-700 dark:text-slate-300">ស្រុកផ្សេងៗ (Data)</h3>
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                {locations.filter(l=>l.status==='approved' && l.district !== 'រតនមណ្ឌល').length === 0 ? <p className="text-xs text-slate-500 font-bold">គ្មានទិន្នន័យ</p> :
-                  locations.filter(l=>l.status==='approved' && l.district !== 'រតនមណ្ឌល').map(l => (
-                    <div key={l.id} className="p-3 flex justify-between items-center text-xs bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                      <div><span className="font-bold block text-sm">{l.title}</span><span className="text-[10px] text-slate-500">{l.province} • {l.district}</span></div>
-                      <div className="flex gap-2">
-                          <button onClick={()=>setEditingLoc(l)} className="p-1.5 bg-amber-50 text-amber-500 rounded hover:bg-amber-100"><Edit3 className="w-4 h-4"/></button>
-                          <button onClick={()=>handleReject(l.id)} className="p-1.5 bg-red-50 text-red-500 rounded hover:bg-red-100"><Trash2 className="w-4 h-4"/></button>
-                      </div>
-                    </div>
-                  ))
-                }
-              </div>
-           </div>
-
-           {/* Admin Edit Data Modal */}
-           {editingLoc && (
-              <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                 <div className="bg-white dark:bg-slate-900 w-full max-w-md mx-4 rounded-3xl p-5 md:p-6 shadow-2xl">
-                    <h3 className="text-lg font-bold mb-4">កែប្រែទិន្នន័យ (Admin)</h3>
-                    <form onSubmit={handleEditSave} className="space-y-3">
-                       <input value={editingLoc.title} onChange={e=>setEditingLoc({...editingLoc, title: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-sm" placeholder="ឈ្មោះទីតាំង"/>
-                       <input value={editingLoc.institution} onChange={e=>setEditingLoc({...editingLoc, institution: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-sm" placeholder="ស្ថាប័ន"/>
-                       <input value={editingLoc.phone} onChange={e=>setEditingLoc({...editingLoc, phone: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-sm" placeholder="លេខទូរស័ព្ទ"/>
-                       <textarea value={editingLoc.desc} onChange={e=>setEditingLoc({...editingLoc, desc: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-sm h-20" placeholder="ការពិពណ៌នា..."></textarea>
-                       <div className="flex gap-2 pt-4">
-                           <button type="button" onClick={()=>setEditingLoc(null)} className="flex-1 bg-slate-200 dark:bg-slate-700 py-3 rounded-xl font-bold text-sm">បោះបង់</button>
-                           <button type="submit" className="flex-1 bg-theme text-white py-3 rounded-xl font-bold text-sm">រក្សាទុក</button>
-                       </div>
-                    </form>
-                 </div>
-              </div>
-           )}
-        </div>
-      )}
-
-      {activeTab === 'monitor' && (
-        <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-           <h3 className="font-bold mb-4">តាមដាន User (Online)</h3>
-           <div className="space-y-2">
-             {usersList.length === 0 ? <p className="text-xs font-bold text-slate-500">គ្មាន User ទេ</p> : 
-               usersList.map(u => (
-                 <div key={u.id} onClick={()=>setMonitoringUser(u)} className="p-3 bg-white dark:bg-slate-800 rounded-xl cursor-pointer flex justify-between items-center border border-slate-100 dark:border-slate-700 hover:border-theme transition">
-                   <span className="font-bold text-sm">{u.username || u.uid.substring(0,6)}</span>
-                   <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500"><div className="w-2 h-2 bg-emerald-500 rounded-full"></div> Online</span>
-                 </div>
-               ))
-             }
-           </div>
-           {monitoringUser && (
-             <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[60vh] border border-slate-200 dark:border-slate-700">
-                  <div className="p-4 bg-slate-50 dark:bg-slate-800 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
-                    <span className="font-bold text-sm">ប្រវត្តិឆាត: {monitoringUser.username}</span>
-                    <button onClick={()=>setMonitoringUser(null)} className="p-1 bg-slate-200 dark:bg-slate-700 rounded-full"><XCircle className="w-5 h-5 text-slate-600 dark:text-slate-300"/></button>
-                  </div>
-                  <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/50 dark:bg-slate-900/50">
-                    {chats.filter(c => c.userId === monitoringUser.uid).length === 0 ? <p className="text-xs font-bold text-center text-slate-400 py-10">គ្មានសារ</p> : 
-                      chats.filter(c => c.userId === monitoringUser.uid).map(msg => (
-                        <div key={msg.id} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs shadow-sm">
-                          <p className="font-bold text-theme mb-1">To: {msg.target}</p>
-                          <p className="font-medium text-slate-700 dark:text-slate-300">{msg.text}</p>
-                        </div>
-                      ))
-                    }
-                  </div>
-                </div>
-             </div>
-           )}
         </div>
       )}
 
       {activeTab === 'security' && (
-        <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-           <div className="flex justify-between items-center mb-4">
-             <h3 className="font-bold text-sm">សន្តិសុខ (Security Logs)</h3>
-             <button onClick={()=>clearLog()} className="text-[10px] bg-red-100 text-red-600 px-3 py-1.5 rounded-lg font-bold shadow-sm">Clear All</button>
+        <div className="glass-panel p-4 rounded-2xl">
+           <div className="flex justify-between items-center mb-3">
+             <h3 className="font-bold text-xs">Security Logs</h3>
+             <button onClick={()=>clearLog()} className="text-[9px] text-red-500 font-bold">Clear All</button>
            </div>
-           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-             {cyberLogs.length === 0 ? <p className="text-sm font-bold text-slate-500 py-10 text-center">គ្មានទិន្នន័យលួចចូលទេ (Safe)</p> : 
+           <div className="space-y-2 max-h-60 overflow-y-auto">
+             {cyberLogs.length === 0 ? <p className="text-xs font-bold text-[#94A3B8] py-4 text-center">Safe</p> : 
                cyberLogs.map(l => (
-                 <div key={l.id} className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl text-xs relative">
-                    <p className="font-bold text-red-600 mb-1">{l.username}</p>
-                    <div className="flex flex-col gap-1 text-slate-500 font-medium">
-                        <span>Device: {l.device} ({l.type})</span>
-                        <span>IP Addr: {l.ip}</span>
-                        <span className="text-[10px] mt-1">{new Date(l.timestamp).toLocaleString()}</span>
-                    </div>
-                    <button onClick={()=>clearLog(l.id)} className="absolute top-3 right-3 px-2 py-1 bg-white dark:bg-slate-800 rounded font-bold text-red-500 shadow-sm border border-red-100 dark:border-red-900/50">Remove</button>
+                 <div key={l.id} className="p-2 bg-red-50 dark:bg-red-900/10 rounded-lg text-[10px] relative">
+                    <p className="font-bold text-red-500">{l.username}</p>
+                    <p className="text-slate-500">IP: {l.ip}</p>
+                    <button onClick={()=>clearLog(l.id)} className="absolute top-2 right-2 text-red-400"><XCircle className="w-3.5 h-3.5"/></button>
                  </div>
                ))
              }
@@ -1178,34 +1033,25 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
 };
 
 // --- Reusable Components ---
-const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick, isAdmin, handleEdit, handleDelete }) => {
+const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   return (
-    <div onClick={onClick} className="glass-panel group rounded-[1.5rem] overflow-hidden cursor-pointer soft-shadow hover:-translate-y-1 transition-all duration-300 border border-slate-200 dark:border-slate-700 flex flex-col h-full bg-white dark:bg-slate-800/80 relative">
-      <div className="relative h-40 overflow-hidden shrink-0">
-        <img src={location.image} alt={location.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 bg-slate-200 dark:bg-slate-800" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-        <div className="absolute bottom-3 left-3 right-3 text-white">
-          <h3 className="font-bold text-sm line-clamp-1">{location.title}</h3>
-          <p className="text-[10px] text-slate-300 line-clamp-1 font-bold">{location.province || ''} {location.district || ''}</p>
-        </div>
-        <div className="absolute top-2 left-2">
-          <span className="px-2 py-1 bg-black/50 backdrop-blur-md rounded text-white text-[9px] font-bold border border-white/20">{location.category}</span>
+    <div onClick={onClick} className="glass-panel group rounded-2xl overflow-hidden cursor-pointer flex flex-col h-full relative">
+      <div className="relative h-28 overflow-hidden shrink-0">
+        <img src={location.image} alt={location.title} className="w-full h-full object-cover bg-slate-200 dark:bg-[#1E293B]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-80"></div>
+        <div className="absolute bottom-2 left-3 right-3 text-white">
+          <h3 className="font-bold text-[11px] line-clamp-1">{location.title}</h3>
+          <p className="text-[8px] text-[#94A3B8] font-bold">{location.province || ''} {location.district || ''}</p>
         </div>
       </div>
-      <div className="p-4 flex-1 flex flex-col">
-        <p className="text-[10px] text-slate-500 line-clamp-2 flex-1 mb-2 font-medium">{location.desc}</p>
-        <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-2">
-           <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }} className={`flex items-center gap-1 text-xs font-bold ${isFavorite ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}>
+      <div className="p-2.5 flex-1 flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+           <span className="text-[8px] px-1.5 py-0.5 secondary-panel rounded text-[#94A3B8] font-bold">{location.category}</span>
+           <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }} className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-1 rounded transition-colors ${isFavorite ? 'text-rose-500' : 'text-[#94A3B8]'}`}>
              <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} /> {location.likes || 0}
            </button>
         </div>
       </div>
-      {isAdmin && handleEdit && handleDelete && (
-         <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-             <button onClick={(e) => handleEdit(e, location)} className="p-1.5 bg-amber-100 text-amber-600 rounded-lg shadow-sm"><Edit3 className="w-4 h-4"/></button>
-             <button onClick={(e) => handleDelete(e, location.id)} className="p-1.5 bg-red-100 text-red-600 rounded-lg shadow-sm"><Trash2 className="w-4 h-4"/></button>
-         </div>
-      )}
     </div>
   );
 };
@@ -1214,27 +1060,35 @@ const LocationDetailModal = ({ location, onClose, favorites, toggleFavorite }) =
   const isFav = !!favorites[location.id];
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-      <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl overflow-hidden soft-shadow max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700">
-        <div className="relative h-40 md:h-48 shrink-0">
+      <div className="absolute inset-0 bg-[#0B1220]/80 backdrop-blur-sm" onClick={onClose}></div>
+      <div className="relative w-full max-w-sm glass-panel rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="relative h-40 shrink-0">
           <img src={location.image} alt={location.title} className="w-full h-full object-cover bg-slate-200" />
-          <button onClick={onClose} className="absolute top-3 right-3 p-1.5 md:p-2 bg-black/40 hover:bg-black/60 transition-colors rounded-full text-white"><XCircle className="w-5 h-5" /></button>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+          <button onClick={onClose} className="absolute top-3 right-3 p-1.5 bg-[#0B1220]/60 rounded-full text-white backdrop-blur-md"><XCircle className="w-5 h-5" /></button>
+          <div className="absolute bottom-3 left-4 right-4">
+            <h2 className="text-base font-bold text-white line-clamp-2">{location.title}</h2>
+            <span className="text-[10px] text-theme font-bold">{location.category}</span>
+          </div>
         </div>
-        <div className="p-4 md:p-5 overflow-y-auto flex-1">
-          <div className="flex justify-between items-start mb-3">
-             <div>
-                <span className="px-2 py-1 bg-theme/10 text-theme text-[10px] rounded font-bold">{location.category}</span>
-                <h2 className="text-lg md:text-xl font-bold mt-1">{location.title}</h2>
-                <p className="text-xs text-slate-500 font-bold">{location.institution}</p>
+        <div className="p-4 overflow-y-auto flex-1 space-y-4 bg-white dark:bg-[#0B1220]">
+          <div className="flex justify-between items-start gap-3">
+             <div className="flex-1">
+                <p className="text-[10px] text-[#94A3B8] font-bold mb-1"><MapPin className="w-3 h-3 inline mr-1 -mt-0.5"/> {location.province} • {location.district}</p>
+                <p className="text-xs text-slate-800 dark:text-white font-bold mt-1">ស្ថាប័ន: <span className="text-theme">{location.institution}</span></p>
              </div>
-             <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full ${isFav ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400'}`}><Heart className={`w-5 h-5 md:w-6 md:h-6 ${isFav ? 'fill-current':''}`}/></button>
+             <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full transition-colors border ${isFav ? 'bg-rose-50 border-rose-100 text-rose-500 dark:bg-rose-900/20 dark:border-rose-900/50' : 'bg-slate-50 border-slate-100 text-[#94A3B8] dark:bg-[#1E293B] dark:border-[#1E293B]'}`}><Heart className={`w-5 h-5 ${isFav ? 'fill-current':''}`}/></button>
           </div>
-          <div className="flex gap-2 mb-4">
-             {location.phone && <a href={`tel:${location.phone}`} className="flex-1 bg-emerald-50 text-emerald-600 py-2.5 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px]"><Phone className="w-3.5 h-3.5"/> {location.phone}</a>}
-             {location.mapUrl && <a href={location.mapUrl} target="_blank" rel="noreferrer" className="flex-1 bg-theme/10 text-theme py-2.5 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px]"><Navigation className="w-3.5 h-3.5"/> Google Map</a>}
+          
+          <div className="flex gap-2">
+             {location.phone && (
+               <a href={`tel:${location.phone}`} className="flex-1 h-10 secondary-panel text-emerald-600 rounded-xl flex items-center justify-center gap-1.5 font-bold text-[10px]"><Phone className="w-3.5 h-3.5"/> Call</a>
+             )}
+             {location.mapUrl && <a href={location.mapUrl} target="_blank" rel="noreferrer" className="flex-1 h-10 secondary-panel text-theme rounded-xl flex items-center justify-center gap-1.5 font-bold text-[10px]"><Navigation className="w-3.5 h-3.5"/> Map</a>}
           </div>
-          <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
-             <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{location.desc || 'មិនមានការពិពណ៌នា...'}</p>
+
+          <div className="secondary-panel p-3 rounded-xl text-[11px] font-medium text-slate-600 dark:text-[#94A3B8] leading-relaxed border-none">
+             {location.desc || 'មិនមានការពិពណ៌នា...'}
           </div>
         </div>
       </div>
