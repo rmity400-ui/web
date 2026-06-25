@@ -3,7 +3,7 @@ import {
   Home, Map, MessageCircle, ShieldCheck, User, Bell, 
   Search, Heart, Moon, Sun, Plus, MoreVertical, 
   CheckCircle, XCircle, Trash2, Edit3, Image as ImageIcon, Send, Filter,
-  LogOut, Settings, Activity, Users, MapPin, TrendingUp, Phone, Navigation, ShieldAlert, PieChart, BarChart, Eye, LayoutGrid, Monitor, Smartphone, Globe, ChevronDown, ArrowLeft
+  LogOut, Settings, Activity, Users, MapPin, TrendingUp, Phone, Navigation, ShieldAlert, PieChart, BarChart, Eye, LayoutGrid, Monitor, Smartphone, Globe, ChevronDown, ArrowLeft, ArrowRight
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -94,8 +94,10 @@ export default function App() {
   const [currentView, setCurrentView] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); // Strictly Local State
+  const [isAdmin, setIsAdmin] = useState(false); 
+  
   const [appLogo, setAppLogo] = useState('logo.png'); 
+  const [language, setLanguage] = useState('km'); 
   
   const [profile, setProfile] = useState({ username: '', avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' });
   const [locations, setLocations] = useState([]); 
@@ -179,33 +181,100 @@ export default function App() {
 
   if (isAuthLoading) return <div className={`flex items-center justify-center min-h-screen ${theme === 'dark' ? 'bg-slate-900' : 'bg-slate-50'}`}><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 bg-theme"></div></div>;
 
-  // --- GATEWAY PAGE 1 (Mobile Responsive) ---
+  // --- GATEWAY PAGE 1 ---
   if (currentPage === 'gateway') {
     return (
-      <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-between p-6 md:p-12 text-white font-khmer overflow-y-auto bg-slate-950`}>
-        {/* Background */}
-        <div className="absolute inset-0 z-0">
-          <img src="back.png" alt="Background" className="w-full h-full object-cover opacity-20" />
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/80 to-slate-950"></div>
+      <div className="fixed inset-0 z-[100] bg-[#f8fafd] dark:bg-slate-900 flex flex-col md:flex-row font-khmer overflow-y-auto md:overflow-hidden selection:bg-[#0c2340] selection:text-white">
+        
+        {/* Language Toggle */}
+        <div className="absolute top-4 right-4 z-50">
+            <button onClick={() => setLanguage(l => l === 'km' ? 'en' : 'km')} className="px-4 py-2 bg-white/60 dark:bg-slate-800/80 backdrop-blur-md rounded-full text-xs font-bold text-[#0c2340] dark:text-blue-300 border border-slate-200 dark:border-slate-700 hover:bg-white shadow-sm transition-colors">
+                {language === 'km' ? '🇰🇭 ខ្មែរ' : '🇬🇧 EN'}
+            </button>
         </div>
 
-        {/* Top: Logo & Title */}
-        <div className="relative z-10 flex flex-col items-center mt-8 md:mt-16 w-full animate-in fade-in slide-in-from-top-8 duration-700">
-          {/* [CHANGE_IMAGE_HERE_3]: Logo Center Page 1 */}
-          <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-slate-800 border-4 border-slate-700 shadow-2xl mb-4 overflow-hidden shrink-0">
-            <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+        {/* =========================================
+            MOBILE LAYOUT (Hidden on Desktop)
+            Matches p.jpg exactly without bottom icons
+        =========================================== */}
+        <div className="md:hidden flex flex-col w-full min-h-screen relative z-10 bg-[#eef3f9] dark:bg-slate-900">
+          
+          {/* Top Section (Logo & Text) */}
+          <div className="flex flex-col items-center pt-14 px-4 shrink-0 relative z-20">
+             <div className="w-24 h-24 rounded-full border-[5px] border-white dark:border-slate-800 shadow-md mb-4 overflow-hidden bg-white shrink-0">
+               <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+             </div>
+             <h1 className="text-2xl font-black text-[#0c2340] dark:text-blue-200 mb-2 tracking-wide text-center">
+               {language === 'km' ? 'សាលារៀនជ័យវរ្ម័នទី៧' : 'Khmer TP'}
+             </h1>
+             <p className="text-[#0c2340]/80 dark:text-blue-300 text-xs font-bold flex items-center gap-1.5 opacity-90 mb-4">
+               <span>មូលដ្ឋានសិក្សា</span> • <span>គុណភាព</span> • <span>វិន័យ:</span>
+             </p>
           </div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-wider text-white drop-shadow-lg text-center">Khmer TP</h1>
+
+          {/* Middle Image Area */}
+          <div className="flex-1 w-full px-5 py-2 relative z-20 flex flex-col justify-center min-h-[220px]">
+             <img src="back.png" className="w-full h-full object-cover rounded-[1.5rem] shadow-xl border-[4px] border-white dark:border-slate-800" />
+          </div>
+
+          {/* Buttons Section */}
+          <div className="w-full px-8 pt-4 pb-8 shrink-0 relative z-30">
+             <div className="space-y-4 max-w-sm mx-auto">
+               <button onClick={() => setCurrentPage('app')} className="w-full bg-[#0c2340] dark:bg-blue-600 text-white rounded-full py-2 px-2 flex items-center justify-between shadow-lg active:scale-95 transition border border-transparent">
+                 <div className="w-12"></div>
+                 <span className="font-black text-lg tracking-wide">{language === 'km' ? 'ចូលប្រើ' : 'Enter App'}</span>
+                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                    <ArrowRight className="text-[#0c2340] w-6 h-6"/>
+                 </div>
+               </button>
+               <button className="w-full bg-white text-[#0c2340] dark:bg-slate-800 dark:text-blue-300 border-2 border-[#0c2340] dark:border-blue-500 rounded-full py-3.5 px-6 font-bold text-lg shadow-md active:scale-95 transition">
+                 {language === 'km' ? 'មានបញ្ហា?' : 'Need Help?'}
+               </button>
+             </div>
+          </div>
+
+          {/* Very Bottom Dark Blue Curve (No Icons) */}
+          <div className="w-full h-[15vh] shrink-0 relative mt-auto z-10 overflow-hidden">
+             <svg viewBox="0 0 1440 320" className="absolute top-0 w-full h-[100px] drop-shadow-[0_-5px_15px_rgba(0,0,0,0.1)]" preserveAspectRatio="none">
+                <path fill="#cda85c" d="M0,160L80,176C160,192,320,224,480,213.3C640,203,800,149,960,138.7C1120,128,1280,160,1360,176L1440,192L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
+                <path fill="#0c2340" className="dark:fill-slate-950" d="M0,192L80,202.7C160,213,320,235,480,218.7C640,203,800,149,960,144C1120,139,1280,181,1360,202.7L1440,224L1440,320L1360,320C1280,320,1120,320,960,320C800,320,640,320,480,320C320,320,160,320,80,320L0,320Z"></path>
+             </svg>
+             <div className="absolute inset-0 top-[80px] bg-[#0c2340] dark:bg-slate-950"></div>
+          </div>
         </div>
-        
-        {/* Bottom: Description & Button */}
-        <div className="relative z-10 flex flex-col items-center w-full max-w-md bg-slate-900/60 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl mb-4 md:mb-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <p className="text-center text-slate-300 mb-8 leading-relaxed text-sm font-medium">
-            ប្រព័ន្ធរុករកទិន្នន័យ និងសម្របសម្រួលទំនាក់ទំនងក្នុងគ្រាអាសន្ន។ បង្កើតឡើងដើម្បីផ្តល់ភាពងាយស្រួលដល់ប្រជាពលរដ្ឋក្នុងការទាក់ទងមេភូមិ ឃុំ ប៉ុស្តិ៍នគរបាល និងមន្ទីរពេទ្យដោយផ្ទាល់។
-          </p>
-          <button onClick={() => setCurrentPage('app')} className="bg-theme text-white font-bold py-4 px-8 rounded-2xl shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 flex items-center gap-3 text-base w-full justify-center">
-            អនុញ្ញាតឲ្យខ្លួនឯងចូលប្រើប្រាស់
-          </button>
+
+        {/* =========================================
+            DESKTOP LAYOUT (Hidden on Mobile)
+            Clean Split Screen Layout
+        =========================================== */}
+        <div className="hidden md:flex flex-row w-full h-screen relative z-10">
+           <div className="flex-[1.2] flex flex-col justify-center items-center p-12 bg-white dark:bg-slate-900 z-20 shadow-[10px_0_40px_rgba(0,0,0,0.08)]">
+              <div className="w-36 h-36 rounded-full border-4 border-slate-100 dark:border-slate-800 shadow-xl mb-6 bg-white p-1 shrink-0">
+                <img src={appLogo} alt="Logo" className="w-full h-full object-cover rounded-full" />
+              </div>
+              <h1 className="text-4xl font-black text-[#0c2340] dark:text-blue-200 mb-4 tracking-wide text-center">
+                {language === 'km' ? 'សាលារៀនជ័យវរ្ម័នទី៧' : 'Khmer TP'}
+              </h1>
+              <p className="text-[#0c2340] dark:text-blue-300 text-sm font-bold flex items-center gap-2 mb-10 opacity-90">
+                <span>មូលដ្ឋានសិក្សា</span> • <span>គុណភាព</span> • <span>វិន័យ</span>
+              </p>
+              <div className="w-full max-w-sm space-y-4">
+                <button onClick={() => setCurrentPage('app')} className="w-full bg-[#0c2340] dark:bg-blue-600 text-white rounded-full py-4 px-3 flex items-center justify-between shadow-lg active:scale-95 transition hover:bg-[#1e3a8a] border border-transparent">
+                  <div className="w-12"></div>
+                  <span className="font-black text-lg tracking-wide">{language === 'km' ? 'ចូលប្រើ' : 'Enter App'}</span>
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-1 shadow-sm">
+                      <ArrowRight className="text-[#0c2340] w-6 h-6"/>
+                  </div>
+                </button>
+                <button className="w-full bg-white text-[#0c2340] dark:bg-slate-800 dark:text-blue-300 border-2 border-[#0c2340] dark:border-blue-500 rounded-full py-4 px-6 font-bold text-lg shadow-sm hover:bg-slate-50 transition active:scale-95">
+                  {language === 'km' ? 'មានបញ្ហា?' : 'Need Help?'}
+                </button>
+              </div>
+           </div>
+           <div className="flex-[1.8] relative h-full">
+              <img src="back.png" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#0c2340]/10 to-[#0c2340]/40 dark:to-slate-900/80"></div>
+           </div>
         </div>
       </div>
     );
@@ -224,21 +293,21 @@ export default function App() {
           </div>
         )}
 
-        <Sidebar currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} appLogo={appLogo} setAppLogo={setAppLogo} setCurrentPage={setCurrentPage} />
+        <Sidebar currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} appLogo={appLogo} setAppLogo={setAppLogo} setCurrentPage={setCurrentPage} language={language} />
 
         <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-          <TopBar theme={theme} toggleTheme={toggleTheme} searchQuery={searchQuery} setSearchQuery={setSearchQuery} notificationsOpen={notificationsOpen} setNotificationsOpen={setNotificationsOpen} notifications={notifications} appLogo={appLogo} setAppLogo={setAppLogo} db={db} appId={appId} showToast={showToast} user={user} setCurrentPage={setCurrentPage} />
+          <TopBar theme={theme} toggleTheme={toggleTheme} searchQuery={searchQuery} setSearchQuery={setSearchQuery} notificationsOpen={notificationsOpen} setNotificationsOpen={setNotificationsOpen} notifications={notifications} appLogo={appLogo} setAppLogo={setAppLogo} db={db} appId={appId} showToast={showToast} user={user} setCurrentPage={setCurrentPage} language={language} />
 
           <div className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
-            {currentView === 'home' && <HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} />}
-            {currentView === 'data' && <DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} />}
-            {currentView === 'reports' && <ReportsView locations={approvedLocations} usersList={usersList} />}
-            {currentView === 'chat' && <ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} />}
-            {currentView === 'account' && <AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} themeColor={themeColor} setThemeColor={setThemeColor} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} />}
+            {currentView === 'home' && <HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} language={language} appLogo={appLogo} />}
+            {currentView === 'data' && <DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} language={language} />}
+            {currentView === 'reports' && <ReportsView locations={approvedLocations} usersList={usersList} language={language} />}
+            {currentView === 'chat' && <ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} language={language} />}
+            {currentView === 'account' && <AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} themeColor={themeColor} setThemeColor={setThemeColor} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} language={language} />}
             {currentView === 'admin' && isAdmin && <AdminDashboard locations={locations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} profile={profile} user={user} setIsAdmin={setIsAdmin} />}
           </div>
           
-          <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} />
+          <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} language={language} />
         </main>
 
         {selectedLocation && <LocationDetailModal location={selectedLocation} onClose={() => setSelectedLocation(null)} favorites={favorites} toggleFavorite={toggleFavorite} />}
@@ -251,15 +320,15 @@ export default function App() {
 // VIEWS & COMPONENTS
 // ==========================================
 
-const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, setAppLogo, setCurrentPage }) => {
+const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, setAppLogo, setCurrentPage, language }) => {
   const navItems = [
-    { id: 'home', icon: Home, label: 'ទំព័រដើម' },
-    { id: 'data', icon: Map, label: 'ទិន្នន័យ' },
-    { id: 'reports', icon: TrendingUp, label: 'របាយការណ៍' },
-    { id: 'chat', icon: MessageCircle, label: 'សារ' },
-    { id: 'account', icon: User, label: 'គណនី' },
+    { id: 'home', icon: Home, label: language === 'km' ? 'ទំព័រដើម' : 'Home' },
+    { id: 'data', icon: Map, label: language === 'km' ? 'ទិន្នន័យ' : 'Data' },
+    { id: 'reports', icon: TrendingUp, label: language === 'km' ? 'របាយការណ៍' : 'Reports' },
+    { id: 'chat', icon: MessageCircle, label: language === 'km' ? 'សារ' : 'Messages' },
+    { id: 'account', icon: User, label: language === 'km' ? 'គណនី' : 'Account' },
   ];
-  if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'អ្នកគ្រប់គ្រង' });
+  if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: language === 'km' ? 'អ្នកគ្រប់គ្រង' : 'Admin' });
 
   return (
     <aside className="hidden md:flex flex-col w-72 glass-panel border-r border-slate-200 dark:border-slate-800 z-10">
@@ -277,7 +346,7 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, setAppLogo, se
       </div>
       
       <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-        <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 mb-4 px-3 uppercase tracking-wider">ម៉ឺនុយ</div>
+        <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 mb-4 px-3 uppercase tracking-wider">{language === 'km' ? 'ម៉ឺនុយ' : 'Menu'}</div>
         {navItems.map(item => (
           <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group ${currentView === item.id ? 'bg-theme text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
             <item.icon className={`w-5 h-5 transition-transform duration-300 ${currentView === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -289,23 +358,28 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, setAppLogo, se
   );
 };
 
-const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
+const BottomNav = ({ currentView, setCurrentView, isAdmin, language }) => {
   const navItems = [
-    { id: 'home', icon: Home, label: 'ទំព័រដើម' },
-    { id: 'data', icon: Map, label: 'ទិន្នន័យ' },
-    { id: 'reports', icon: TrendingUp, label: 'របាយការណ៍' },
-    { id: 'chat', icon: MessageCircle, label: 'សារ' },
-    { id: 'account', icon: User, label: 'គណនី' },
+    { id: 'home', icon: Home, label: language === 'km' ? 'ទំព័រដើម' : 'Home' },
+    { id: 'data', icon: Map, label: language === 'km' ? 'ទិន្នន័យ' : 'Data' },
+    { id: 'reports', icon: TrendingUp, label: language === 'km' ? 'របាយការណ៍' : 'Reports' },
+    { id: 'chat', icon: MessageCircle, label: language === 'km' ? 'សារ' : 'Chat' },
+    { id: 'account', icon: User, label: language === 'km' ? 'គណនី' : 'Account' },
   ];
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-2 z-50">
-      <div className="flex justify-around items-center">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0c2340] dark:bg-slate-950 rounded-t-[1.5rem] pb-safe pt-2 px-1 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
+      <div className="flex justify-between items-center px-2">
         {navItems.map(item => (
-          <button key={item.id} onClick={() => setCurrentView(item.id)} className={`flex flex-col items-center p-2 rounded-xl transition-all duration-300 ${currentView === item.id ? 'text-theme' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-200'}`}>
-            <item.icon className={`w-5 h-5 mb-1 transition-transform duration-300 ${currentView === item.id ? 'scale-110 stroke-[2.5px]' : ''}`} />
-            <span className="text-[9px] font-medium whitespace-nowrap">{item.label}</span>
+          <button 
+            key={item.id} 
+            onClick={() => setCurrentView(item.id)} 
+            className={`flex flex-col items-center justify-center w-[60px] h-14 relative transition-all duration-300 ${currentView === item.id ? 'text-yellow-400' : 'text-blue-200 hover:text-white'}`}
+          >
+            <div className={`absolute top-0 w-8 h-1 bg-yellow-400 rounded-b-md transition-opacity duration-300 ${currentView === item.id ? 'opacity-100' : 'opacity-0'}`}></div>
+            <item.icon className={`w-6 h-6 mb-1 transition-transform duration-300 ${currentView === item.id ? 'scale-110 stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
+            <span className="text-[9px] font-bold whitespace-nowrap">{item.label}</span>
           </button>
         ))}
       </div>
@@ -313,56 +387,55 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   );
 };
 
-const TopBar = ({ theme, toggleTheme, searchQuery, setSearchQuery, notificationsOpen, setNotificationsOpen, notifications, appLogo, setAppLogo, db, appId, showToast, user, setCurrentPage }) => {
+const TopBar = ({ theme, toggleTheme, searchQuery, setSearchQuery, notificationsOpen, setNotificationsOpen, notifications, appLogo, setAppLogo, db, appId, showToast, user, setCurrentPage, language }) => {
   return (
     <header className="px-4 py-3 md:px-8 glass-panel sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
-      {/* Mobile Back & Brand */}
       <div className="md:hidden flex items-center gap-2 shrink-0">
-        <button onClick={()=>setCurrentPage('gateway')} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500"><ArrowLeft className="w-4 h-4"/></button>
-        <label className="cursor-pointer relative">
-          <div className="w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center p-0.5 border border-slate-300 dark:border-slate-700">
-            <img src={appLogo} alt="Logo" className="w-full h-full object-cover rounded-[6px]" />
+        <button onClick={()=>setCurrentPage('gateway')} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500 hover:text-theme transition"><ArrowLeft className="w-5 h-5"/></button>
+        <label className="cursor-pointer relative ml-1">
+          <div className="w-9 h-9 bg-slate-200 rounded-full flex items-center justify-center border border-slate-300 dark:border-slate-700 overflow-hidden shadow-sm">
+            <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
           </div>
         </label>
       </div>
 
-      {/* Desktop Back */}
-      <button onClick={()=>setCurrentPage('gateway')} className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-bold text-slate-500 transition shrink-0">
-         <ArrowLeft className="w-4 h-4"/> ត្រឡប់
+      <button onClick={()=>setCurrentPage('gateway')} className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm font-bold text-slate-500 transition shrink-0">
+         <ArrowLeft className="w-4 h-4"/> ត្រឡប់ទៅទំព័រទី១
       </button>
 
-      {/* Search Bar - Optimized for Mobile */}
-      <div className="w-full order-last md:order-none md:flex-1 md:max-w-xl relative group mt-2 md:mt-0">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-theme transition-colors" />
+      <div className="w-full order-last md:order-none md:flex-1 md:max-w-xl relative group mt-3 md:mt-0 px-1 md:px-0">
+        <Search className="absolute left-5 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-theme transition-colors" />
         <input 
-          type="text" placeholder="ស្វែងរកទីតាំង..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 rounded-full py-2.5 pl-10 pr-4 outline-none border border-transparent focus:border-theme/30 focus:ring-2 focus:ring-theme/10 transition-all text-sm font-medium"
+          type="text" placeholder={language === 'km' ? "ស្វែងរកទីតាំង..." : "Search locations..."} 
+          value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 rounded-full py-3 md:py-2.5 pl-12 pr-4 outline-none border border-slate-200 dark:border-slate-700 focus:border-theme/50 focus:ring-2 focus:ring-theme/10 transition-all text-sm md:text-base font-medium shadow-sm"
         />
       </div>
 
       <div className="flex items-center gap-2 relative shrink-0">
         <button onClick={toggleTheme} className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400">
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          {theme === 'dark' ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
         </button>
         
         <div className="relative">
           <button onClick={() => setNotificationsOpen(!notificationsOpen)} className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400 relative">
-            <Bell className="w-5 h-5" />
-            {notifications.length > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>}
+            <Bell className="w-6 h-6" />
+            {notifications.length > 0 && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse"></span>}
           </button>
           
           {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-72 md:w-80 glass-panel soft-shadow rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
-              <div className="p-4 border-b border-slate-100 dark:border-slate-700 font-bold flex justify-between">
-                <span>ការជូនដំណឹង</span><button onClick={() => setNotificationsOpen(false)}><XCircle className="w-4 h-4 text-slate-400" /></button>
+            <div className="absolute right-0 mt-2 w-80 glass-panel soft-shadow rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700 font-bold flex justify-between bg-slate-50 dark:bg-slate-800/50">
+                <span>ការជូនដំណឹង</span><button onClick={() => setNotificationsOpen(false)}><XCircle className="w-5 h-5 text-slate-400" /></button>
               </div>
               <div className="max-h-64 overflow-y-auto">
-                {notifications.length === 0 ? <p className="p-4 text-center text-sm text-slate-500">គ្មានសារថ្មីទេ</p> : 
+                {notifications.length === 0 ? <p className="p-6 text-center text-sm font-medium text-slate-500">គ្មានសារថ្មីទេ</p> : 
                   notifications.map(n => (
-                    <div key={n.id} className="p-4 border-b border-slate-50 dark:border-slate-800/50 flex justify-between items-start gap-2">
-                      <div>
+                    <div key={n.id} className="p-4 border-b border-slate-50 dark:border-slate-800/50 flex justify-between items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-lg">{n.type === 'success' ? '✅' : n.type === 'error' ? '❌' : '⏳'}</div>
+                      <div className="flex-1">
                         <p className={`text-sm font-bold ${n.type === 'error' ? 'text-red-500' : 'text-theme'}`}>{n.title}</p>
-                        <p className="text-[11px] text-slate-500 mt-1">{n.msg}</p>
+                        <p className="text-[11px] text-slate-500 mt-1 font-medium">{n.msg}</p>
                       </div>
                       <button onClick={async () => { await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'notifications', n.id)); }} className="text-slate-400 hover:text-red-500 shrink-0"><XCircle className="w-4 h-4"/></button>
                     </div>
@@ -378,19 +451,32 @@ const TopBar = ({ theme, toggleTheme, searchQuery, setSearchQuery, notifications
 };
 
 // --- View: Home ---
-const HomeView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLocation }) => {
+const HomeView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLocation, language, appLogo }) => {
   const filtered = locations.filter(l => l.title?.toLowerCase().includes(searchQuery.toLowerCase()) || l.desc?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="relative rounded-2xl md:rounded-[2rem] overflow-hidden h-[180px] md:h-[350px] soft-shadow group bg-slate-800">
-        <img src="back.png" alt="Hero" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-70" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
-        <div className="absolute inset-0 p-5 md:p-6 flex flex-col justify-end">
-          <h1 className="text-lg md:text-2xl font-bold text-white mb-1 leading-tight drop-shadow-md">
-             ស្វែងរកទិន្នន័យសំខាន់ៗសម្រាប់ទាក់ទងពេលមានអាសន្ន!
+      
+      {/* Horizontal Banner (Matches 5a73...jpg) */}
+      <div className="relative rounded-[1.5rem] md:rounded-[2rem] overflow-hidden h-[160px] md:h-[300px] soft-shadow group bg-white dark:bg-slate-800 border border-blue-100 dark:border-slate-700 flex shadow-sm">
+        
+        <div className="w-[55%] md:w-[45%] bg-gradient-to-br from-blue-50 to-blue-100/90 dark:from-slate-800 dark:to-slate-900 p-4 md:p-10 flex flex-col justify-center relative z-10">
+          <div className="w-12 h-12 md:w-20 md:h-20 rounded-full bg-white shadow-md p-1 mb-2 md:mb-4 border border-blue-100 dark:border-slate-700">
+             <img src={appLogo} alt="Logo" className="w-full h-full object-cover rounded-full" />
+          </div>
+          <h1 className="text-[#0c2340] dark:text-blue-200 text-sm md:text-3xl font-black mb-1 md:mb-2 leading-tight drop-shadow-sm">
+             {language === 'km' ? 'សាលារៀនជ័យវរ្ម័នទី៧' : 'Khmer TP'}
           </h1>
-          <span className="text-[10px] md:text-sm text-yellow-400 font-medium italic block">Search for critical data for emergency contacts!</span>
+          <p className="text-[#0c2340]/80 dark:text-blue-300 text-[8px] md:text-sm font-bold flex items-center gap-1 md:gap-2">
+            <span>មូលដ្ឋានសិក្សា</span> • <span>គុណភាព</span> • <span>វិន័យ</span>
+          </p>
+        </div>
+
+        <div className="absolute top-0 right-0 w-[55%] md:w-[65%] h-full z-0 overflow-hidden">
+          <div className="absolute -left-6 md:-left-10 top-0 h-[120%] w-12 md:w-20 bg-gradient-to-r from-yellow-400 to-yellow-200 transform -skew-x-12 z-20 shadow-[-5px_0_20px_rgba(0,0,0,0.15)] origin-top"></div>
+          <div className="absolute -left-4 md:-left-8 top-0 h-[120%] w-12 md:w-20 bg-blue-100 dark:bg-slate-800 transform -skew-x-12 z-10 origin-top"></div>
+          
+          <img src="back.png" alt="Hero" className="w-full h-full object-cover object-right group-hover:scale-105 transition-transform duration-700" />
         </div>
       </div>
 
@@ -406,7 +492,7 @@ const HomeView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {filtered.map((loc, i) => (
-              <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} index={i} />
+              <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} index={i} isAdmin={false} />
             ))}
           </div>
         )}
@@ -416,7 +502,7 @@ const HomeView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
 };
 
 // --- View: Data ---
-const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLocation, user, profile, isAdmin, showToast, db, appId, setCurrentView }) => {
+const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLocation, user, profile, isAdmin, showToast, db, appId, setCurrentView, language }) => {
   const [activeTab, setActiveTab] = useState('រតនមណ្ឌល');
   const [activeFilter, setActiveFilter] = useState('ទាំងអស់');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -458,8 +544,8 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'data_admin'), { ...submitData, status: isAdmin ? 'approved' : 'pending', likes: 0 });
       if (isAdmin) showToast('ទិន្នន័យត្រូវបានបញ្ចូលដោយជោគជ័យ ✅');
       else {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), { title: 'សំណើថ្មី', msg: `មានសំណើពី ${profile.username}`, type: 'info', timestamp: Date.now() });
-        showToast('រាល់សំណើររបស់អ្នកនឹងត្រូវឆ្លងកាត់ការត្រួតពិនិត្យពីផ្នែករដ្ឋបាលសិន ដើម្បីបញ្ជាក់ថាទិន្នន័យរបស់អ្នកពិត ឬក្លែងក្លាយ។ សូមរង់ចាំដោយក្តីអនុគ្រោះ! ⏳', 'success');
+        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'notifications'), { title: 'សំណើថ្មីបានបញ្ជូន', msg: `រាល់សំណើររបស់អ្នកនឹងត្រូវឆ្លងកាត់ការត្រួតពិនិត្យពីផ្នែករដ្ឋបាលសិន ដើម្បីបញ្ជាក់ថាទិន្នន័យពិតប្រាកដ ឬក្លែងក្លាយ។ សូមរង់ចាំ! ⏳`, type: 'info', timestamp: Date.now() });
+        showToast('បានផ្ញើរសំណើរ (Admin) ⏳');
       }
       setIsAddModalOpen(false);
     } catch (err) { showToast('បរាជ័យក្នុងការបញ្ជូនទិន្នន័យ', 'error'); }
@@ -614,7 +700,7 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
 };
 
 // --- View: Reports ---
-const ReportsView = ({ locations, usersList }) => {
+const ReportsView = ({ locations, usersList, language }) => {
   const [footerText, setFooterText] = useState('រក្សាសិទ្ធិដោយយុវជន VMC វិ.ស.ស @');
   const [editFooter, setEditFooter] = useState(false);
 
@@ -630,10 +716,10 @@ const ReportsView = ({ locations, usersList }) => {
   const yearlyUsers = usersList.filter(u => u.timestamp > yearAgo).length;
 
   const stats = [
-    { label: 'អ្នកប្រើប្រាស់សរុប', count: totalUsers, color: 'text-theme' },
-    { label: 'ប្រចាំសប្តាហ៍', count: weeklyUsers, color: 'text-teal-500' },
-    { label: 'ប្រចាំខែ', count: monthlyUsers, color: 'text-amber-500' },
-    { label: 'ប្រចាំឆ្នាំ', count: yearlyUsers, color: 'text-rose-500' },
+    { label: language === 'km' ? 'អ្នកប្រើប្រាស់សរុប' : 'Total Users', count: totalUsers, color: 'text-theme' },
+    { label: language === 'km' ? 'ប្រចាំសប្តាហ៍' : 'Weekly', count: weeklyUsers, color: 'text-teal-500' },
+    { label: language === 'km' ? 'ប្រចាំខែ' : 'Monthly', count: monthlyUsers, color: 'text-amber-500' },
+    { label: language === 'km' ? 'ប្រចាំឆ្នាំ' : 'Yearly', count: yearlyUsers, color: 'text-rose-500' },
   ];
 
   const cats = locations.reduce((acc, l) => { acc[l.category] = (acc[l.category]||0)+1; return acc; }, {});
@@ -641,7 +727,7 @@ const ReportsView = ({ locations, usersList }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><PieChart className="w-5 h-5 md:w-6 md:h-6 text-theme" /> របាយការណ៍</h1>
+      <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><PieChart className="w-5 h-5 md:w-6 md:h-6 text-theme" /> {language === 'km' ? 'របាយការណ៍' : 'Reports'}</h1>
       
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
          {stats.map((s, i) => (
@@ -716,7 +802,7 @@ const ReportsView = ({ locations, usersList }) => {
 };
 
 // --- View: Chat ---
-const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, isAdmin }) => {
+const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, isAdmin, language }) => {
   const [msgText, setMsgText] = useState('');
   const [activeTarget, setActiveTarget] = useState('Admin');
   const messagesEndRef = useRef(null);
@@ -803,7 +889,7 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
 };
 
 // --- View: Account ---
-const AccountView = ({ user, profile, db, appId, showToast, themeColor, setThemeColor, theme, setTheme, setCurrentPage, setIsAdmin }) => {
+const AccountView = ({ user, profile, db, appId, showToast, themeColor, setThemeColor, theme, setTheme, setCurrentPage, language, setLanguage, setIsAdmin }) => {
   const [pwd, setPwd] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [localName, setLocalName] = useState(profile.username || '');
@@ -875,10 +961,6 @@ const AccountView = ({ user, profile, db, appId, showToast, themeColor, setTheme
                <ShieldAlert className="w-4 h-4"/> កិច្ចការរដ្ឋបាល (Admin)
             </button>
          </div>
-         
-         <button onClick={() => setCurrentPage('gateway')} className="w-full bg-rose-50 text-rose-600 dark:bg-rose-900/10 dark:text-rose-400 py-3 rounded-xl font-bold flex items-center justify-center gap-2 mt-4 text-sm">
-            <LogOut className="w-4 h-4" /> ត្រឡប់ទៅទំព័រទី១
-         </button>
       </div>
 
       {showAdminLogin && (
@@ -899,19 +981,19 @@ const AccountView = ({ user, profile, db, appId, showToast, themeColor, setTheme
 };
 
 // --- View: Admin Dashboard ---
-const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, chats, db, appId, showToast, setCurrentView, setIsAdmin }) => {
+const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, chats, db, appId, showToast, setCurrentView, profile, user, setIsAdmin }) => {
   const [activeTab, setActiveTab] = useState('approvals');
   const [monitoringUser, setMonitoringUser] = useState(null);
   const [editingLoc, setEditingLoc] = useState(null);
   
   const handleApprove = async (id) => {
     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', id), { status: 'approved' });
-    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), { title: 'អនុម័តជោគជ័យ', msg: 'សំណើររបស់អ្នកជោគជ័យ! ទិន្នន័យត្រូវបានបញ្ចូលទៅក្នុងប្រព័ន្ធ។ ✅', type: 'success', timestamp: Date.now() });
+    await addDoc(collection(db, 'artifacts', appId, 'users', id, 'notifications'), { title: 'អនុម័តជោគជ័យ ✅', msg: 'សំណើររបស់អ្នកជោគជ័យ! ទិន្នន័យត្រូវបានបញ្ចូលទៅក្នុងប្រព័ន្ធ។', type: 'success', timestamp: Date.now() });
     showToast('អនុម័តជោគជ័យ ✅');
   };
   const handleReject = async (id) => {
     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'data_admin', id));
-    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'notifications'), { title: 'បដិសេធ', msg: 'សំណើររបស់អ្នកមិនជោគជ័យទេ! សូមពិនិត្យមើលទិន្នន័យឡើងវិញឲ្យបានច្បាស់លាស់! ❌', type: 'error', timestamp: Date.now() });
+    await addDoc(collection(db, 'artifacts', appId, 'users', id, 'notifications'), { title: 'បដិសេធ ❌', msg: 'សំណើររបស់អ្នកមិនជោគជ័យទេ! សូមពិនិត្យមើលទិន្នន័យឡើងវិញឲ្យបានច្បាស់លាស់!', type: 'error', timestamp: Date.now() });
     showToast('លុបចោលរួចរាល់ ❌', 'error');
   };
   const clearLog = async (id = null) => {
@@ -975,6 +1057,7 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
 
       {activeTab === 'data' && (
         <div className="space-y-6">
+           {/* Ratanak Mondul Data */}
            <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
               <h3 className="font-bold mb-4 text-theme">ស្រុករតនមណ្ឌល (Data)</h3>
               <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
@@ -992,6 +1075,7 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
               </div>
            </div>
 
+           {/* Other Districts Data */}
            <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
               <h3 className="font-bold mb-4 text-slate-700 dark:text-slate-300">ស្រុកផ្សេងៗ (Data)</h3>
               <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
@@ -1116,6 +1200,12 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick, isAdmin
            </button>
         </div>
       </div>
+      {isAdmin && handleEdit && handleDelete && (
+         <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+             <button onClick={(e) => handleEdit(e, location)} className="p-1.5 bg-amber-100 text-amber-600 rounded-lg shadow-sm"><Edit3 className="w-4 h-4"/></button>
+             <button onClick={(e) => handleDelete(e, location.id)} className="p-1.5 bg-red-100 text-red-600 rounded-lg shadow-sm"><Trash2 className="w-4 h-4"/></button>
+         </div>
+      )}
     </div>
   );
 };
