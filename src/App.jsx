@@ -315,7 +315,7 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
 
 const TopBar = ({ theme, toggleTheme, searchQuery, setSearchQuery, notificationsOpen, setNotificationsOpen, notifications, appLogo, setAppLogo, db, appId, showToast, user, setCurrentPage }) => {
   return (
-    <header className="px-4 py-3 md:px-8 glass-panel sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+    <header className="px-4 py-3 md:px-8 glass-panel sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
       {/* Mobile Back & Brand */}
       <div className="md:hidden flex items-center gap-2 shrink-0">
         <button onClick={()=>setCurrentPage('gateway')} className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500"><ArrowLeft className="w-4 h-4"/></button>
@@ -332,11 +332,11 @@ const TopBar = ({ theme, toggleTheme, searchQuery, setSearchQuery, notifications
       </button>
 
       {/* Search Bar - Optimized for Mobile */}
-      <div className="flex-1 w-full max-w-xl relative group px-2">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-theme transition-colors" />
+      <div className="w-full order-last md:order-none md:flex-1 md:max-w-xl relative group mt-2 md:mt-0">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-theme transition-colors" />
         <input 
           type="text" placeholder="ស្វែងរកទីតាំង..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 rounded-full py-2.5 pl-9 pr-4 outline-none border border-transparent focus:border-theme/30 focus:ring-2 focus:ring-theme/10 transition-all text-sm font-medium"
+          className="w-full bg-slate-100 dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 rounded-full py-2.5 pl-10 pr-4 outline-none border border-transparent focus:border-theme/30 focus:ring-2 focus:ring-theme/10 transition-all text-sm font-medium"
         />
       </div>
 
@@ -352,7 +352,7 @@ const TopBar = ({ theme, toggleTheme, searchQuery, setSearchQuery, notifications
           </button>
           
           {notificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 glass-panel soft-shadow rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+            <div className="absolute right-0 mt-2 w-72 md:w-80 glass-panel soft-shadow rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
               <div className="p-4 border-b border-slate-100 dark:border-slate-700 font-bold flex justify-between">
                 <span>ការជូនដំណឹង</span><button onClick={() => setNotificationsOpen(false)}><XCircle className="w-4 h-4 text-slate-400" /></button>
               </div>
@@ -382,12 +382,12 @@ const HomeView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
   const filtered = locations.filter(l => l.title?.toLowerCase().includes(searchQuery.toLowerCase()) || l.desc?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="relative rounded-[2rem] overflow-hidden h-[200px] md:h-[350px] soft-shadow group bg-slate-800">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="relative rounded-2xl md:rounded-[2rem] overflow-hidden h-[180px] md:h-[350px] soft-shadow group bg-slate-800">
         <img src="back.png" alt="Hero" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-70" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
-        <div className="absolute inset-0 p-6 flex flex-col justify-end">
-          <h1 className="text-base md:text-2xl font-bold text-white mb-1 leading-tight drop-shadow-md">
+        <div className="absolute inset-0 p-5 md:p-6 flex flex-col justify-end">
+          <h1 className="text-lg md:text-2xl font-bold text-white mb-1 leading-tight drop-shadow-md">
              ស្វែងរកទិន្នន័យសំខាន់ៗសម្រាប់ទាក់ទងពេលមានអាសន្ន!
           </h1>
           <span className="text-[10px] md:text-sm text-yellow-400 font-medium italic block">Search for critical data for emergency contacts!</span>
@@ -395,16 +395,16 @@ const HomeView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 border-l-4 border-theme pl-3">
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <h2 className="text-base md:text-xl font-bold flex items-center gap-2 border-l-4 border-theme pl-3">
              ទីតាំងសំខាន់ៗដែលបានដាក់បញ្ចូល
           </h2>
         </div>
 
         {filtered.length === 0 ? (
-           <div className="text-center py-12 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 font-bold">គ្មានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកទេ</div>
+           <div className="text-center py-10 md:py-12 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 font-bold text-sm">គ្មានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកទេ</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {filtered.map((loc, i) => (
               <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} index={i} />
             ))}
@@ -511,14 +511,14 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
           <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden soft-shadow max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-              <h2 className="text-lg font-bold text-theme">បន្ថែមទិន្នន័យក្នុង {activeTab}</h2>
+            <div className="p-4 md:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+              <h2 className="text-base md:text-lg font-bold text-theme">បន្ថែមទិន្នន័យក្នុង {activeTab}</h2>
               <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-red-100 hover:text-red-500 rounded-full"><XCircle className="w-5 h-5"/></button>
             </div>
             
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1">
               <form id="addForm" onSubmit={handleAddSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-slate-500 block mb-1">ប្រភេទ</label>
                     <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold">
@@ -538,7 +538,7 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
                 </div>
 
                 {activeTab === 'រតនមណ្ឌល' ? (
-                    <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
                         <div>
                             <label className="text-xs font-bold text-slate-500 block mb-1">ឃុំ</label>
                             <select required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value, village: ''})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold">
@@ -555,7 +555,7 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
                         <div>
                             <label className="text-xs font-bold text-slate-500 block mb-1">ខេត្ត</label>
                             <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white dark:bg-slate-900 rounded-xl p-2 text-sm outline-none font-bold" placeholder="វាយបញ្ចូល..."/>
@@ -575,7 +575,7 @@ const DataView = ({ locations, searchQuery, favorites, toggleFavorite, onOpenLoc
                     </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div><input type="tel" value={form.phone} onChange={e=>setForm({...form, phone: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold" placeholder="លេខទូរស័ព្ទ..." /></div>
                   <div><input type="url" value={form.mapUrl} onChange={e=>setForm({...form, mapUrl: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-theme font-bold" placeholder="Google Map Link..." /></div>
                 </div>
@@ -641,19 +641,19 @@ const ReportsView = ({ locations, usersList }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-2xl font-bold flex items-center gap-2"><PieChart className="w-6 h-6 text-theme" /> របាយការណ៍</h1>
+      <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2"><PieChart className="w-5 h-5 md:w-6 md:h-6 text-theme" /> របាយការណ៍</h1>
       
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
          {stats.map((s, i) => (
-           <div key={i} className="glass-panel p-5 rounded-2xl soft-shadow border border-slate-200 dark:border-slate-800 text-center">
-              <p className="text-[11px] font-bold text-slate-500 mb-1">{s.label}</p>
-              <h3 className={`text-3xl font-black ${s.color}`}>{s.count}</h3>
+           <div key={i} className="glass-panel p-4 md:p-5 rounded-2xl soft-shadow border border-slate-200 dark:border-slate-800 text-center">
+              <p className="text-[10px] md:text-[11px] font-bold text-slate-500 mb-1">{s.label}</p>
+              <h3 className={`text-2xl md:text-3xl font-black ${s.color}`}>{s.count}</h3>
            </div>
          ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-panel p-6 rounded-3xl soft-shadow border border-slate-200 dark:border-slate-800">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-4">
+        <div className="glass-panel p-5 md:p-6 rounded-2xl md:rounded-3xl soft-shadow border border-slate-200 dark:border-slate-800">
            <h3 className="text-sm font-bold mb-4">ស្ថិតិទីតាំង (រង្វង់ភាគរយ)</h3>
            <div className="space-y-4">
              {Object.keys(cats).length === 0 ? <p className="text-xs font-bold text-slate-500">គ្មានទិន្នន័យ (0%)</p> : Object.entries(cats).map(([name, count], i) => {
@@ -670,7 +670,7 @@ const ReportsView = ({ locations, usersList }) => {
            </div>
         </div>
 
-        <div className="glass-panel p-6 rounded-3xl soft-shadow border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+        <div className="glass-panel p-5 md:p-6 rounded-2xl md:rounded-3xl soft-shadow border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
            <h3 className="text-sm font-bold mb-4">ស្ថិតិសកម្មភាពអ្នកប្រើប្រាស់ (Line & Bar)</h3>
            <div className="flex-1 flex items-end gap-4 h-32 border-b border-l border-slate-200 dark:border-slate-700 pl-2 pb-2 relative mt-4">
                {[
@@ -758,7 +758,7 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
     <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] glass-panel rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden soft-shadow">
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl flex flex-col gap-3">
         <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-theme text-white flex items-center justify-center font-bold">TP</div>
+            <div className="w-10 h-10 rounded-full bg-theme text-white flex items-center justify-center font-bold shrink-0">TP</div>
             <div>
                 <h2 className="font-bold text-sm">Chat TP</h2>
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
@@ -794,8 +794,8 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
 
       <div className="p-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800">
         <form onSubmit={handleSend} className="flex items-center gap-2">
-          <input type="text" value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="វាយសាររបស់អ្នក..." className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-full py-3 px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-theme" />
-          <button type="submit" disabled={!msgText.trim()} className="w-12 h-12 rounded-full bg-theme text-white flex items-center justify-center disabled:opacity-50"><Send className="w-5 h-5 ml-1" /></button>
+          <input type="text" value={msgText} onChange={(e) => setMsgText(e.target.value)} placeholder="វាយសាររបស់អ្នក..." className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-full py-2.5 md:py-3 px-4 md:px-5 text-sm font-bold outline-none focus:ring-2 focus:ring-theme" />
+          <button type="submit" disabled={!msgText.trim()} className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-theme text-white flex items-center justify-center disabled:opacity-50 shrink-0"><Send className="w-4 h-4 md:w-5 md:h-5 ml-1" /></button>
         </form>
       </div>
     </div>
@@ -884,8 +884,11 @@ const AccountView = ({ user, profile, db, appId, showToast, themeColor, setTheme
       {showAdminLogin && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAdminLogin(false)}></div>
-           <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-6 soft-shadow border border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-bold mb-4 text-slate-800 dark:text-white flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-theme"/> បញ្ចូលលេខសម្ងាត់</h3>
+           <div className="relative w-full max-w-sm mx-4 bg-white dark:bg-slate-900 rounded-3xl p-6 soft-shadow border border-slate-200 dark:border-slate-700">
+              <div className="flex justify-between items-center mb-4">
+                 <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><ShieldAlert className="w-5 h-5 text-theme"/> បញ្ចូលលេខសម្ងាត់</h3>
+                 <button onClick={() => setShowAdminLogin(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><XCircle className="w-5 h-5"/></button>
+              </div>
               <input type="password" value={pwd} onChange={e=>setPwd(e.target.value)} placeholder="Password..." className="w-full bg-slate-100 dark:bg-slate-800 p-3 rounded-xl mb-4 text-center tracking-widest outline-none font-bold focus:ring-2 focus:ring-theme"/>
               <button onClick={handleAdminLogin} className="w-full bg-theme text-white py-3 rounded-xl font-bold shadow-lg hover:opacity-90">ចូលប្រព័ន្ធ</button>
            </div>
@@ -945,14 +948,14 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
       </div>
 
       {activeTab === 'approvals' && (
-        <div className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="glass-panel p-4 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
            <h3 className="font-bold mb-4">សំណើររង់ចាំ ({pendingLocations.length})</h3>
            <div className="space-y-3">
              {pendingLocations.length === 0 ? <p className="text-sm text-slate-500 font-bold text-center py-10">គ្មានសំណើរថ្មី</p> : 
                pendingLocations.map(loc => (
                  <div key={loc.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-4 border border-slate-100 dark:border-slate-700">
                     <div className="flex items-center gap-4">
-                      <img src={loc.image} className="w-16 h-16 object-cover rounded-lg bg-slate-200" alt="loc"/>
+                      <img src={loc.image} className="w-16 h-16 object-cover rounded-lg bg-slate-200 shrink-0" alt="loc"/>
                       <div>
                         <p className="font-bold text-sm text-theme">{loc.title}</p>
                         <p className="text-[10px] text-slate-500 font-bold mb-1">ស្ថាប័ន: {loc.institution}</p>
@@ -960,8 +963,8 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
                       </div>
                     </div>
                     <div className="flex gap-2 w-full md:w-auto">
-                      <button onClick={()=>handleApprove(loc.id)} className="flex-1 bg-emerald-100 text-emerald-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> ព្រម</button>
-                      <button onClick={()=>handleReject(loc.id)} className="flex-1 bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"><XCircle className="w-4 h-4"/> បដិសេធ</button>
+                      <button onClick={()=>handleApprove(loc.id)} className="flex-1 md:flex-none bg-emerald-100 text-emerald-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"><CheckCircle className="w-4 h-4"/> ព្រម</button>
+                      <button onClick={()=>handleReject(loc.id)} className="flex-1 md:flex-none bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1"><XCircle className="w-4 h-4"/> បដិសេធ</button>
                     </div>
                  </div>
                ))
@@ -1009,7 +1012,7 @@ const AdminDashboard = ({ locations, pendingLocations, usersList, cyberLogs, cha
            {/* Admin Edit Data Modal */}
            {editingLoc && (
               <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                 <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl">
+                 <div className="bg-white dark:bg-slate-900 w-full max-w-md mx-4 rounded-3xl p-5 md:p-6 shadow-2xl">
                     <h3 className="text-lg font-bold mb-4">កែប្រែទិន្នន័យ (Admin)</h3>
                     <form onSubmit={handleEditSave} className="space-y-3">
                        <input value={editingLoc.title} onChange={e=>setEditingLoc({...editingLoc, title: e.target.value})} className="w-full bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-sm" placeholder="ឈ្មោះទីតាំង"/>
@@ -1123,22 +1126,22 @@ const LocationDetailModal = ({ location, onClose, favorites, toggleFavorite }) =
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
       <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl overflow-hidden soft-shadow max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700">
-        <div className="relative h-48 shrink-0">
+        <div className="relative h-40 md:h-48 shrink-0">
           <img src={location.image} alt={location.title} className="w-full h-full object-cover bg-slate-200" />
-          <button onClick={onClose} className="absolute top-3 right-3 p-1.5 bg-black/40 rounded-full text-white"><XCircle className="w-5 h-5" /></button>
+          <button onClick={onClose} className="absolute top-3 right-3 p-1.5 md:p-2 bg-black/40 hover:bg-black/60 transition-colors rounded-full text-white"><XCircle className="w-5 h-5" /></button>
         </div>
-        <div className="p-5 overflow-y-auto flex-1">
+        <div className="p-4 md:p-5 overflow-y-auto flex-1">
           <div className="flex justify-between items-start mb-3">
              <div>
                 <span className="px-2 py-1 bg-theme/10 text-theme text-[10px] rounded font-bold">{location.category}</span>
-                <h2 className="text-xl font-bold mt-1">{location.title}</h2>
+                <h2 className="text-lg md:text-xl font-bold mt-1">{location.title}</h2>
                 <p className="text-xs text-slate-500 font-bold">{location.institution}</p>
              </div>
-             <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full ${isFav ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400'}`}><Heart className={`w-5 h-5 ${isFav ? 'fill-current':''}`}/></button>
+             <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full ${isFav ? 'bg-red-50 text-red-500' : 'bg-slate-100 text-slate-400'}`}><Heart className={`w-5 h-5 md:w-6 md:h-6 ${isFav ? 'fill-current':''}`}/></button>
           </div>
           <div className="flex gap-2 mb-4">
-             {location.phone && <a href={`tel:${location.phone}`} className="flex-1 bg-emerald-50 text-emerald-600 py-2 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px]"><Phone className="w-3 h-3"/> {location.phone}</a>}
-             {location.mapUrl && <a href={location.mapUrl} target="_blank" rel="noreferrer" className="flex-1 bg-theme/10 text-theme py-2 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px]"><Navigation className="w-3 h-3"/> Google Map</a>}
+             {location.phone && <a href={`tel:${location.phone}`} className="flex-1 bg-emerald-50 text-emerald-600 py-2.5 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px]"><Phone className="w-3.5 h-3.5"/> {location.phone}</a>}
+             {location.mapUrl && <a href={location.mapUrl} target="_blank" rel="noreferrer" className="flex-1 bg-theme/10 text-theme py-2.5 rounded-xl flex items-center justify-center gap-1 font-bold text-[10px]"><Navigation className="w-3.5 h-3.5"/> Google Map</a>}
           </div>
           <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-xl">
              <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{location.desc || 'មិនមានការពិពណ៌នា...'}</p>
