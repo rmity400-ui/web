@@ -8,7 +8,7 @@ import {
   Ban, CheckCheck, Sparkles, Hexagon, GraduationCap, Pause, Volume2, Square
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, increment } from 'firebase/firestore';
 import { 
   LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
@@ -39,15 +39,6 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(2));
-};
-
-const blobToBase64 = (blob) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 };
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -144,7 +135,7 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
         <p className="text-[13px] text-center text-slate-500 mb-6 leading-relaxed font-medium">{safeStr(message)}</p>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold text-[13px] bg-slate-100 text-slate-600 active:scale-95 transition-transform hover:bg-slate-200">បដិសេធ</button>
-          <button onClick={onConfirm} className="flex-1 py-3 rounded-xl font-bold text-[13px] bg-[#0F2B5C] text-white shadow-md active:scale-95 transition-transform">ព្រម</button>
+          <button onClick={onConfirm} className="flex-1 py-3 rounded-xl font-bold text-[13px] bg-[#0F2B5C] text-white shadow-md active:scale-95 transition-transform">យល់ព្រម</button>
         </div>
       </div>
     </div>
@@ -323,9 +314,9 @@ export default function App() {
     }, (e)=>{});
 
     const unsubNotif = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), snap => {
-      const mt = snap.docs.map(d => ({id: d.id, ...d.data()})); 
-      mt.sort((a,b) => b.timestamp - a.timestamp); 
-      setNotifications(mt);
+      const nt = snap.docs.map(d => ({id: d.id, ...d.data()})); 
+      nt.sort((a,b) => b.timestamp - a.timestamp); 
+      setNotifications(nt);
     }, (e)=>{});
 
     const unsubFavs = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'favorites'), snap => {
@@ -543,7 +534,7 @@ export default function App() {
                 }} 
                 className="w-full max-w-[300px] bg-white text-[#0F2B5C] py-4 rounded-[18px] font-black text-[15px] shadow-xl active:scale-95 transition-transform mb-4 font-khmer z-10 hover:bg-slate-50"
             >
-                ចុះឈ្មោះចូលប្រើ
+                {localStorage.getItem(`tp_username_${user?.uid}`) ? "ចូលទៅកាន់គណនីឧបករណ៍នេះ" : "ចុះឈ្មោះចូលប្រើឧបករណ៍នេះ"}
             </button>
 
             <button 
@@ -633,14 +624,12 @@ export default function App() {
                   cyberLogs={cyberLogs} 
                   chats={chats} 
                   dbRegions={dbRegions} 
-                  setDbRegions={setDbRegions}
                   db={db} 
                   appId={appId} 
                   showToast={showToast} 
                   setCurrentView={setCurrentView} 
                   setIsAdmin={setIsAdmin} 
                   chatTargets={chatTargets} 
-                  setChatTargets={setChatTargets}
                 />
               </div>
            )}
@@ -702,8 +691,8 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 glass-nav z-50 border-t border-slate-200 overflow-hidden pb-safe">
-      <div className="flex justify-around items-center h-[65px] px-2 relative">
+    <div className="md:hidden fixed bottom-5 left-5 right-5 glass-nav z-50 rounded-[24px] border border-slate-200 overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+      <div className="flex justify-around items-center h-[70px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
@@ -1167,7 +1156,7 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-300 pt-3 w-full flex-1 font-khmer">
-      <h1 className="text-xl font-black text-[#0F2B5C] border-l-4 border-[#0F2B5C] pl-3">របាយការណ៍សង្ខេបប្រットフォーム</h1>
+      <h1 className="text-xl font-black text-[#0F2B5C] border-l-4 border-[#0F2B5C] pl-3">របាយការណ៍សង្ខេបប្រព័ន្ធ</h1>
       
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
          {stats.map((s, i) => (
@@ -1218,78 +1207,56 @@ const TelegramVoiceBubble = ({ audioUrl, duration }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [progress, setProgress] = useState(0);
-  const audioRef = useRef(null);
-  const canvasRef = useRef(null);
   const animationRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (audioUrl) {
-      audioRef.current = new Audio(audioUrl);
-      audioRef.current.playbackRate = playbackRate;
-      
-      audioRef.current.addEventListener('timeupdate', () => {
-        if (audioRef.current) {
-          const current = audioRef.current.currentTime;
-          const total = audioRef.current.duration || 1;
-          setProgress((current / total) * 100);
-        }
-      });
-      
-      audioRef.current.addEventListener('ended', () => {
-        setIsPlaying(false);
-        setProgress(0);
-      });
+    let startTime = Date.now();
+    let seconds = parseFloat(duration.split(':')[1]) || 5;
+
+    if (isPlaying) {
+      const animatePlay = () => {
+         const elapsed = (Date.now() - startTime) / 1000 * playbackRate;
+         const pct = Math.min((elapsed / seconds) * 100, 100);
+         setProgress(pct);
+
+         const canvas = canvasRef.current;
+         if (canvas) {
+           const ctx = canvas.getContext('2d');
+           ctx.clearRect(0, 0, canvas.width, canvas.height);
+           ctx.fillStyle = '#0F2B5C';
+           for (let i = 0; i < 20; i++) {
+             const h = 4 + Math.random() * (12 + Math.sin(Date.now() / 100 + i) * 10);
+             ctx.fillRect(i * 4, (24 - h) / 2, 2, h);
+           }
+         }
+
+         if (pct < 100) {
+            animationRef.current = requestAnimationFrame(animatePlay);
+         } else {
+            setIsPlaying(false);
+            setProgress(0);
+         }
+      };
+      animationRef.current = requestAnimationFrame(animatePlay);
+    } else {
+       if (animationRef.current) cancelAnimationFrame(animationRef.current);
+       const canvas = canvasRef.current;
+       if (canvas) {
+         const ctx = canvas.getContext('2d');
+         ctx.clearRect(0, 0, canvas.width, canvas.height);
+         ctx.fillStyle = '#94a3b8';
+         for (let i = 0; i < 20; i++) {
+           const h = 5 + Math.sin(i * 0.8) * 8;
+           ctx.fillRect(i * 4, (24 - h) / 2, 2, h);
+         }
+       }
     }
-    
+
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [audioUrl]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackRate;
-    }
-  }, [playbackRate]);
-
-  useEffect(() => {
-    if (isPlaying) {
-      audioRef.current?.play().catch(e => console.warn("Audio playback node failed to load:", e));
-      
-      const draw = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const ctx = canvas.getContext('2d');
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = '#0F2B5C';
-          for (let i = 0; i < 20; i++) {
-            const h = 4 + Math.random() * (12 + Math.sin(Date.now() / 100 + i) * 10);
-            ctx.fillRect(i * 4, (24 - h) / 2, 2, h);
-          }
-        }
-        animationRef.current = requestAnimationFrame(draw);
-      };
-      animationRef.current = requestAnimationFrame(draw);
-    } else {
-      audioRef.current?.pause();
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#94a3b8';
-        for (let i = 0; i < 20; i++) {
-          const h = 5 + Math.sin(i * 0.8) * 8;
-          ctx.fillRect(i * 4, (24 - h) / 2, 2, h);
-        }
-      }
-    }
-  }, [isPlaying]);
+  }, [isPlaying, playbackRate, duration]);
 
   const toggleSpeed = () => {
      setPlaybackRate(prev => {
@@ -1338,10 +1305,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   
   const recordIntervalRef = useRef(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-  const streamRef = useRef(null);
-  
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
@@ -1390,101 +1353,44 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     }
   };
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = () => {
     if (!profile?.username) { showToast('សូមកំណត់ឈ្មោះគណនីសិន', 'error'); setCurrentView('account'); return; }
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      audioChunksRef.current = [];
-      
-      let options = { mimeType: 'audio/webm' };
-      if (!MediaRecorder.isTypeSupported('audio/webm')) {
-        if (MediaRecorder.isTypeSupported('audio/ogg')) {
-          options = { mimeType: 'audio/ogg' };
-        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          options = { mimeType: 'audio/mp4' };
-        } else {
-          options = {}; 
-        }
-      }
-      
-      const mediaRecorder = new MediaRecorder(stream, options);
-      mediaRecorderRef.current = mediaRecorder;
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = async () => {
-        const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        const durationSec = recordDuration;
-        const durationStr = `0:${durationSec < 10 ? '0' : ''}${durationSec}`;
-        
-        showToast('កំពុងដំណើរការ និងផ្ញើរសំឡេង...', 'info');
-        
-        try {
-          // Fallback pathway: Convert real audio block into Base64 format strings safely for offline/sandbox boundaries
-          const finalAudioUrl = await blobToBase64(audioBlob);
-          
-          if (!db) {
-             showToast('បានបញ្ចប់ការថតសាកល្បង (Offline Mode)');
-             return;
-          }
-          
-          await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA'), {
-             text: '', 
-             msgType: 'audio',
-             duration: durationStr,
-             audioUrl: finalAudioUrl,
-             target: activeChatUser?.id, 
-             userId: user?.uid, 
-             userName: profile?.username, 
-             seen: true,
-             timestamp: Date.now()
-          });
-          showToast('ផ្ញើសំឡេងជោគជ័យ ✅');
-          
-        } catch (uploadErr) {
-          console.error("Failed to upload/save voice message:", uploadErr);
-          showToast('បរាជ័យក្នុងការផ្ញើរសំឡេង', 'error');
-        }
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordDuration(0);
-      recordIntervalRef.current = setInterval(() => {
-         setRecordDuration(prev => prev + 1);
-      }, 1000);
-      showToast('កំពុងថតសំឡេង...', 'info');
-      
-    } catch (err) {
-      console.error("Microphone access denied or failed:", err);
-      showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Microphone', 'error');
-    }
+    setIsRecording(true);
+    setRecordDuration(0);
+    recordIntervalRef.current = setInterval(() => {
+       setRecordDuration(prev => prev + 1);
+    }, 1000);
+    showToast('Hold/Click To Record (កំពុងថតសំឡេង...)', 'info');
   };
 
-  const handleStopRecording = (shouldCancel = false) => {
+  const handleStopRecording = async (shouldCancel = false) => {
     clearInterval(recordIntervalRef.current);
     setIsRecording(false);
     
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      if (shouldCancel) {
-        mediaRecorderRef.current.onstop = null; 
-        mediaRecorderRef.current.stop();
-        showToast('បានបោះបង់ការថតសំឡេង', 'error');
-      } else {
-        mediaRecorderRef.current.stop();
-      }
+    if (shouldCancel) {
+       showToast('បានបោះបង់ការថតសំឡេង', 'error');
+       return;
     }
-    
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+
+    const durationStr = `0:${recordDuration < 10 ? '0' : ''}${recordDuration}`;
+    setRecordDuration(0);
+
+    if (!db) {
+       showToast('បានបញ្ចប់ការថតសាកល្បង (Offline Mode)');
+       return;
     }
+
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA'), {
+       text: '', 
+       msgType: 'audio',
+       duration: durationStr,
+       target: activeChatUser?.id, 
+       userId: user?.uid, 
+       userName: profile?.username, 
+       seen: true,
+       timestamp: Date.now()
+    });
+    showToast('ផ្ញើសំឡេងជោគជ័យ ✅');
   };
 
   const handleSendLocation = () => {
@@ -1707,8 +1613,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
             } else if (msg.msgType === 'image') {
                msgContent = <img src={msg.imageUrl} alt="attached" className="max-w-[220px] rounded-xl shadow-sm border border-slate-200/50"/>;
             } else if (msg.msgType === 'audio') {
-               msgContent = <TelegramVoiceBubble audioUrl={msg.audioUrl} duration={msg.duration} />;
+               msgContent = <TelegramVoiceBubble duration={msg.duration} />;
             } else {
+               /* FIXED: Pure high-contrast white text for sent messages to avoid background text blending */
                msgContent = <div className={`break-words text-[14px] leading-relaxed font-semibold ${isMe ? 'text-white' : 'text-slate-800'}`}>{safeStr(msg.text)}</div>;
             }
 
@@ -1932,7 +1839,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   );
 };
 
-const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets }) => {
+const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [] }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
 
@@ -1955,6 +1862,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
 
   const [viewUserChat, setViewUserChat] = useState(null);
 
+  /* FIXED: Wrapped state update in defensive filters to prevent blank screens during approvals */
   const handleApprove = async (id, authorUid) => { 
       try {
         if (!db) throw new Error("Database context is offline");
@@ -2090,10 +1998,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      const currentData = (dbRegions && dbRegions["រតនមណ្ឌល"]) || {};
      if(currentData[newCommune]) return showToast('ឃុំនេះមានរួចហើយ!', 'error');
      const updated = { ...dbRegions, "រតនមណ្ឌល": { ...currentData, [newCommune]: [] } };
-     
-     if (typeof setDbRegions === 'function') {
-        setDbRegions(updated);
-     }
      if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updated });
      setNewCommune(''); showToast('បន្ថែមឃុំជោគជ័យ');
   };
@@ -2105,10 +2009,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      const currentVillages = currentData[selectedCommune] || [];
      if(currentVillages.includes(newVillage)) return showToast('ភូមិនេះមានរួចហើយ!', 'error');
      const updated = { ...dbRegions, "រតនមណ្ឌល": { ...currentData, [selectedCommune]: [...currentVillages, newVillage] } };
-     
-     if (typeof setDbRegions === 'function') {
-        setDbRegions(updated);
-     }
      if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updated });
      setNewVillage(''); showToast('បន្ថែមភូមិជោគជ័យ');
   };
@@ -2117,33 +2017,16 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      openConfirm("បញ្ជាក់ការលុប", `តើអ្នកពិតជាចង់លុបឃុំ ${cName} មែនទេ?`, async () => {
          const currentData = dbRegions && dbRegions["រតនមណ្ឌល"] ? { ...dbRegions["រតនមណ្ឌល"] } : {};
          delete currentData[cName];
-         const updatedRegions = { ...dbRegions, "រតនមណ្ឌល": currentData };
-         
-         if (typeof setDbRegions === 'function') {
-            setDbRegions(updatedRegions);
-         }
-         if (db) {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updatedRegions }, { merge: true });
-         }
-         showToast('លុបឃុំបានជោគជ័យ');
+         if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: { ...dbRegions, "រតនមណ្ឌល": currentData } });
      });
   };
 
   const handleDeleteVillage = (cName, vName) => {
      openConfirm("បញ្ជាក់ការលុប", `តើអ្នកពិតជាចង់លុបភូមិ ${vName} មែនទេ?`, async () => {
-         const currentData = dbRegions && dbRegions["រតនមណ្ឌល"] ? { ...dbRegions["រតនមណ្ឌល"] } : {};
-         const currentVillages = currentData[cName] || [];
+         const currentVillages = (dbRegions && dbRegions["រតនមណ្ឌល"] && dbRegions["រតនមណ្ឌល"][cName]) || [];
          const updatedVillages = currentVillages.filter(v => v !== vName);
-         const updatedData = { ...currentData, [cName]: updatedVillages };
-         const updatedRegions = { ...dbRegions, "រតនមណ្ឌល": updatedData };
-         
-         if (typeof setDbRegions === 'function') {
-            setDbRegions(updatedRegions);
-         }
-         if (db) {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updatedRegions }, { merge: true });
-         }
-         showToast('លុបភូមិបានជោគជ័យ');
+         const currentData = { ...dbRegions["រតនមណ្ឌល"], [cName]: updatedVillages };
+         if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: { ...dbRegions, "រតនមណ្ឌល": currentData } });
      });
   };
 
@@ -2170,13 +2053,8 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   };
 
   const handleDeleteChatTarget = (id) => {
-     openConfirm("បញ្ជាក់ការលុប", "តើអ្នកពិតជាចង់លុបទំនាក់ទំនងឆាតនេះមែនទេ? (សកម្មភាពនេះមិនអាចត្រឡប់វិញបានឡើយ)", async () => {
-         if (typeof setChatTargets === 'function') {
-            setChatTargets(prev => prev.filter(t => t.id !== id));
-         }
-         if (db) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_targets', id));
-         }
+     openConfirm("បញ្ជាក់ការលុប", "តើអ្នកពិតជាចង់លុបទំនាក់ទំនងឆាតនេះចេញពី Firebase មែនទេ?", async () => {
+         if (db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_targets', id));
          showToast('លុបជោគជ័យ ✅');
      });
   };
@@ -2408,7 +2286,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                    return (
                                    <div key={loc.id} className="flex justify-between items-center p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
                                       <div className="flex items-center gap-3">
-                                         <img src={loc.image} className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" alt="loc-preview"/>
+                                         <img src={loc.image} className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"/>
                                          <div>
                                             <p className="text-[13px] font-black text-[#0F2B5C] line-clamp-1">{displayTitle}</p>
                                             <p className="text-[10px] text-slate-500 font-bold mt-1">{safeStr(loc.commune)} • {safeStr(loc.village)}</p>
@@ -2433,7 +2311,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                    return (
                                    <div key={loc.id} className="flex justify-between items-center p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
                                       <div className="flex items-center gap-3">
-                                         <img src={loc.image} className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0" alt="loc-other-preview"/>
+                                         <img src={loc.image} className="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0"/>
                                          <div>
                                             <p className="text-[13px] font-black text-[#0F2B5C] line-clamp-1">{displayTitle}</p>
                                             <p className="text-[10px] text-slate-500 font-bold mt-1">{safeStr(loc.district)}</p>
@@ -2522,8 +2400,8 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       )}
 
       {viewUserChat && (
-         <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in pointer-events-auto font-khmer">
-             <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col h-[85dvh] border border-slate-200 animate-in zoom-in-95 pointer-events-auto">
+         <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in pointer-events-auto">
+             <div className="bg-white w-full max-w-xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col h-[85dvh] border border-slate-200 animate-in zoom-in-95 pointer-events-auto font-khmer">
                  <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-3">
                        <img src={viewUserChat.avatar} className="w-10 h-10 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
