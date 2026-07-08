@@ -610,7 +610,7 @@ export default function App() {
            {currentView === 'data' && <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-28"><DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} captureGps={handleGPS} /></div>}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-28"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
            {currentView === 'chat' && <div className="flex-1 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} /></div>}
-           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-28"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} /></div>}
+           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-28"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8 pb-28">
                 <AdminDashboard 
@@ -1602,7 +1602,7 @@ const ChatView = ({ chats, user, profile, showToast, db, appId, setCurrentView, 
   );
 };
 
-const AccountView = ({ user, profile, db, appId, showToast, setIsAdmin, setCurrentView }) => {
+const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView }) => {
   const [pwd, setPwd] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [localName, setLocalName] = useState(profile.username || '');
@@ -2322,6 +2322,42 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
                <h3 className="font-black text-[14.5px] text-[#0F2B5C] leading-tight line-clamp-1 mb-1">{displayTitle}</h3>
                <p className="text-[10px] text-slate-500 font-bold mb-3 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-slate-400"/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
                <p className="text-[12px] text-slate-500 leading-relaxed line-clamp-2 mb-3 font-medium">{safeStr(location.desc)}</p>
+               
+               <div className="flex gap-2 mb-3 mt-1">
+                  {/* Button Call */}
+                  <a 
+                     href={location.phone ? `tel:${location.phone}` : '#'} 
+                     onClick={(e) => {
+                        e.stopPropagation();
+                        if (!location.phone) e.preventDefault();
+                     }} 
+                     className={`flex-1 py-2 px-3 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm border ${
+                        location.phone 
+                           ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border-emerald-200' 
+                           : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                     }`}
+                  >
+                     <Phone className="w-3.5 h-3.5" />
+                     <span>ទូរស័ព្ទ</span>
+                  </a>
+
+                  {/* Button Location / GPS */}
+                  <a 
+                     href={
+                        location.mapUrl || 
+                        (location.coords 
+                           ? `https://www.google.com/maps?q=${location.coords.lat},${location.coords.lng}` 
+                           : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayTitle)}`)
+                     } 
+                     target="_blank" 
+                     rel="noreferrer"
+                     onClick={(e) => e.stopPropagation()} 
+                     className="flex-1 py-2 px-3 bg-sky-50 hover:bg-sky-100 text-[#0F2B5C] border border-sky-200 rounded-xl text-[11px] font-black flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm"
+                  >
+                     <MapPin className="w-3.5 h-3.5 text-[#38BDF8]" />
+                     <span>ទីតាំង</span>
+                  </a>
+               </div>
             </div>
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
                <span className="text-[10px] font-bold text-[#38BDF8] flex items-center gap-1 bg-sky-50 px-2 py-1 rounded-lg border border-sky-100"><Heart className="w-3.5 h-3.5 fill-current"/> {location.likes || 0} Likes</span>
