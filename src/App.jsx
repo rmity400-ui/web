@@ -7,6 +7,7 @@ import {
   Globe, ArrowRight, Loader2, MapPin, Mic, Camera, X, Play, AlertOctagon, 
   Ban, CheckCheck, Sparkles, Hexagon, GraduationCap, Pause, Volume2, Square
 } from 'lucide-react';
+import { app } from "./firebase";
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, increment } from 'firebase/firestore';
