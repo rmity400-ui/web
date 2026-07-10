@@ -1574,7 +1574,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       };
       
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioBlob = new Blob(audioChunksRef.current, {
+  type: mediaRecorderRef.current.mimeType || 'audio/webm'
+});
         const durationSec = recordDuration;
         const durationStr = `0:${durationSec < 10 ? '0' : ''}${durationSec}`;
         
