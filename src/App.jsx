@@ -5,7 +5,7 @@ import {
   Image as ImageIcon, Send, LogOut, Settings, 
   LayoutGrid, ShieldAlert, TrendingUp, Phone, CheckCircle, ArrowLeft, 
   Globe, ArrowRight, Loader2, MapPin, Mic, Camera, X, Play, AlertOctagon, 
-  Ban, CheckCheck, Sparkles, Hexagon, GraduationCap, Pause, Volume2, Square, Download, RefreshCw
+  Ban, CheckCheck, Sparkles, Hexagon, GraduationCap, Pause, Volume2, Square, Download, RefreshCw, Lock
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
@@ -66,7 +66,7 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
 } catch (configError) {
-  console.warn("Firebase execution context initialized in local sandbox mode.");
+  console.warn("Firebase initialized in fallback context.");
 }
 
 const appId = 'ramit-7e364';
@@ -101,7 +101,6 @@ const injectStyles = () => {
     .font-khmer { font-family: var(--font-khmer); }
     .font-logo { font-family: 'Montserrat', sans-serif; }
     
-    /* Strict viewport constraints to avoid keyboard zoom jumps */
     input, textarea, select { 
       font-size: 16px !important; 
       outline: none; 
@@ -109,8 +108,8 @@ const injectStyles = () => {
     } 
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 15px); }
-    .pt-safe { padding-top: max(env(safe-area-inset-top), 15px); }
+    .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+    .pt-safe { padding-top: max(env(safe-area-inset-top), 12px); }
 
     .btn-gradient {
        background: linear-gradient(135deg, #0F2B5C, #1e3a8a);
@@ -120,13 +119,13 @@ const injectStyles = () => {
     .btn-gradient:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(15, 43, 92, 0.15); }
     
     .premium-card {
-       background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border: 1px solid rgba(226, 232, 240, 0.8);
+       background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.03); border: 1px solid rgba(226, 232, 240, 0.7);
     }
     .glass-nav {
        background: rgba(255, 255, 255, 0.98); 
        backdrop-filter: blur(20px); 
        -webkit-backdrop-filter: blur(20px);
-       box-shadow: 0 -4px 30px rgba(0,0,0,0.04);
+       box-shadow: 0 -2px 20px rgba(0,0,0,0.05);
     }
     
     .telegram-bg {
@@ -143,19 +142,58 @@ const safeStr = (val, fallback = '') => {
   return fallback;
 };
 
-const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
+const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, requirePassword = false }) => {
+  const [typedPassword, setTypedPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setTypedPassword('');
+      setErrorMsg('');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleAction = () => {
+    if (requirePassword) {
+      if (typedPassword !== 'ict168mit') {
+        setErrorMsg('លេខកូដសុវត្ថិភាពមិនត្រឹមត្រូវទេ!');
+        return;
+      }
+    }
+    onConfirm();
+  };
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 animate-in fade-in duration-200 pointer-events-auto">
-      <div className="bg-white rounded-[1.5rem] shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 border border-slate-100 font-khmer">
-        <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mb-3 mx-auto border border-rose-100">
-          <ShieldAlert className="w-6 h-6 text-rose-500" />
+      <div className="bg-white rounded-[1.25rem] shadow-2xl p-5 w-full max-w-sm animate-in zoom-in-95 border border-slate-100 font-khmer">
+        <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center mb-2 mx-auto border border-rose-100">
+          <ShieldAlert className="w-5 h-5 text-rose-500" />
         </div>
-        <h3 className="text-[15px] font-black text-center text-slate-800 mb-2">{safeStr(title)}</h3>
-        <p className="text-[12px] text-center text-slate-500 mb-5 leading-relaxed font-medium">{safeStr(message)}</p>
-        <div className="flex gap-2.5">
-          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl font-bold text-[12px] bg-slate-100 text-slate-600 active:scale-95 transition-all">បដិសេធ</button>
-          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl font-bold text-[12px] bg-[#0F2B5C] text-white shadow-md active:scale-95 transition-all">ព្រម</button>
+        <h3 className="text-[13px] font-black text-center text-slate-800 mb-1">{safeStr(title)}</h3>
+        <p className="text-[11px] text-center text-slate-500 mb-3 leading-relaxed font-medium">{safeStr(message)}</p>
+        
+        {requirePassword && (
+          <div className="mb-4">
+            <label className="text-[9px] font-black text-slate-400 block mb-1 uppercase">វាយលេខកូដផ្ទៀងផ្ទាត់ (Password required) *</label>
+            <div className="relative flex items-center">
+               <Lock className="w-3.5 h-3.5 absolute left-3 text-slate-400" />
+               <input 
+                 type="password" 
+                 value={typedPassword} 
+                 onChange={e => { setTypedPassword(e.target.value); setErrorMsg(''); }}
+                 placeholder="បញ្ចូលលេខសម្ងាត់ Admin..." 
+                 className="w-full bg-slate-50 border border-slate-200 pl-8 pr-3 py-2 rounded-xl text-[12px] font-bold outline-none"
+               />
+            </div>
+            {errorMsg && <p className="text-[9px] text-rose-500 font-bold mt-1 text-center">{errorMsg}</p>}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button onClick={onCancel} className="flex-1 py-2 rounded-xl font-bold text-[11px] bg-slate-100 text-slate-600 active:scale-95 transition-all">បដិសេធ</button>
+          <button onClick={handleAction} className="flex-1 py-2 rounded-xl font-bold text-[11px] bg-[#0F2B5C] text-white shadow-md active:scale-95 transition-all">ព្រម</button>
         </div>
       </div>
     </div>
@@ -200,6 +238,7 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [favorites, setFavorites] = useState({});
   const [dbRegions, setDbRegions] = useState(DEFAULT_REGIONS);
+  const [appeals, setAppeals] = useState([]);
 
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [toast, setToast] = useState(null);
@@ -213,6 +252,8 @@ export default function App() {
   const [appealText, setAppealText] = useState('');
   const [appealPhoto, setAppealPhoto] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const videoRef = useRef(null);
+  const streamObjectRef = useRef(null);
 
   const showToast = (msg, type = 'success', duration = 3000) => { 
       setToast({ msg: safeStr(msg), type }); 
@@ -345,6 +386,11 @@ export default function App() {
       setCyberLogs(lg);
     }, () => {});
 
+    const unsubAppeals = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'appeals'), snap => {
+      const ap = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      setAppeals(ap);
+    }, () => {});
+
     const unsubNotif = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), snap => {
       const mt = snap.docs.map(d => ({id: d.id, ...d.data()})); 
       mt.sort((a,b) => b.timestamp - a.timestamp); 
@@ -378,7 +424,7 @@ export default function App() {
     return () => { 
         clearInterval(presenceInterval); 
         unsubProfile(); unsubAllUsers(); unsubLocations(); unsubChats(); 
-        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTargets(); 
+        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTargets(); unsubAppeals();
     };
   }, [user]);
 
@@ -397,6 +443,87 @@ export default function App() {
      }
      previousNotifCount.current = myNotifications.length;
   }, [myNotifications]);
+
+  const startCamera = async () => {
+    setIsCapturing(true);
+    setAppealPhoto(null);
+    try {
+      const constraints = { video: { facingMode: 'user', width: 320, height: 240 } };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamObjectRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+      showToast('កំពុងបើកកាមេរ៉ាស្កែនផ្ទៃមុខ...', 'info');
+    } catch (e) {
+      showToast('បរាជ័យក្នុងការបើកកាមេរ៉ាពិតប្រាកដ', 'error');
+      setIsCapturing(false);
+    }
+  };
+
+  const capturePhotoSnapshot = () => {
+    if (!videoRef.current || !streamObjectRef.current) return;
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 320;
+      canvas.height = video.videoHeight || 240;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      setAppealPhoto(dataUrl);
+      
+      if (streamObjectRef.current) {
+        streamObjectRef.current.getTracks().forEach(track => track.stop());
+      }
+      streamObjectRef.current = null;
+      setIsCapturing(false);
+      showToast('ថតរូបបញ្ជាក់អត្តសញ្ញាណបានជោគជ័យ ✅');
+    } catch (err) {
+      showToast('មានបញ្ហាក្នុងការថតរូប', 'error');
+    }
+  };
+
+  const cancelCameraStream = () => {
+    if (streamObjectRef.current) {
+      streamObjectRef.current.getTracks().forEach(track => track.stop());
+    }
+    streamObjectRef.current = null;
+    setIsCapturing(false);
+    setAppealPhoto(null);
+  };
+
+  const submitAppeal = async () => {
+     if (!appealText.trim()) return showToast('សូមសរសេរព័រណានៃការសន្យារបស់អ្នក', 'error');
+     if (!appealPhoto) return showToast('សូមថតរូបមុខដើម្បីបញ្ជាក់អត្តសញ្ញាណជាមុនសិន', 'error');
+     
+     showToast('កំពុងផ្ញើសំណើរសុំបើកគណនី...', 'info');
+     try {
+        if (db && user) {
+           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'appeals', user.uid), {
+              userId: user.uid,
+              username: profile.username || 'Unspecified User',
+              text: appealText.trim(),
+              photo: appealPhoto,
+              timestamp: Date.now()
+           });
+           
+           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
+              targetId: 'Admin',
+              title: 'សំណើរសុំសម្រុះសម្រួលទណ្ឌកម្ម ⚠️',
+              msg: `${profile.username} បានផ្ញើសំណើរសុំសម្រុះសម្រួលទណ្ឌកម្ម។`,
+              type: 'info',
+              timestamp: Date.now()
+           });
+        }
+        showToast('បានផ្ញើសំណើរសុំបើកគណនីវិញដោយជោគជ័យ។', 'success', 5000);
+        setAppealText('');
+        setAppealPhoto(null);
+     } catch (err) {
+        showToast('មានបញ្ហាក្នុងការផ្ញើសំណើរ', 'error');
+     }
+  };
 
   const handleGPS = () => {
      setGpsStatus('loading');
@@ -500,46 +627,6 @@ export default function App() {
     }
   };
 
-  const startCameraMock = () => {
-     setIsCapturing(true);
-     showToast('កំពុងបើកដំណើរការកាមេរ៉ាសុវត្ថិភាព...', 'info');
-     setTimeout(() => {
-        setAppealPhoto('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150');
-        setIsCapturing(false);
-        showToast('ថតរូបបញ្ជាក់អត្តសញ្ញាណបានជោគជ័យ ✅');
-     }, 2000);
-  };
-
-  const submitAppeal = async () => {
-     if (!appealText.trim()) return showToast('សូមសរសេរព័រណានៃការសន្យារបស់អ្នក', 'error');
-     if (!appealPhoto) return showToast('សូមថតរូបមុខដើម្បីបញ្ជាក់អត្តសញ្ញាណជាមុនសិន', 'error');
-     
-     showToast('កំពុងផ្ញើសំណើរសុំបើកគណនី...', 'info');
-     setTimeout(async () => {
-        if (db && user) {
-           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
-              targetId: 'Admin',
-              title: 'សំណើរសុំសម្រុះសម្រួលទណ្ឌកម្ម ⚠️',
-              msg: `${profile.username} បានផ្ញើសំណើរសុំសម្រុះសម្រួលទណ្ឌកម្ម៖ "${appealText}"`,
-              type: 'info',
-              timestamp: Date.now()
-           });
-           
-           // Notify user of reception
-           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
-              targetId: user.uid,
-              title: 'ទទួលបានសំណើសម្រុះសម្រួល',
-              msg: 'ប្រព័ន្ធទទួលបានសំណើរបស់អ្នករួចហើយ។ ព័ត៌មាននឹងត្រូវពិនិត្យដោយអភិបាលក្នុងពេលឆាប់ៗ។',
-              type: 'info',
-              timestamp: Date.now()
-           });
-        }
-        showToast('បានផ្ញើសំណើរសុំបើកគណនីវិញដោយជោគជ័យ។', 'success', 5000);
-        setAppealText('');
-        setAppealPhoto(null);
-     }, 1500);
-  };
-
   const approvedLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'approved'), [locations]);
   const pendingLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'pending'), [locations]);
 
@@ -547,40 +634,52 @@ export default function App() {
 
   if (profile?.isBanned && !isAdmin) {
       return (
-        <div className="fixed inset-0 z-[9999] bg-[#0F2B5C] text-white flex flex-col items-center justify-center p-5 text-center animate-in fade-in duration-500 font-khmer overflow-y-auto">
-           <AlertOctagon className="w-16 h-16 mb-4 animate-pulse text-rose-500 shrink-0" />
-           <h1 className="text-xl font-black mb-2 text-rose-400">គណនីត្រូវបានបិទ! (Device Blocked)</h1>
-           <p className="text-[12px] font-medium leading-relaxed max-w-sm text-slate-200 bg-slate-900/50 p-4 rounded-2xl border border-rose-500/30 shadow-xl mb-6 font-khmer">
+        <div className="fixed inset-0 z-[9999] bg-[#0F2B5C] text-white flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-500 font-khmer overflow-y-auto">
+           <AlertOctagon className="w-12 h-12 mb-3 animate-pulse text-rose-500 shrink-0" />
+           <h1 className="text-base font-black mb-1.5 text-rose-400">គណនីត្រូវបានបិទ! (Device Blocked)</h1>
+           <p className="text-[10.5px] font-medium leading-relaxed max-w-sm text-slate-200 bg-slate-900/50 p-3.5 rounded-2xl border border-rose-500/30 shadow-xl mb-4">
               ដោយសារតែទង្វើរនិងសកម្មភាពអវិជ្ជមានរបស់អ្នកដែលធ្វើឱ្យប៉ះពាល់ដល់ការងាររបស់អ្នកដទៃ ចឹងមិនអាចចូលប្រើបានទេ ប្រសិនបើអ្នកចង់ប្រើត្រូវធ្វើតាមនីតិវិធីដូចខាងក្រោម បើមានលើកទីពីរនោះប្រព័ន្ធនឹងដក web app ចេញពីទូរស័ព្ទដៃរបស់ user និងមិនអាចចូលប្រើបានជារៀងរហូត។
            </p>
 
-           <div className="w-full max-w-xs bg-white/10 p-4 rounded-2xl border border-white/10 space-y-4 mb-6">
+           <div className="w-full max-w-xs bg-white/10 p-3 rounded-2xl border border-white/10 space-y-3 mb-4">
                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-300 block mb-2 text-left">១. ថតរូបមុខបញ្ជាក់អត្តសញ្ញាណ *</label>
-                  <div className="flex items-center gap-3">
-                     <button onClick={startCameraMock} disabled={isCapturing} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all">
-                        {isCapturing ? <Loader2 className="w-4 h-4 animate-spin"/> : <Camera className="w-4 h-4"/>}
-                        {appealPhoto ? 'ថតរូបម្តងទៀត' : 'ថតរូបមុខផ្ទាល់'}
+                  <label className="text-[9px] uppercase font-bold text-slate-300 block mb-1.5 text-left">១. ថតរូបមុខបញ្ជាក់អត្តសញ្ញាណ *</label>
+                  
+                  {isCapturing && (
+                    <div className="w-full aspect-[4/3] bg-black rounded-xl overflow-hidden relative mb-2">
+                       <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                       <button onClick={capturePhotoSnapshot} className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-rose-600 px-4 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1"><Camera className="w-3.5 h-3.5" /> ថតយក (Capture)</button>
+                       <button onClick={cancelCameraStream} className="absolute top-2 right-2 p-1 bg-black/60 rounded-full"><X className="w-4 h-4"/></button>
+                    </div>
+                  )}
+
+                  {!isCapturing && appealPhoto && (
+                     <div className="relative w-full aspect-[16/10] bg-black/20 rounded-xl overflow-hidden border border-white/10 mb-2">
+                        <img src={appealPhoto} alt="Snapshot" className="w-full h-full object-cover" />
+                        <button onClick={startCamera} className="absolute bottom-2 right-2 bg-black/60 p-1.5 rounded-lg text-[9px] font-bold">ថតម្តងទៀត</button>
+                     </div>
+                  )}
+
+                  {!isCapturing && !appealPhoto && (
+                     <button onClick={startCamera} className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-[10px] flex items-center justify-center gap-1 transition-all">
+                        <Camera className="w-3.5 h-3.5"/> ថតរូបមុខផ្ទាល់ (Open Camera)
                      </button>
-                     {appealPhoto && (
-                        <img src={appealPhoto} alt="Snapshot" className="w-10 h-10 rounded-lg object-cover border border-white/20 animate-in zoom-in-50" />
-                     )}
-                  </div>
+                  )}
                </div>
                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-300 block mb-1.5 text-left">២. លិខិតបញ្ជាក់សេចក្តីសន្យា *</label>
+                  <label className="text-[9px] uppercase font-bold text-slate-300 block mb-1 text-left">២. លិខិតបញ្ជាក់សេចក្តីសន្យា *</label>
                   <textarea 
                      value={appealText}
                      onChange={e => setAppealText(e.target.value)}
                      placeholder="សរសេរការសន្យារបស់អ្នកនៅទីនេះ..."
-                     className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-400 p-2.5 rounded-xl text-[12px] h-20 resize-none font-medium"
+                     className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-400 p-2 rounded-xl text-[11px] h-16 resize-none font-medium"
                   />
                </div>
            </div>
 
-           <div className="flex gap-3 w-full max-w-xs">
-              <button onClick={() => setCurrentPage('gateway')} className="flex-1 bg-white/10 hover:bg-white/15 px-4 py-3 rounded-xl font-bold text-[12px] transition-all">ត្រឡប់ក្រោយ</button>
-              <button onClick={submitAppeal} className="flex-1 bg-rose-600 hover:bg-rose-700 px-4 py-3 rounded-xl font-black text-[12px] shadow-lg shadow-rose-600/30 transition-all">ផ្ញើសំណើសម្រុះសម្រួល</button>
+           <div className="flex gap-2 w-full max-w-xs">
+              <button onClick={() => setCurrentPage('gateway')} className="flex-1 bg-white/10 hover:bg-white/15 px-3 py-2.5 rounded-xl font-bold text-[11px] transition-all">ត្រឡប់ក្រោយ</button>
+              <button onClick={submitAppeal} className="flex-1 bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-xl font-black text-[11px] shadow-lg shadow-rose-600/30 transition-all">ផ្ញើសំណើសម្រុះសម្រួល</button>
            </div>
         </div>
       );
@@ -677,7 +776,7 @@ export default function App() {
       
       {user && currentView !== 'chat' && (
          <div className="absolute bottom-[80px] md:bottom-8 right-4 md:right-8 z-[100] animate-in slide-in-from-bottom-10 fade-in duration-500 pointer-events-auto">
-             <GPSButton gpsStatus={gpsStatus} handleGPS={handleGPS} className="w-12 h-12 shadow-[0_10px_25px_rgba(0,0,0,0.1)] bg-white border border-slate-200 hover:scale-105 active:scale-95 text-[#0F2B5C]" />
+             <GPSButton gpsStatus={gpsStatus} handleGPS={handleGPS} className="w-11 h-11 shadow-[0_8px_20px_rgba(0,0,0,0.1)] bg-white border border-slate-200 hover:scale-105 active:scale-95 text-[#0F2B5C]" />
          </div>
       )}
 
@@ -723,13 +822,14 @@ export default function App() {
                   setIsAdmin={setIsAdmin} 
                   chatTargets={chatTargets} 
                   setChatTargets={setChatTargets}
+                  appeals={appeals}
+                  setAppeals={setAppeals}
                 />
               </div>
            )}
         </div>
       </main>
 
-      {/* Flush Bottom Menu exactly fitting mobile screen margins */}
       <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} />
 
       {selectedLocation && <LocationDetailModal location={selectedLocation} onClose={() => setSelectedLocation(null)} favorites={favorites} toggleFavorite={toggleFavorite} />}
@@ -748,23 +848,23 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'អ្នកគ្រប់គ្រង' });
 
   return (
-    <aside className="hidden md:flex flex-col w-[240px] bg-white border-r border-slate-200 z-10 h-[100dvh] shrink-0 shadow-sm animate-in fade-in">
-      <div className="p-5 flex items-center gap-3 border-b border-slate-100">
-        <div className="w-9 h-9 bg-slate-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-slate-200">
+    <aside className="hidden md:flex flex-col w-[220px] bg-white border-r border-slate-200 z-10 h-[100dvh] shrink-0 shadow-sm animate-in fade-in">
+      <div className="p-4 flex items-center gap-3 border-b border-slate-100">
+        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-slate-200">
            <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
         </div>
         <div>
-          <h1 className="font-logo font-extrabold text-[13px] text-[#0F2B5C] leading-none uppercase tracking-wider pb-0.5">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
+          <h1 className="font-logo font-extrabold text-[12px] text-[#0F2B5C] leading-none uppercase tracking-wider pb-0.5">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
           <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Admin Portal</p>
         </div>
       </div>
       
-      <div className="flex-1 px-3 py-4 space-y-1 overflow-y-auto hide-scrollbar">
-        <div className="text-[9px] font-bold text-slate-400 mb-2 px-3 uppercase tracking-widest">ម៉ឺនុយទំព័រ</div>
+      <div className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto hide-scrollbar">
+        <div className="text-[8.5px] font-bold text-slate-400 mb-1.5 px-3 uppercase tracking-widest">ម៉ឺនុយទំព័រ</div>
         {navItems.map(item => (
-          <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors duration-200 ${currentView === item.id ? 'bg-[#0F2B5C] text-white font-bold shadow-md shadow-[#0F2B5C]/20' : 'text-slate-500 hover:bg-slate-50 font-medium'}`}>
-            <item.icon className={`w-4.5 h-4.5 ${currentView === item.id ? 'stroke-[2px]' : 'stroke-[1.5px]'}`} />
-            <div className="text-[12px]">{item.label}</div>
+          <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors duration-200 ${currentView === item.id ? 'bg-[#0F2B5C] text-white font-bold shadow-md shadow-[#0F2B5C]/20' : 'text-slate-500 hover:bg-slate-50 font-medium'}`}>
+            <item.icon className={`w-4 h-4 ${currentView === item.id ? 'stroke-[2px]' : 'stroke-[1.5px]'}`} />
+            <div className="text-[11.5px]">{item.label}</div>
           </button>
         ))}
       </div>
@@ -783,14 +883,14 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 glass-nav z-50 border-t border-slate-200 overflow-hidden pb-safe">
-      <div className="flex justify-around items-center h-[55px] px-2 relative">
+      <div className="flex justify-around items-center h-[52px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
            <button key={item.id} onClick={() => setCurrentView(item.id)} className="relative flex-1 flex flex-col items-center justify-center h-full transition-colors active:scale-95 group">
              <div className={`flex flex-col items-center justify-center transition-all duration-300 ${isActive ? 'text-[#0F2B5C]' : 'text-slate-400'}`}>
                 <div className={`p-1.5 rounded-lg ${isActive ? 'bg-[#0F2B5C]/10' : ''}`}>
-                   <item.icon className={`w-5 h-5 ${isActive ? 'stroke-[2px]' : 'stroke-[1.5px]'}`} />
+                   <item.icon className={`w-4.5 h-4.5 ${isActive ? 'stroke-[2px]' : 'stroke-[1.5px]'}`} />
                 </div>
              </div>
            </button>
@@ -803,44 +903,44 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
 
 const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotificationsOpen, searchQuery, setSearchQuery, db, appId, user, appLogo, currentView }) => {
     return (
-        <div className="bg-white border-b border-slate-200 pt-[calc(env(safe-area-inset-top,10px)+12px)] px-4 md:px-6 pb-3.5 shadow-sm relative z-40 shrink-0 w-full rounded-b-[20px] md:rounded-none">
-           <div className="flex justify-between items-center mb-2.5">
-              <div className="flex items-center gap-3">
-                 <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center overflow-hidden p-0.5 shadow-md border border-slate-100">
+        <div className="bg-white border-b border-slate-200 pt-[calc(env(safe-area-inset-top,10px)+10px)] px-4 md:px-6 pb-2.5 shadow-sm relative z-40 shrink-0 w-full rounded-b-[16px] md:rounded-none">
+           <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2.5">
+                 <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center overflow-hidden p-0.5 shadow-sm border border-slate-100">
                     <img src={appLogo} className="w-full h-full object-cover rounded-full" alt="Logo" />
                  </div>
-                 <h1 className="font-logo font-extrabold text-[14px] leading-tight text-[#0F2B5C] tracking-wide uppercase">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
+                 <h1 className="font-logo font-extrabold text-[12.5px] leading-tight text-[#0F2B5C] tracking-wide uppercase">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                  <button 
                    onClick={()=>setCurrentPage('gateway')} 
-                   className="flex items-center gap-1 text-[10px] font-bold text-[#0F2B5C] bg-slate-50 border border-slate-200 shadow-sm py-1.5 px-2.5 rounded-lg hover:bg-slate-100 active:scale-95 transition-transform"
+                   className="flex items-center gap-1 text-[9px] font-bold text-[#0F2B5C] bg-slate-50 border border-slate-200 shadow-sm py-1 px-2 rounded-lg hover:bg-slate-100 active:scale-95 transition-transform"
                  >
                     <ArrowLeft className="w-3 h-3" /> ត្រឡប់
                  </button>
 
                  <div className="relative">
-                     <button className="p-2 bg-slate-50 rounded-full active:scale-95 transition shadow-sm relative border border-slate-200 hover:bg-slate-100" onClick={() => setNotificationsOpen(!notificationsOpen)}>
-                        <Bell className="w-4 h-4 text-[#0F2B5C]" />
-                        {notifications && notifications.length > 0 && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-rose-500 rounded-full border border-white animate-pulse"></span>}
+                     <button className="p-1.5 bg-slate-50 rounded-full active:scale-95 transition shadow-sm relative border border-slate-200 hover:bg-slate-100" onClick={() => setNotificationsOpen(!notificationsOpen)}>
+                        <Bell className="w-3.5 h-3.5 text-[#0F2B5C]" />
+                        {notifications && notifications.length > 0 && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white animate-pulse"></span>}
                      </button>
                      {notificationsOpen && (
-                        <div className="absolute right-0 mt-3 w-72 bg-white shadow-2xl rounded-2xl border border-slate-200 overflow-hidden z-50 text-slate-800 animate-in fade-in zoom-in-95 pointer-events-auto">
-                          <div className="p-3 border-b border-slate-100 font-bold flex justify-between text-[11px] bg-slate-50 items-center text-[#0F2B5C]">
-                            <span>ការជូនដំណឹង (Notifications)</span><button onClick={() => setNotificationsOpen(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-3.5 h-3.5 text-slate-500" /></button>
+                        <div className="absolute right-0 mt-3 w-64 bg-white shadow-2xl rounded-2xl border border-slate-200 overflow-hidden z-50 text-slate-800 animate-in fade-in zoom-in-95 pointer-events-auto">
+                          <div className="p-2 border-b border-slate-100 font-bold flex justify-between text-[10px] bg-slate-50 items-center text-[#0F2B5C]">
+                            <span>ការជូនដំណឹង (Notifications)</span><button onClick={() => setNotificationsOpen(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-3 h-3 text-slate-500" /></button>
                           </div>
-                          <div className="max-h-60 overflow-y-auto">
-                            {!notifications || notifications.length === 0 ? <p className="p-5 text-center text-[11px] text-slate-400 font-bold">គ្មានសារថ្មីទេ</p> : 
+                          <div className="max-h-52 overflow-y-auto">
+                            {!notifications || notifications.length === 0 ? <p className="p-4 text-center text-[10px] text-slate-400 font-bold">គ្មានសារថ្មីទេ</p> : 
                               notifications.map(n => (
-                                <div key={n.id} className="p-3 border-b border-slate-50 flex justify-between items-start gap-2 hover:bg-slate-50 transition-colors">
+                                <div key={n.id} className="p-2.5 border-b border-slate-50 flex justify-between items-start gap-1.5 hover:bg-slate-50 transition-colors">
                                   <div className="flex-1">
-                                    <p className={`text-[11px] font-black flex items-center gap-1 ${n.type === 'error' ? 'text-rose-500' : 'text-[#0F2B5C]'}`}>
-                                        <Bell className="w-3 h-3"/> {safeStr(n.title)}
+                                    <p className={`text-[10px] font-black flex items-center gap-1 ${n.type === 'error' ? 'text-rose-500' : 'text-[#0F2B5C]'}`}>
+                                        <Bell className="w-2.5 h-2.5"/> {safeStr(n.title)}
                                     </p>
-                                    <p className="text-[10px] text-slate-500 mt-1 font-medium leading-relaxed">{safeStr(n.msg)}</p>
+                                    <p className="text-[9px] text-slate-500 mt-0.5 font-medium leading-normal">{safeStr(n.msg)}</p>
                                   </div>
-                                  <button onClick={async () => { if(db) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_notifications', n.id)).catch(()=>{}); } }} className="text-slate-400 hover:text-rose-500 shrink-0 p-1 rounded-full"><X className="w-3 h-3"/></button>
+                                  <button onClick={async () => { if(db) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_notifications', n.id)).catch(()=>{}); } }} className="text-slate-400 hover:text-rose-500 shrink-0 p-0.5 rounded-full"><X className="w-2.5 h-2.5"/></button>
                                 </div>
                               ))
                             }
@@ -854,13 +954,13 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
            <div className="flex flex-col w-full mt-1">
               {currentView === 'home' && (
                   <form onSubmit={(e) => { e.preventDefault(); document.activeElement?.blur(); }} className="relative w-full animate-in fade-in slide-in-from-top-2">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                       <Search className="w-4 h-4" />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                       <Search className="w-3.5 h-3.5" />
                     </div>
                     <input 
                       type="text" 
                       placeholder="ស្វែងរកទីតាំង ឬសេវាកម្ម..." 
-                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-3 outline-none text-[13px] font-bold border border-slate-200 focus:border-[#38BDF8] transition-all m-0 shadow-inner" 
+                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none text-[12px] font-bold border border-slate-200 focus:border-[#38BDF8] transition-all m-0 shadow-inner" 
                       value={searchQuery} 
                       onChange={(e) => setSearchQuery(e.target.value)} 
                     />
@@ -886,52 +986,51 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   });
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300 pt-2.5 w-full flex-1">
-      <div className="bg-[#0F2B5C] rounded-[20px] p-4 relative overflow-hidden flex flex-row items-center justify-between w-full min-h-[120px] shadow-lg">
-         <div className="absolute top-0 right-0 w-32 h-full bg-[#38BDF8]/10 rounded-l-[100px] z-0 pointer-events-none"></div>
-         <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#38BDF8]/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="space-y-3 animate-in fade-in duration-300 pt-2 w-full flex-1">
+      <div className="bg-[#0F2B5C] rounded-[16px] p-3.5 relative overflow-hidden flex flex-row items-center justify-between w-full min-h-[100px] shadow-sm">
+         <div className="absolute top-0 right-0 w-28 h-full bg-[#38BDF8]/10 rounded-l-[100px] z-0 pointer-events-none"></div>
          
          <div className="flex-1 z-10 pr-2">
-             <h1 className="text-[15px] md:text-lg font-black text-white leading-tight mb-1.5 tracking-wide font-khmer">
+             <h1 className="text-[14px] md:text-base font-black text-white leading-tight mb-1 tracking-wide font-khmer">
                  ទិន្នន័យសំខាន់ៗ នៅទីនេះ!
              </h1>
-             <p className="text-[10px] md:text-[12px] text-sky-200 mb-3 leading-relaxed font-bold">
+             <p className="text-[9.5px] md:text-[11px] text-sky-200 mb-2 leading-relaxed font-bold">
                  រហ័ស ងាយស្រួល និង can trust សម្រាប់អ្នកទាំងអស់គ្នា
              </p>
-             <button onClick={()=>setCurrentView('data')} className="bg-[#38BDF8] text-[#0F2B5C] px-4 py-2 rounded-lg text-[10px] font-black flex items-center gap-1 hover:bg-sky-400 active:scale-95 transition-all shadow-md">
+             <button onClick={()=>setCurrentView('data')} className="bg-[#38BDF8] text-[#0F2B5C] px-3.5 py-1.5 rounded-lg text-[9.5px] font-black flex items-center gap-1 hover:bg-sky-400 active:scale-95 transition-all shadow-sm">
                  ស្វែងយល់ <ArrowRight className="w-3 h-3"/>
              </button>
          </div>
-         <div className="w-[75px] h-[75px] shrink-0 z-10 overflow-hidden rounded-full shadow-2xl bg-white border-2 border-[#38BDF8] flex items-center justify-center p-0.5 rotate-3">
+         <div className="w-[65px] h-[65px] shrink-0 z-10 overflow-hidden rounded-full shadow-md bg-white border-2 border-[#38BDF8] flex items-center justify-center p-0.5">
              <img src="ooop.png" alt="Banner" className="w-full h-full object-cover rounded-full" />
          </div>
       </div>
 
       <div>
-         <div className="flex justify-between items-center mb-3 px-1 border-l-4 border-[#0F2B5C] pl-2.5">
-            <h2 className="font-black text-[13px] text-slate-800 leading-none">ជម្រើសទីតាំង</h2>
+         <div className="flex justify-between items-center mb-2 px-1 border-l-4 border-[#0F2B5C] pl-2">
+            <h2 className="font-black text-[12px] text-slate-800 leading-none">ជម្រើសទីតាំង</h2>
          </div>
-         <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setActiveHomeFilter(activeHomeFilter==='រតនមណ្ឌល'?'All':'រតនមណ្ឌល')} className={`premium-card p-3 flex flex-col justify-center items-center transition-all active:scale-95 ${activeHomeFilter==='រតនមណ្ឌល' ? 'border-[#0F2B5C] bg-[#0F2B5C] text-white shadow-xl' : 'hover:border-[#0F2B5C]/30 text-[#0F2B5C] bg-white'}`}>
-               <div className={`p-2.5 rounded-full mb-1.5 ${activeHomeFilter==='រតនមណ្ឌល' ? 'bg-white/20 text-white' : 'bg-slate-100 text-[#0F2B5C]'}`}><Map className="w-5 h-5 stroke-[2px]"/></div>
-               <span className={`font-black text-[11px] ${activeHomeFilter==='រតនមណ្ឌល' ? 'text-white' : 'text-[#0F2B5C]'}`}>រតនមណ្ឌល</span>
+         <div className="grid grid-cols-2 gap-2.5">
+            <button onClick={() => setActiveHomeFilter(activeHomeFilter==='រតនមណ្ឌល'?'All':'រតនមណ្ឌល')} className={`premium-card p-2.5 flex flex-col justify-center items-center transition-all active:scale-95 ${activeHomeFilter==='រតនមណ្ឌល' ? 'border-[#0F2B5C] bg-[#0F2B5C] text-white shadow-md' : 'hover:border-[#0F2B5C]/30 text-[#0F2B5C] bg-white'}`}>
+               <div className={`p-2 rounded-full mb-1 ${activeHomeFilter==='រតនមណ្ឌល' ? 'bg-white/20 text-white' : 'bg-slate-100 text-[#0F2B5C]'}`}><Map className="w-4 h-4 stroke-[2px]"/></div>
+               <span className={`font-black text-[10px] ${activeHomeFilter==='រតនមណ្ឌល' ? 'text-white' : 'text-[#0F2B5C]'}`}>រតនមណ្ឌល</span>
             </button>
-            <button onClick={() => setActiveHomeFilter(activeHomeFilter==='ផ្សេងៗ'?'All':'ផ្សេងៗ')} className={`premium-card p-3 flex flex-col justify-center items-center transition-all active:scale-95 ${activeHomeFilter==='ផ្សេងៗ' ? 'border-[#38BDF8] bg-[#38BDF8] text-[#0F2B5C] shadow-xl' : 'hover:border-[#38BDF8]/50 text-[#38BDF8] bg-white'}`}>
-               <div className={`p-2.5 rounded-full mb-1.5 ${activeHomeFilter==='ផ្សេងៗ' ? 'bg-white/40 text-[#0F2B5C]' : 'bg-slate-100 text-[#38BDF8]'}`}><Globe className="w-5 h-5 stroke-[2px]"/></div>
-               <span className={`font-black text-[11px] ${activeHomeFilter==='ផ្សេងៗ' ? 'text-[#0F2B5C]' : 'text-[#38BDF8]'}`}>ស្រុកផ្សេងៗ</span>
+            <button onClick={() => setActiveHomeFilter(activeHomeFilter==='ផ្សេងៗ'?'All':'ផ្សេងៗ')} className={`premium-card p-2.5 flex flex-col justify-center items-center transition-all active:scale-95 ${activeHomeFilter==='ផ្សេងៗ' ? 'border-[#38BDF8] bg-[#38BDF8] text-[#0F2B5C] shadow-md' : 'hover:border-[#38BDF8]/50 text-[#38BDF8] bg-white'}`}>
+               <div className={`p-2 rounded-full mb-1 ${activeHomeFilter==='ផ្សេងៗ' ? 'bg-white/40 text-[#0F2B5C]' : 'bg-slate-100 text-[#38BDF8]'}`}><Globe className="w-4 h-4 stroke-[2px]"/></div>
+               <span className={`font-black text-[10px] ${activeHomeFilter==='ផ្សេងៗ' ? 'text-[#0F2B5C]' : 'text-[#38BDF8]'}`}>ស្រុកផ្សេងៗ</span>
             </button>
          </div>
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-3 px-1 border-l-4 border-[#38BDF8] pl-2.5">
-          <h2 className="text-[13px] font-black text-slate-800 leading-none">ទិន្នន័យដែលបានបញ្ចូល</h2>
-          <button onClick={() => setCurrentView('data')} className="text-[10px] font-bold text-slate-600 flex items-center gap-0.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 active:scale-95 hover:bg-slate-100 transition-colors">មើលទាំងអស់ <ArrowRight className="w-3 h-3"/></button>
+        <div className="flex items-center justify-between mb-2 px-1 border-l-4 border-[#38BDF8] pl-2">
+          <h2 className="text-[12px] font-black text-slate-800 leading-none">ទិន្នន័យដែលបានបញ្ចូល</h2>
+          <button onClick={() => setCurrentView('data')} className="text-[9.5px] font-bold text-slate-600 flex items-center gap-0.5 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-200 active:scale-95 hover:bg-slate-100 transition-colors">មើលទាំងអស់ <ArrowRight className="w-3 h-3"/></button>
         </div>
         {filtered.length === 0 ? (
-           <div className="text-center py-10 bg-white rounded-[20px] border border-dashed border-slate-200 font-bold text-[11px] text-slate-400 shadow-sm">គ្មានទិន្នន័យ</div>
+           <div className="text-center py-8 bg-white rounded-2xl border border-dashed border-slate-200 font-bold text-[10px] text-slate-400 shadow-sm">គ្មានទិន្នន័យ</div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
             {filtered.map(loc => loc && (
               <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} />
             ))}
@@ -1024,10 +1123,10 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   if (!profile?.username && !isAdmin) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-center animate-in fade-in duration-300">
-         <div className="w-14 h-14 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-2.5 border border-slate-200"><User className="w-6 h-6" /></div>
-         <h2 className="text-[14px] font-black mb-1.5 text-[#0F2B5C]">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 mb-4 text-[10.5px] max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះរបស់អ្នកសិន។ បើគ្មានឈ្មោះទេ មិនអាចបញ្ជូលទិន្នន័យបានទេ។</p>
-         <button onClick={() => setCurrentView('account')} className="btn-gradient px-5 py-2.5 rounded-lg font-bold text-[10px] active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
+         <div className="w-12 h-12 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-2 border border-slate-200"><User className="w-5 h-5" /></div>
+         <h2 className="text-[12px] font-black mb-1 text-[#0F2B5C]">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
+         <p className="text-slate-500 mb-3 text-[10px] max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះរបស់អ្នកសិន។ បើគ្មានឈ្មោះទេ មិនអាចបញ្ជូលទិន្នន័យបានទេ។</p>
+         <button onClick={() => setCurrentView('account')} className="btn-gradient px-4 py-2 rounded-lg font-bold text-[9.5px] active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
       </div>
     );
   }
@@ -1036,29 +1135,29 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   const selectedCommuneVillages = form.commune && dbRegions && dbRegions["រតនមណ្ឌល"] && dbRegions["រតនមណ្ឌល"][form.commune] ? dbRegions["រតនមណ្ឌល"][form.commune] : [];
 
   return (
-    <div className="space-y-3.5 animate-in fade-in duration-300 mt-1.5 flex-1 font-khmer">
+    <div className="space-y-3 animate-in fade-in duration-300 mt-1 flex-1 font-khmer">
       <div className="flex flex-row items-center justify-between gap-2">
-         <h1 className="text-[15px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ទិន្នន័យ</h1>
-         <button onClick={handleOpenAdd} className="btn-gradient px-4 py-2.5 rounded-lg font-bold flex items-center gap-1 text-[10px] active:scale-95 transition-transform"><Plus className="w-3.5 h-3.5"/> បន្ថែមទិន្នន័យ</button>
+         <h1 className="text-[14px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ទិន្នន័យ</h1>
+         <button onClick={handleOpenAdd} className="btn-gradient px-3 py-2 rounded-lg font-bold flex items-center gap-1 text-[9.5px] active:scale-95 transition-transform"><Plus className="w-3.5 h-3.5"/> បន្ថែមទិន្នន័យ</button>
       </div>
 
       <div className="flex bg-white border border-slate-200 p-1 rounded-lg shadow-sm">
          {['រតនមណ្ឌល', 'ស្រុកផ្សេងៗ'].map(tab => (
-             <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-1.5 rounded-md text-[11px] font-black transition-all ${activeTab === tab ? 'bg-slate-100 text-[#0F2B5C] shadow-sm border border-slate-200' : 'text-slate-500'}`}>{tab}</button>
+             <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-1 rounded-md text-[10px] font-black transition-all ${activeTab === tab ? 'bg-slate-100 text-[#0F2B5C] shadow-sm border border-slate-200' : 'text-slate-500'}`}>{tab}</button>
          ))}
       </div>
 
       <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1">
         {['ទាំងអស់', 'ឃុំ', 'ភូមិ', 'ប៉ូលីស', 'ពេទ្យ', 'សាលារៀន'].map(cat => (
-          <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap shrink-0 border shadow-sm ${activeFilter === cat ? 'bg-[#0F2B5C] text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'}`}>{cat}</button>
+          <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-2.5 py-1 rounded-lg text-[9.5px] font-bold transition-all whitespace-nowrap shrink-0 border shadow-sm ${activeFilter === cat ? 'bg-[#0F2B5C] text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'}`}>{cat}</button>
         ))}
       </div>
       
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
         {filtered.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-10 bg-white rounded-[20px] border border-dashed border-slate-200">
-             <MapPin className="w-8 h-8 text-slate-300 mb-2" />
-             <p className="font-bold text-[11px] text-slate-500">គ្មានទិន្នន័យ</p>
+          <div className="col-span-full flex flex-col items-center justify-center py-8 bg-white rounded-2xl border border-dashed border-slate-200">
+             <MapPin className="w-6 h-6 text-slate-300 mb-1.5" />
+             <p className="font-bold text-[10px] text-slate-500">គ្មានទិន្នន័យ</p>
           </div>
         ) : 
           filtered.map(loc => loc && <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} />)
@@ -1067,23 +1166,23 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 px-0 md:px-4 pointer-events-auto">
-          <div className="relative w-full max-w-md bg-white rounded-t-[20px] md:rounded-[24px] overflow-hidden shadow-2xl flex flex-col h-[85dvh] md:h-auto md:max-h-[80vh] animate-in slide-in-from-bottom-full md:zoom-in-95 border border-slate-200">
-            <div className="p-3.5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h2 className="text-[12px] font-black text-[#0F2B5C]">បន្ថែមទិន្នន័យ: {activeTab}</h2>
+          <div className="relative w-full max-w-md bg-white rounded-t-2xl md:rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[85dvh] md:h-auto md:max-h-[80vh] animate-in slide-in-from-bottom-full md:zoom-in-95 border border-slate-200">
+            <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+              <h2 className="text-[11px] font-black text-[#0F2B5C]">បន្ថែមទិន្នន័យ: {activeTab}</h2>
               <button onClick={() => setIsAddModalOpen(false)} className="p-1 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500"><X className="w-4 h-4"/></button>
             </div>
             
-            <div className="p-4 overflow-y-auto flex-1 hide-scrollbar bg-white">
-              <form id="addForm" onSubmit={handleAddSubmit} className="space-y-3.5">
+            <div className="p-3 overflow-y-auto flex-1 hide-scrollbar bg-white">
+              <form id="addForm" onSubmit={handleAddSubmit} className="space-y-3">
                 <div>
-                   <label className="text-[10px] font-bold text-slate-700 block mb-1">ចំណងជើង / ឈ្មោះទីតាំង *</label>
-                   <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-inner text-slate-800" placeholder="ឈ្មោះទីតាំង..." />
+                   <label className="text-[9.5px] font-bold text-slate-700 block mb-1">ចំណងជើង / ឈ្មោះទីតាំង *</label>
+                   <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[12.5px] outline-none font-bold shadow-inner text-slate-800" placeholder="ឈ្មោះទីតាំង..." />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 block mb-1">ប្រភេទ Category *</label>
-                    <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[13px] outline-none font-bold shadow-inner appearance-none cursor-pointer text-slate-800">
+                    <label className="text-[9.5px] font-bold text-slate-500 block mb-1">ប្រភេទ Category *</label>
+                    <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[12.5px] outline-none font-bold shadow-inner appearance-none cursor-pointer text-slate-800">
                       <option value="ឃុំ">ឃុំ</option>
                       <option value="ភូមិ">ភូមិ</option>
                       <option value="ប៉ូលិស">ប៉ូលិស</option>
@@ -1093,25 +1192,25 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 block mb-1">តួនាទី (Role) *</label>
-                    <input type="text" required value={form.role} onChange={e=>setForm({...form, role: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[13px] outline-none font-bold shadow-inner text-slate-800" placeholder="ឧ: ប្រធានភូមិ..." />
+                    <label className="text-[9.5px] font-bold text-slate-500 block mb-1">តួនាទី (Role) *</label>
+                    <input type="text" required value={form.role} onChange={e=>setForm({...form, role: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[12.5px] outline-none font-bold shadow-inner text-slate-800" placeholder="ឧ: ប្រធានភូមិ..." />
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 shadow-inner">
-                    <label className="text-[10px] font-bold text-slate-600 block mb-2 border-b border-slate-200 pb-1.5">កំណត់ទីតាំង</label>
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 shadow-inner">
+                    <label className="text-[9.5px] font-bold text-slate-600 block mb-1.5 border-b border-slate-200 pb-1">កំណត់ទីតាំង</label>
                     {activeTab === 'រតនមណ្ឌល' ? (
-                        <div className="grid grid-cols-2 gap-2.5">
+                        <div className="grid grid-cols-2 gap-2">
                             <div>
-                                <label className="text-[9px] font-bold text-slate-500 block mb-1">ឃុំ</label>
-                                <select required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value, village: ''})} className="w-full bg-white rounded-xl p-2.5 text-[13px] outline-none font-bold border border-slate-200 shadow-sm appearance-none cursor-pointer text-slate-800">
+                                <label className="text-[8.5px] font-bold text-slate-500 block mb-0.5">ឃុំ</label>
+                                <select required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value, village: ''})} className="w-full bg-white rounded-xl p-2 text-[12.5px] outline-none font-bold border border-slate-200 shadow-sm appearance-none cursor-pointer text-slate-800">
                                     <option value="">ជ្រើសរើស</option>
                                     {ratanakCommunes.map(c=><option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[9px] font-bold text-slate-500 block mb-1">ភូមិ</label>
-                                <select required disabled={!form.commune} value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white rounded-xl p-2.5 text-[13px] outline-none font-bold border border-slate-200 disabled:opacity-50 shadow-sm appearance-none cursor-pointer text-slate-800">
+                                <label className="text-[8.5px] font-bold text-slate-500 block mb-0.5">ភូមិ</label>
+                                <select required disabled={!form.commune} value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white rounded-xl p-2 text-[12.5px] outline-none font-bold border border-slate-200 disabled:opacity-50 shadow-sm appearance-none cursor-pointer text-slate-800">
                                     <option value="">ជ្រើសរើស</option>
                                     {selectedCommuneVillages.map(v=><option key={v} value={v}>{v}</option>)}
                                 </select>
@@ -1119,42 +1218,42 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 gap-2">
-                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-[13px] outline-none font-bold shadow-sm" placeholder="ខេត្ត..."/>
-                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-[13px] outline-none font-bold shadow-sm" placeholder="ស្រុក..."/>
+                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-[12.5px] outline-none font-bold shadow-sm" placeholder="ខេត្ត..."/>
+                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-[12.5px] outline-none font-bold shadow-sm" placeholder="ស្រុក..."/>
                         </div>
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2.5">
                   <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">លេខទូរស័ព្ទ *</label>
-                      <input type="tel" value={form.phone} onChange={e=>setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[13px] outline-none font-bold shadow-inner text-slate-800" placeholder="លេខ..." />
+                      <label className="text-[9.5px] font-bold text-slate-500 block mb-1">លេខទូរស័ព្ទ *</label>
+                      <input type="tel" value={form.phone} onChange={e=>setForm({...form, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[12.5px] outline-none font-bold shadow-inner text-slate-800" placeholder="លេខ..." />
                   </div>
                   <div>
-                      <label className="text-[10px] font-bold text-slate-500 block mb-1">ទីតាំង (GPS)</label>
-                      <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/30' : 'bg-slate-100 text-slate-600 border-slate-300'} border py-2.5 rounded-xl font-bold text-[10px] flex items-center justify-center gap-1 active:scale-95 transition-all truncate px-1.5 h-[42px]`}>
-                         <MapPin className="w-3.5 h-3.5 shrink-0"/>
+                      <label className="text-[9.5px] font-bold text-slate-500 block mb-1">ទីតាំង (GPS)</label>
+                      <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/30' : 'bg-slate-100 text-slate-600 border-slate-300'} border py-2 rounded-xl font-bold text-[9.5px] flex items-center justify-center gap-1 active:scale-95 transition-all truncate px-1.5 h-[38px]`}>
+                         <MapPin className="w-3 h-3 shrink-0"/>
                          {form.coords ? '✓ ចាប់បានទីតាំង' : 'ចុចទាញយក GPS'}
                       </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 block mb-1">រូបភាព (Upload Picture) *</label>
-                  <label className="relative flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 overflow-hidden transition-colors shadow-inner">
+                  <label className="text-[9.5px] font-bold text-slate-500 block mb-1">រូបភាព (Upload Picture) *</label>
+                  <label className="relative flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 overflow-hidden transition-colors shadow-inner">
                      {form.image ? (
                         <React.Fragment>
                            <img src={form.image} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                              <span className="text-slate-800 font-bold bg-white/95 px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex gap-1 items-center pointer-events-auto">
+                              <span className="text-slate-800 font-bold bg-white/95 px-2.5 py-1 rounded-lg text-[9px] shadow-sm flex gap-1 items-center pointer-events-auto">
                                  <Edit3 className="w-3 h-3"/> ប្តូររូបភាព
                               </span>
                            </div>
                         </React.Fragment>
                      ) : (
                         <div className="flex flex-col items-center justify-center text-slate-400 z-10">
-                           <ImageIcon className="w-5 h-5 text-slate-400 mb-1" />
-                           <span className="text-[10px] font-bold text-slate-500">ចុច Upload</span>
+                           <ImageIcon className="w-4 h-4 text-slate-400 mb-0.5" />
+                           <span className="text-[9px] font-bold text-slate-500">Upload Picture</span>
                         </div>
                      )}
                      <input type="file" accept="image/*" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={e=>{ if(e.target.files[0]){ const r=new FileReader(); r.onload=()=>setForm({...form, image: r.result}); r.readAsDataURL(e.target.files[0]); } }} />
@@ -1162,14 +1261,14 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                 </div>
                 
                 <div>
-                   <label className="text-[10px] font-bold text-slate-500 block mb-1">ការពណ៌នា</label>
-                   <textarea value={form.desc} onChange={e=>setForm({...form, desc: e.target.value})} placeholder="សរសេរការពណ៌នាខ្លីៗ..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13px] outline-none h-20 resize-none font-medium shadow-inner text-slate-800"></textarea>
+                   <label className="text-[9.5px] font-bold text-slate-500 block mb-1">ការពណ៌នា</label>
+                   <textarea value={form.desc} onChange={e=>setForm({...form, desc: e.target.value})} placeholder="សរសេរការពណ៌នាខ្លីៗ..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[12.5px] outline-none h-14 resize-none font-medium shadow-inner text-slate-800"></textarea>
                 </div>
               </form>
             </div>
-            <div className="p-3 border-t border-slate-100 shrink-0 pb-safe bg-slate-50">
-               <button type="submit" form="addForm" disabled={loading} className="w-full py-3 rounded-xl font-black btn-gradient active:scale-95 disabled:opacity-50 transition shadow-md text-[13px] flex justify-center items-center gap-1.5 uppercase">
-                   {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> កំពុងផ្ញើរ...</> : 'ផ្ញើរសំណើរ'}
+            <div className="p-2.5 border-t border-slate-100 shrink-0 pb-safe bg-slate-50">
+               <button type="submit" form="addForm" disabled={loading} className="w-full py-2.5 rounded-xl font-black btn-gradient active:scale-95 disabled:opacity-50 transition shadow-md text-[11.5px] flex justify-center items-center gap-1">
+                   {loading ? <><Loader2 className="w-3 h-3 animate-spin"/> កំពុងផ្ញើរ...</> : 'ផ្ញើរសំណើរ'}
                </button>
             </div>
           </div>
@@ -1214,53 +1313,52 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
   });
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300 pt-2.5 w-full flex-1 font-khmer">
-      <h1 className="text-[15px] font-black text-[#0F2B5C] border-l-4 border-[#0F2B5C] pl-2.5">របាយការណ៍សង្ខេបប្រットフォーム</h1>
+    <div className="space-y-3.5 animate-in fade-in duration-300 pt-2 w-full flex-1 font-khmer">
+      <h1 className="text-[14px] font-black text-[#0F2B5C] border-l-4 border-[#0F2B5C] pl-2">របាយការណ៍ទិន្នន័យជាក់ស្ដែង</h1>
       
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
          {stats.map((s, i) => (
-           <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden flex flex-col justify-between min-h-[90px]">
-              <p className="text-[10px] font-bold text-slate-500 leading-normal">{s.label}</p>
-              <h3 className={`text-xl font-black ${s.color} mt-1`}>{s.count}</h3>
+           <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden flex flex-col justify-between min-h-[75px]">
+              <p className="text-[9.5px] font-bold text-slate-500 leading-normal">{s.label}</p>
+              <h3 className={`text-base font-black ${s.color} mt-0.5`}>{s.count}</h3>
            </div>
          ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-           <h3 className="text-[12px] font-bold text-slate-800 mb-3 border-l-4 border-[#38BDF8] pl-2">កំណើនអ្នកប្រើប្រាស់ប្រចាំឆ្នាំ</h3>
-           <div className="h-52 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-1">
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+           <h3 className="text-[11px] font-bold text-slate-800 mb-2 border-l-4 border-[#38BDF8] pl-2">កំណើនអ្នកប្រើប្រាស់ប្រចាំឆ្នាំ</h3>
+           <div className="h-44 w-full">
                <ResponsiveContainer width="100%" height="100%">
                  <BarChart data={monthlyData}>
                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#64748b', fontFamily: 'Noto Sans Khmer'}} />
-                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#64748b'}} />
-                   <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{fontSize: '11px', borderRadius: '8px'}} />
-                   <Bar dataKey="users" fill="#38BDF8" radius={[2,2,0,0]} barSize={14} />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 8, fill: '#64748b', fontFamily: 'Noto Sans Khmer'}} />
+                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8, fill: '#64748b'}} />
+                   <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{fontSize: '10px', borderRadius: '8px'}} />
+                   <Bar dataKey="users" fill="#38BDF8" radius={[2,2,0,0]} barSize={11} />
                  </BarChart>
                </ResponsiveContainer>
             </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-           <h3 className="text-[12px] font-bold text-slate-800 mb-3 border-l-4 border-[#0F2B5C] pl-2">ស្ថិតិទីតាំងដែលបានបញ្ចូល</h3>
-           <div className="h-52 w-full">
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+           <h3 className="text-[11px] font-bold text-slate-800 mb-2 border-l-4 border-[#0F2B5C] pl-2">ស្ថិតិទីតាំងដែលបានបញ្ចូល</h3>
+           <div className="h-44 w-full">
                <ResponsiveContainer width="100%" height="100%">
                  <LineChart data={monthlyData}>
                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#64748b', fontFamily: 'Noto Sans Khmer'}} />
-                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#64748b'}} />
-                   <Tooltip contentStyle={{fontSize: '11px', borderRadius: '8px'}} />
-                   <Line type="monotone" dataKey="entries" stroke="#0F2B5C" strokeWidth={2.5} dot={{r: 3, fill: '#0F2B5C'}} />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 8, fill: '#64748b', fontFamily: 'Noto Sans Khmer'}} />
+                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8, fill: '#64748b'}} />
+                   <Tooltip contentStyle={{fontSize: '10px', borderRadius: '8px'}} />
+                   <Line type="monotone" dataKey="entries" stroke="#0F2B5C" strokeWidth={2} dot={{r: 2, fill: '#0F2B5C'}} />
                  </LineChart>
                </ResponsiveContainer>
             </div>
         </div>
       </div>
 
-      {/* Modern Compact VMC Copyright Footer Section */}
-      <div className="text-center py-4 border-t border-slate-100 shrink-0">
-          <p className="text-[10px] text-slate-400 font-bold">
+      <div className="text-center py-2 border-t border-slate-100 shrink-0">
+          <p className="text-[9.5px] text-slate-400 font-bold">
              រក្សាសិទ្ធិដោយយុវជន <a href="https://web.facebook.com/Youth.VMC.SdaoSantepheap/?_rdc=1&_rdr" target="_blank" rel="noreferrer" className="text-[#38BDF8] hover:underline">VMC វិ.ស្តៅសន្តិភាព 2026</a>
           </p>
       </div>
@@ -1320,9 +1418,9 @@ const TelegramVoiceBubble = ({ audioUrl, duration }) => {
           const ctx = canvas.getContext('2d');
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.fillStyle = '#0F2B5C';
-          for (let i = 0; i < 20; i++) {
-            const h = 4 + Math.random() * (12 + Math.sin(Date.now() / 100 + i) * 10);
-            ctx.fillRect(i * 4, (24 - h) / 2, 2, h);
+          for (let i = 0; i < 15; i++) {
+            const h = 4 + Math.random() * (10 + Math.sin(Date.now() / 100 + i) * 6);
+            ctx.fillRect(i * 3.5, (16 - h) / 2, 1.5, h);
           }
         }
         animationRef.current = requestAnimationFrame(draw);
@@ -1337,9 +1435,9 @@ const TelegramVoiceBubble = ({ audioUrl, duration }) => {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#94a3b8';
-        for (let i = 0; i < 20; i++) {
-          const h = 5 + Math.sin(i * 0.8) * 8;
-          ctx.fillRect(i * 4, (24 - h) / 2, 2, h);
+        for (let i = 0; i < 15; i++) {
+          const h = 4 + Math.sin(i * 0.8) * 5;
+          ctx.fillRect(i * 3.5, (16 - h) / 2, 1.5, h);
         }
       }
     }
@@ -1354,31 +1452,31 @@ const TelegramVoiceBubble = ({ audioUrl, duration }) => {
   };
 
   return (
-    <div className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-200 max-w-[240px] shadow-sm">
+    <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200 max-w-[200px] shadow-sm">
        <button 
          type="button" 
          onClick={() => setIsPlaying(!isPlaying)}
-         className="w-8 h-8 rounded-full bg-[#0F2B5C] text-white flex items-center justify-center hover:bg-slate-800 shrink-0"
+         className="w-7 h-7 rounded-full bg-[#0F2B5C] text-white flex items-center justify-center hover:bg-slate-800 shrink-0"
        >
-          {isPlaying ? <Pause className="w-3.5 h-3.5 fill-current"/> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+          {isPlaying ? <Pause className="w-3 h-3 fill-current"/> : <Play className="w-3 h-3 fill-current ml-0.5" />}
        </button>
        
        <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-0.5">
-             <span className="text-[9px] font-bold text-slate-500">សារជាសំឡេង</span>
-             <button type="button" onClick={toggleSpeed} className="text-[8px] font-black bg-slate-200/80 px-1 py-0.5 rounded text-slate-700">{playbackRate}x</button>
+             <span className="text-[8px] font-bold text-slate-500">សារជាសំឡេង</span>
+             <button type="button" onClick={toggleSpeed} className="text-[7.5px] font-black bg-slate-200/80 px-1 py-0.5 rounded text-slate-700">{playbackRate}x</button>
           </div>
           
-          <div className="flex items-center gap-1.5">
-             <canvas ref={canvasRef} width="80" height="24" className="w-[80px] h-[24px]" />
-             <div className="flex-1 h-1 bg-slate-300 rounded-full overflow-hidden relative">
+          <div className="flex items-center gap-1">
+             <canvas ref={canvasRef} width="60" height="16" className="w-[60px] h-[16px]" />
+             <div className="flex-1 h-0.5 bg-slate-300 rounded-full overflow-hidden relative">
                  <div className="bg-[#0F2B5C] h-full absolute left-0 top-0 transition-all duration-75" style={{ width: `${progress}%` }}></div>
              </div>
           </div>
           
-          <div className="flex justify-between items-center mt-1">
-             <span className="text-[8px] text-slate-400 block font-black">{duration}</span>
-             <a href={audioUrl} download="voice_msg.wav" className="text-slate-400 hover:text-slate-600"><Download className="w-3 h-3"/></a>
+          <div className="flex justify-between items-center mt-0.5">
+             <span className="text-[7.5px] text-slate-400 block font-black">{duration}</span>
+             <a href={audioUrl} download="voice_msg.wav" className="text-slate-400 hover:text-slate-600"><Download className="w-2.5 h-2.5"/></a>
           </div>
        </div>
     </div>
@@ -1421,12 +1519,10 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
        showToast('ពាក្យសម្តីមិនសមរម្យត្រូវបានរកឃើញ! គណនីត្រូវបានផ្ញើជូន Admin ពិនិត្យ', 'error');
        
        if (db) {
-          // Increase warning count
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
              warnings: increment(1)
           }).catch(()=>{});
 
-          // Post Warning notification to User
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
              targetId: user.uid,
              title: 'ការព្រមានការប្រើប្រាស់ពាក្យសំដី ⚠️',
@@ -1435,7 +1531,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
              timestamp: Date.now()
           }).catch(()=>{});
 
-          // Check if warnings exceed threshold
           if ((profile.warnings || 0) >= 1) {
              await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
                 isBanned: true
@@ -1611,10 +1706,10 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   if (!profile?.username) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in flex-1 font-khmer">
-         <div className="w-14 h-14 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-3 border border-slate-200 shadow-md"><MessageCircle className="w-6 h-6" /></div>
-         <h2 className="text-sm font-black mb-1.5 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 text-[11px] mb-4 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
-         <button onClick={() => setCurrentView('account')} className="btn-gradient px-6 py-2.5 rounded-xl font-bold text-[11px] shadow-lg active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
+         <div className="w-12 h-12 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-2.5 border border-slate-200 shadow-sm"><MessageCircle className="w-5 h-5" /></div>
+         <h2 className="text-[12px] font-black mb-1.5 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
+         <p className="text-slate-500 text-[10px] mb-3 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
+         <button onClick={() => setCurrentView('account')} className="btn-gradient px-4 py-2 rounded-xl font-bold text-[10px] shadow-sm active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
       </div>
     );
   }
@@ -1631,43 +1726,43 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      });
 
      return (
-        <div className="flex flex-col h-[calc(100vh-125px)] md:h-full bg-white md:rounded-3xl md:border md:border-slate-200 overflow-hidden md:shadow-md w-full flex-1 font-khmer">
-           <div className="p-3.5 border-b border-slate-100 bg-slate-50 shrink-0">
-               <h1 className="text-[13px] font-black text-[#0F2B5C] flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#38BDF8]"/> រាយការណ៍ទីតាំងបន្ទាន់</h1>
-               <p className="text-[10px] text-slate-500 font-bold mt-1 leading-relaxed">ជ្រើសរើសទីតាំងរស់នៅរបស់អ្នក ដើម្បីទាក់ទងអាជ្ញាធរពាក់ព័ន្ធ។</p>
+        <div className="flex flex-col h-[calc(100vh-115px)] md:h-full bg-white md:rounded-2xl md:border md:border-slate-200 overflow-hidden md:shadow-sm w-full flex-1 font-khmer">
+           <div className="p-3 border-b border-slate-100 bg-slate-50 shrink-0">
+               <h1 className="text-[12px] font-black text-[#0F2B5C] flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#38BDF8]"/> រាយការណ៍ទីតាំងបន្ទាន់</h1>
+               <p className="text-[9.5px] text-slate-500 font-bold mt-0.5 leading-relaxed">ជ្រើសរើសទីតាំងរស់នៅរបស់អ្នក ដើម្បីទាក់ទងអាជ្ញាធរពាក់ព័ន្ធ។</p>
            </div>
            
-           <div className="bg-slate-50 p-3 border-b border-slate-200 grid grid-cols-2 gap-2 shrink-0 shadow-inner">
+           <div className="bg-slate-50 p-2.5 border-b border-slate-200 grid grid-cols-2 gap-2 shrink-0 shadow-inner">
                <div>
-                  <label className="text-[9px] font-bold text-slate-500 block mb-0.5">ឃុំ (Commune)</label>
-                  <select value={selectedCommune} onChange={e=>setSelectedCommune(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12px] font-bold outline-none m-0 cursor-pointer text-slate-800">
+                  <label className="text-[8.5px] font-bold text-slate-500 block mb-0.5">ឃុំ (Commune)</label>
+                  <select value={selectedCommune} onChange={e=>setSelectedCommune(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11.5px] font-bold outline-none m-0 cursor-pointer text-slate-800">
                       <option value="">ជ្រើសរើសឃុំ</option>
                       {communeList.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                </div>
                <div>
-                  <label className="text-[9px] font-bold text-slate-500 block mb-0.5">ភូមិ (Village)</label>
-                  <select value={selectedVillage} onChange={e=>setSelectedVillage(e.target.value)} disabled={!selectedCommune} className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-[12px] font-bold outline-none m-0 cursor-pointer disabled:opacity-50 text-slate-800">
+                  <label className="text-[8.5px] font-bold text-slate-500 block mb-0.5">ភូមិ (Village)</label>
+                  <select value={selectedVillage} onChange={e=>setSelectedVillage(e.target.value)} disabled={!selectedCommune} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-[11.5px] font-bold outline-none m-0 cursor-pointer disabled:opacity-50 text-slate-800">
                       <option value="">ជ្រើសរើសភូមិ</option>
                       {villageList.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                </div>
            </div>
 
-           <div className="flex-1 overflow-y-auto p-3 hide-scrollbar bg-white pb-20">
-              <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wide">ទំនាក់ទំនងដែលអាចរាយការណ៍៖</div>
+           <div className="flex-1 overflow-y-auto p-2.5 hide-scrollbar bg-white pb-20">
+              <div className="text-slate-400 text-[9px] font-bold mb-1.5 pl-1 uppercase tracking-wide">ទំនាក់ទំនងដែលអាចរាយការណ៍៖</div>
               {filteredContacts.map((contact, i) => contact && (
-                  <div key={contact.id || i} onClick={() => setActiveChatUser(contact)} className={`flex items-center justify-between p-3.5 hover:bg-slate-50 bg-white rounded-xl cursor-pointer transition-all active:scale-95 border border-slate-200 mb-2 shadow-sm relative overflow-hidden group`}>
-                      <div className="flex items-center gap-3">
-                          <img src={contact.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 object-cover shadow-sm bg-white" alt="av"/>
+                  <div key={contact.id || i} onClick={() => setActiveChatUser(contact)} className={`flex items-center justify-between p-3 hover:bg-slate-50 bg-white rounded-xl cursor-pointer transition-all active:scale-95 border border-slate-200 mb-2 shadow-sm relative overflow-hidden group`}>
+                      <div className="flex items-center gap-2.5">
+                          <img src={contact.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover shadow-sm bg-white" alt="av"/>
                           <div>
-                              <h3 className="font-black text-[13px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
-                              <p className="text-[9px] text-white font-bold bg-[#0F2B5C] px-2 py-0.5 rounded border border-[#0F2B5C] w-fit mt-1 line-clamp-1">
+                              <h3 className="font-black text-[12px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
+                              <p className="text-[8.5px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded border border-[#0F2B5C] w-fit mt-1 line-clamp-1">
                                  {selectedCommune ? `${selectedCommune} • ${selectedVillage || 'គ្រប់ភូមិ'}` : 'ទំនាក់ទំនងទូទៅ'}
                               </p>
                           </div>
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors"><ArrowRight className="w-4 h-4"/></div>
+                      <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors"><ArrowRight className="w-3.5 h-3.5"/></div>
                   </div>
               ))}
            </div>
@@ -1682,21 +1777,21 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-125px)] md:h-full bg-slate-100 md:bg-white md:rounded-3xl md:border md:border-slate-200 overflow-hidden relative shadow-md w-full flex-1 min-h-0 font-khmer pb-14 md:pb-0">
+    <div className="flex flex-col h-[calc(100vh-115px)] md:h-full bg-slate-100 md:bg-white md:rounded-2xl md:border md:border-slate-200 overflow-hidden relative shadow-sm w-full flex-1 min-h-0 font-khmer pb-12 md:pb-0">
       
-      <div className="p-3 border-b border-slate-200 bg-white flex items-center gap-2.5 shrink-0 z-10 shadow-sm relative">
-        <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full hover:bg-slate-100 border border-slate-200"><ArrowLeft className="w-4 h-4 text-slate-600"/></button>
-        <img src={activeChatUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
+      <div className="p-2.5 border-b border-slate-200 bg-white flex items-center gap-2 shrink-0 z-10 shadow-sm relative">
+        <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full hover:bg-slate-100 border border-slate-200"><ArrowLeft className="w-3.5 h-3.5 text-slate-600"/></button>
+        <img src={activeChatUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-7 h-7 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
         <div className="min-w-0 flex-1">
-            <h2 className="font-black text-[12.5px] text-slate-800 truncate">{safeStr(activeChatUser.label)}</h2>
-            <p className="text-[9px] font-bold text-emerald-500">Channel Active</p>
+            <h2 className="font-black text-[12px] text-slate-800 truncate">{safeStr(activeChatUser.label)}</h2>
+            <p className="text-[8px] font-bold text-emerald-500">Channel Active</p>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3.5 telegram-bg hide-scrollbar" onClick={()=>setShowAttachMenu(false)}>
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-3 telegram-bg hide-scrollbar" onClick={()=>setShowAttachMenu(false)}>
         {filteredChats.length === 0 ? (
-          <div className="flex justify-center mt-6">
-             <div className="text-center text-slate-500 py-4 px-6 text-[10px] font-bold bg-white/80 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex justify-center mt-4">
+             <div className="text-center text-slate-500 py-3 px-5 text-[9px] font-bold bg-white/80 rounded-xl border border-slate-200 shadow-sm">
                ចាប់ផ្តើមការសន្ទនា...
              </div>
           </div>
@@ -1708,49 +1803,49 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
             let msgContent;
             if (msg.msgType === 'location') {
                msgContent = (
-                  <div className="flex flex-col gap-1.5 p-3 bg-green-50 rounded-xl border border-green-200 w-full min-w-[220px] text-slate-800">
+                  <div className="flex flex-col gap-1.5 p-2 bg-green-50 rounded-xl border border-green-200 w-full min-w-[180px] text-slate-800">
                      <div className="flex items-center justify-between">
                          <div className="flex flex-col items-center">
-                             <div className="w-7 h-7 rounded-full bg-green-200 text-green-700 flex items-center justify-center font-bold text-xs"><User className="w-3.5 h-3.5"/></div>
-                             <span className="text-[9px] mt-0.5 font-bold text-green-800">អ្នក (A)</span>
+                             <div className="w-6 h-6 rounded-full bg-green-200 text-green-700 flex items-center justify-center font-bold text-[10px]"><User className="w-3 h-3"/></div>
+                             <span className="text-[8px] mt-0.5 font-bold text-green-800">អ្នក (A)</span>
                          </div>
                          <div className="flex-1 flex flex-col items-center px-1 relative">
-                             <span className="text-[9px] text-green-700 font-black mb-0.5 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">Shared GPS</span>
-                             <div className="w-full h-[2px] bg-green-500 rounded-full"></div>
+                             <span className="text-[8px] text-green-700 font-black mb-0.5 bg-green-100 px-1.5 py-0.5 rounded-full border border-green-200">Shared GPS</span>
+                             <div className="w-full h-[1.5px] bg-green-500 rounded-full"></div>
                          </div>
                          <div className="flex flex-col items-center">
-                             <div className="w-7 h-7 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs"><ShieldCheck className="w-3.5 h-3.5"/></div>
-                             <span className="text-[9px] mt-0.5 font-bold text-slate-700">{activeChatUser?.label || 'គោលដៅ'}</span>
+                             <div className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[10px]"><ShieldCheck className="w-3 h-3"/></div>
+                             <span className="text-[8px] mt-0.5 font-bold text-slate-700">{activeChatUser?.label || 'គោលដៅ'}</span>
                          </div>
                      </div>
-                     <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="w-full text-center py-2 bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold rounded-lg mt-2 block shadow-sm">បើកផែនទី Google Maps</a>
+                     <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="w-full text-center py-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded-lg mt-1 block shadow-sm">បើកផែនទី Google Maps</a>
                   </div>
                );
             } else if (msg.msgType === 'image') {
-               msgContent = <img src={msg.imageUrl} alt="attached" className="max-w-[200px] rounded-lg shadow-sm border border-slate-200/50"/>;
+               msgContent = <img src={msg.imageUrl} alt="attached" className="max-w-[160px] rounded-lg shadow-sm border border-slate-200/50"/>;
             } else if (msg.msgType === 'audio') {
                msgContent = <TelegramVoiceBubble audioUrl={msg.audioUrl} duration={msg.duration} />;
             } else {
-               msgContent = <div className={`break-words text-[13px] leading-relaxed font-semibold ${isMe ? 'text-white' : 'text-slate-800'}`}>{safeStr(msg.text)}</div>;
+               msgContent = <div className={`break-words text-[12px] leading-relaxed font-semibold ${isMe ? 'text-white' : 'text-slate-800'}`}>{safeStr(msg.text)}</div>;
             }
 
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group relative animate-in fade-in slide-in-from-bottom-1`}>
                 <div className={`flex max-w-[85%] flex-col gap-0.5 ${isMe ? 'items-end' : 'items-start'}`}>
-                  {!isMe && <span className="text-[9px] font-black text-slate-500 ml-1 flex items-center gap-1">
+                  {!isMe && <span className="text-[8.5px] font-black text-slate-500 ml-1 flex items-center gap-1">
                       {safeStr(msg.userName)}
                   </span>}
                   
-                  <div className="flex items-end gap-1.5">
-                      <div className={`px-3.5 py-2 rounded-2xl text-[13px] shadow-sm border relative ${
+                  <div className="flex items-end gap-1">
+                      <div className={`px-3 py-1.5 rounded-xl text-[12px] shadow-sm border relative ${
                         isMe 
                           ? 'bg-[#0F2B5C] border-[#0F2B5C] rounded-br-sm text-white' 
                           : 'bg-white text-slate-800 rounded-bl-sm border-slate-200'
                       }`}>
                          {msgContent}
-                         <div className={`flex items-center justify-end gap-1 mt-1 opacity-70 text-[8px] font-bold self-end ${isMe ? 'text-sky-200' : 'text-slate-400'}`}>
+                         <div className={`flex items-center justify-end gap-1 mt-0.5 opacity-70 text-[7.5px] font-bold self-end ${isMe ? 'text-sky-200' : 'text-slate-400'}`}>
                             <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                            {isMe && <CheckCheck className="w-3 h-3 ml-0.5 text-sky-300" />}
+                            {isMe && <CheckCheck className="w-2.5 h-2.5 ml-0.5 text-sky-300" />}
                          </div>
                       </div>
 
@@ -1761,7 +1856,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                            className="p-1 bg-white text-rose-500 hover:text-rose-600 border border-slate-200 rounded-full shadow-sm hover:scale-105 active:scale-95 transition shrink-0 opacity-0 group-hover:opacity-100"
                            title="លុបសារ"
                          >
-                            <Trash2 className="w-3.5 h-3.5"/>
+                            <Trash2 className="w-3 h-3"/>
                          </button>
                       )}
                   </div>
@@ -1773,18 +1868,18 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         <div ref={messagesEndRef} className="h-1" />
       </div>
 
-      <div className="absolute bottom-[55px] md:bottom-0 left-0 right-0 p-2 bg-white border-t border-slate-200 shrink-0 z-20 shadow-md">
+      <div className="absolute bottom-[52px] md:bottom-0 left-0 right-0 p-1.5 bg-white border-t border-slate-200 shrink-0 z-20 shadow-sm">
         
         {showAttachMenu && (
-           <div className="absolute bottom-[65px] left-3 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 flex flex-col w-40 animate-in slide-in-from-bottom-2 fade-in">
+           <div className="absolute bottom-[60px] left-3 bg-white rounded-2xl shadow-2xl border border-slate-200 p-1.5 flex flex-col w-36 animate-in slide-in-from-bottom-2 fade-in">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-xl text-[11px] font-bold text-[#0F2B5C] text-left"><ImageIcon className="w-4 h-4 text-[#38BDF8]"/> ផ្ញើររូបភាព</button>
-              <button type="button" onClick={handleSendLocation} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-xl text-[11px] font-bold text-[#0F2B5C] text-left border-t border-slate-100"><MapPin className="w-4 h-4 text-rose-500"/> ផ្ញើទីតាំង (GPS)</button>
+              <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded-xl text-[10px] font-bold text-[#0F2B5C] text-left"><ImageIcon className="w-3.5 h-3.5 text-[#38BDF8]"/> ផ្ញើររូបភាព</button>
+              <button type="button" onClick={handleSendLocation} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded-xl text-[10px] font-bold text-[#0F2B5C] text-left border-t border-slate-100"><MapPin className="w-3.5 h-3.5 text-rose-500"/> ផ្ញើទីតាំង (GPS)</button>
            </div>
         )}
 
-        <form onSubmit={handleSend} className="flex items-center gap-1.5 w-full">
-          <button type="button" onClick={()=>setShowAttachMenu(!showAttachMenu)} className={`p-2 rounded-xl transition active:scale-95 shrink-0 ${showAttachMenu ? 'bg-[#0F2B5C] text-white' : 'text-slate-500 bg-slate-50 border border-slate-200'}`}><Plus className="w-5 h-5"/></button>
+        <form onSubmit={handleSend} className="flex items-center gap-1 w-full">
+          <button type="button" onClick={()=>setShowAttachMenu(!showAttachMenu)} className={`p-1.5 rounded-xl transition active:scale-95 shrink-0 ${showAttachMenu ? 'bg-[#0F2B5C] text-white' : 'text-slate-500 bg-slate-50 border border-slate-200'}`}><Plus className="w-4.5 h-4.5"/></button>
           
           <input 
             type="text" 
@@ -1792,12 +1887,12 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
             onChange={(e) => setMsgText(e.target.value)} 
             disabled={isRecording} 
             placeholder={isRecording ? `កំពុងថត... 0:${recordDuration < 10 ? '0' : ''}${recordDuration}` : "សរសេរសារ..."} 
-            className="flex-1 bg-slate-50 border border-slate-300 rounded-xl py-2 px-3 text-[13px] outline-none m-0 shadow-inner text-slate-900" 
+            className="flex-1 bg-slate-50 border border-slate-300 rounded-xl py-1.5 px-2.5 text-[12px] outline-none m-0 shadow-inner text-slate-900" 
           />
           
           {msgText.trim() ? (
-              <button type="submit" className="w-9 h-9 rounded-xl btn-gradient flex items-center justify-center shrink-0 shadow-md">
-                 <Send className="w-4 h-4 ml-0.5" />
+              <button type="submit" className="w-8 h-8 rounded-xl btn-gradient flex items-center justify-center shrink-0 shadow-md">
+                 <Send className="w-3.5 h-3.5 ml-0.5" />
               </button>
           ) : (
               <div className="flex gap-1 items-center shrink-0">
@@ -1805,9 +1900,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                     <button 
                       type="button" 
                       onClick={() => handleStopRecording(true)}
-                      className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200"
+                      className="w-7 h-7 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200"
                     >
-                       <X className="w-4 h-4"/>
+                       <X className="w-3.5 h-3.5"/>
                     </button>
                  )}
                  <button 
@@ -1816,9 +1911,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                    onMouseUp={() => isRecording && handleStopRecording(false)}
                    onTouchStart={handleStartRecording}
                    onTouchEnd={() => isRecording && handleStopRecording(false)}
-                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors border ${isRecording ? 'bg-rose-500 text-white border-rose-600 animate-pulse' : 'bg-slate-50 text-slate-500 border-slate-200'}`}
+                   className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors border ${isRecording ? 'bg-rose-500 text-white border-rose-600 animate-pulse' : 'bg-slate-50 text-slate-500 border-slate-200'}`}
                  >
-                    {isRecording ? <Square className="w-3.5 h-3.5 fill-current" /> : <Mic className="w-4.5 h-4.5" />}
+                    {isRecording ? <Square className="w-3 h-3 fill-current" /> : <Mic className="w-4 h-4" />}
                  </button>
               </div>
           )}
@@ -1836,19 +1931,21 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   const [isEditingName, setIsEditingName] = useState(profile?.username ? false : true);
 
   const handleAdminLogin = async () => {
-    // Check credentials exactly: ict@gmail.com / ict168mit
-    if (emailInput === 'ict@gmail.com' && pwdInput === 'ict168mit') {
-       setIsAdmin(true); 
-       showToast('ចូលប្រើជា Admin ជោគជ័យ');
-       setShowAdminLogin(false);
-       setEmailInput('');
-       setPwdInput('');
-       setCurrentView('admin');
-    } else {
-       // Log failed attempt into database cyber security logs immediately
+    try {
+      if (!db) throw new Error("Offline mode fallback authentication.");
+      
+      // Use Firebase authentication natively
+      await signInWithEmailAndPassword(auth, emailInput, pwdInput);
+      setIsAdmin(true); 
+      showToast('ចូលប្រើជា Admin ជោគជ័យ');
+      setShowAdminLogin(false);
+      setEmailInput('');
+      setPwdInput('');
+      setCurrentView('admin');
+    } catch (err) {
        if (db) {
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'cyber_logs'), {
-              username: profile?.username || 'Unknown Guest',
+              username: emailInput || 'Unknown Attacker',
               device: `${navigator.platform || 'Unknown OS'} - UserAgent: ${navigator.userAgent.substring(0, 40)}`,
               ip: '123.' + Math.floor(Math.random() * 255) + '.' + Math.floor(Math.random() * 255) + '.5',
               timestamp: Date.now()
@@ -1873,74 +1970,74 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-4 animate-in fade-in duration-300 pt-2.5 flex-1 w-full font-khmer">
-      <div className="flex items-center gap-2 mb-2 px-1 border-l-4 border-[#0F2B5C] pl-2.5">
-         <h1 className="text-[15px] font-black text-[#0F2B5C]">គណនី</h1>
+    <div className="max-w-md mx-auto space-y-3 pt-2 flex-1 w-full font-khmer animate-in fade-in">
+      <div className="flex items-center gap-1.5 mb-2 px-1 border-l-4 border-[#0F2B5C] pl-2.5">
+         <h1 className="text-[14px] font-black text-[#0F2B5C]">គណនី</h1>
       </div>
 
-      <div className="bg-white p-5 rounded-[24px] flex flex-col items-center shadow-sm border border-slate-200 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-16 bg-slate-50 border-b border-slate-100"></div>
-        <div className="w-16 h-16 rounded-full bg-white mb-4 overflow-hidden border-2 border-white shadow-lg relative group z-10">
+      <div className="bg-white p-4 rounded-2xl flex flex-col items-center shadow-sm border border-slate-200 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-12 bg-slate-50 border-b border-slate-100"></div>
+        <div className="w-14 h-14 rounded-full bg-white mb-3 overflow-hidden border-2 border-white shadow-md relative group z-10">
              <img src={profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-full h-full object-cover bg-slate-100" alt="av"/>
         </div>
         <div className="w-full relative z-10">
-           <label className="text-[9px] font-bold text-slate-400 mb-1.5 block text-center uppercase tracking-widest">ឈ្មោះអ្នកប្រើប្រាស់ឧបករណ៍នេះ</label>
+           <label className="text-[8.5px] font-bold text-slate-400 mb-1 block text-center uppercase tracking-widest">ឈ្មោះអ្នកប្រើប្រាស់ឧបករណ៍នេះ</label>
            {isEditingName ? (
                <div className="flex flex-col gap-2">
-                   <input type="text" value={localName} onChange={e => setLocalName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-[14px] font-bold outline-none focus:border-[#38BDF8] shadow-inner text-center" placeholder="កំណត់ឈ្មោះរបស់អ្នក..."/>
-                   <button onClick={handleSaveName} className="btn-gradient py-2.5 rounded-xl text-[12px] font-black shadow-lg">រក្សាទុក</button>
+                   <input type="text" value={localName} onChange={e => setLocalName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-[13px] font-bold outline-none focus:border-[#38BDF8] shadow-inner text-center" placeholder="កំណត់ឈ្មោះរបស់អ្នក..."/>
+                   <button onClick={handleSaveName} className="btn-gradient py-2 rounded-xl text-[11px] font-black shadow-md">រក្សាទុក</button>
                </div>
            ) : (
-               <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl">
-                   <span className="text-[14px] font-black text-[#0F2B5C]">{safeStr(profile?.username)}</span>
-                   <button onClick={() => setIsEditingName(true)} className="text-slate-600 bg-white border border-slate-200 font-bold px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1 shadow-sm"><Edit3 className="w-3 h-3"/> កែប្រែ</button>
+               <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                   <span className="text-[13px] font-black text-[#0F2B5C]">{safeStr(profile?.username)}</span>
+                   <button onClick={() => setIsEditingName(true)} className="text-slate-600 bg-white border border-slate-200 font-bold px-2.5 py-1 rounded-lg text-[9px] flex items-center gap-1 shadow-sm"><Edit3 className="w-3 h-3"/> កែប្រែ</button>
                </div>
            )}
         </div>
       </div>
 
-      <div className="bg-white p-5 rounded-[24px] shadow-sm border border-slate-200 space-y-4">
-         <h2 className="text-[12px] font-black flex items-center gap-1.5 text-[#0F2B5C] border-b border-slate-100 pb-2">
-            <Settings className="w-4 h-4 text-slate-400"/> ការកំណត់
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+         <h2 className="text-[11px] font-black flex items-center gap-1.5 text-[#0F2B5C] border-b border-slate-100 pb-1.5">
+            <Settings className="w-3.5 h-3.5 text-slate-400"/> ការកំណត់
          </h2>
          
-         <div className="pt-1">
-            <button onClick={() => setShowAdminLogin(true)} className="w-full bg-[#0F2B5C] hover:bg-[#081a3b] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 text-[12px] transition active:scale-95 shadow-lg border border-[#0F2B5C]">
-               <ShieldAlert className="w-4.5 h-4.5 text-[#38BDF8] animate-pulse"/> Admin Portal របស់ប្រព័ន្ធ
+         <div className="pt-0.5">
+            <button onClick={() => setShowAdminLogin(true)} className="w-full bg-[#0F2B5C] hover:bg-[#081a3b] text-white py-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 text-[11px] transition active:scale-95 shadow-md border border-[#0F2B5C]">
+               <ShieldAlert className="w-4 h-4 text-[#38BDF8] animate-pulse"/> Admin Portal របស់ប្រព័ន្ធ
             </button>
          </div>
       </div>
 
       {showAdminLogin && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in bg-slate-900/70 backdrop-blur-md pointer-events-auto">
-           <div className="relative w-full max-w-[320px] mx-auto bg-white rounded-[24px] p-6 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95">
-              <div className="w-12 h-12 bg-gradient-to-tr from-[#0F2B5C] to-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                 <ShieldCheck className="w-6 h-6 text-[#38BDF8]"/>
+           <div className="relative w-full max-w-[300px] mx-auto bg-white rounded-2xl p-5 shadow-2xl border border-slate-100 text-center animate-in zoom-in-95">
+              <div className="w-10 h-10 bg-gradient-to-tr from-[#0F2B5C] to-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md">
+                 <ShieldCheck className="w-5 h-5 text-[#38BDF8]"/>
               </div>
               
-              <h3 className="text-[14px] font-black mb-1.5 text-[#0F2B5C] uppercase">បញ្ជាក់សិទ្ធិជាអភិបាល</h3>
-              <p className="text-[10px] text-slate-400 mb-4 font-medium">សូមវាយបញ្ចូលគណនីរដ្ឋបាល</p>
+              <h3 className="text-[12px] font-black mb-1 text-[#0F2B5C] uppercase">បញ្ជាក់សិទ្ធិជាអភិបាល</h3>
+              <p className="text-[9px] text-slate-400 mb-3 font-medium">សូមវាយបញ្ចូលគណនីរដ្ឋបាល</p>
               
-              <div className="space-y-3 mb-5">
+              <div className="space-y-2.5 mb-4">
                  <input 
                    type="email" 
                    value={emailInput}
                    onChange={e=>setEmailInput(e.target.value)}
                    placeholder="អ៊ីម៉ែល..."
-                   className="w-full bg-slate-50 px-3 py-2 rounded-xl outline-none font-bold border border-slate-200 text-[13px] text-slate-800"
+                   className="w-full bg-slate-50 px-3 py-2 rounded-xl outline-none font-bold border border-slate-200 text-[12px] text-slate-800"
                  />
                  <input 
                    type="password" 
                    value={pwdInput} 
                    onChange={e=>setPwdInput(e.target.value)} 
                    placeholder="លេខសម្ងាត់..." 
-                   className="w-full bg-slate-50 px-3 py-2 rounded-xl outline-none font-bold border border-slate-200 text-[13px] text-slate-800"
+                   className="w-full bg-slate-50 px-3 py-2 rounded-xl outline-none font-bold border border-slate-200 text-[12px] text-slate-800"
                  />
               </div>
               
               <div className="flex gap-2">
-                <button onClick={() => { setShowAdminLogin(false); setEmailInput(''); setPwdInput(''); }} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-[11px] border border-slate-200">បោះបង់</button>
-                <button onClick={handleAdminLogin} className="flex-1 btn-gradient py-2.5 rounded-xl font-bold text-[11px] shadow-lg">ចូលគណនី</button>
+                <button onClick={() => { setShowAdminLogin(false); setEmailInput(''); setPwdInput(''); }} className="flex-1 bg-slate-100 text-slate-600 py-2 rounded-xl font-bold text-[10px] border border-slate-200">បោះបង់</button>
+                <button onClick={handleAdminLogin} className="flex-1 btn-gradient py-2 rounded-xl font-bold text-[10px] shadow-md">ចូលគណនី</button>
               </div>
            </div>
         </div>
@@ -1949,12 +2046,13 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   );
 };
 
-const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets }) => {
+const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
 
   const [confirmAction, setConfirmAction] = useState(null);
-  const openConfirm = (title, message, action) => setConfirmAction({ title, message, action });
+  const openConfirm = (title, message, action, requirePassword = false) => setConfirmAction({ title, message, action, requirePassword });
+  
   const handleConfirm = async () => {
      if (confirmAction && confirmAction.action) await confirmAction.action();
      setConfirmAction(null);
@@ -2085,6 +2183,58 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       });
   };
 
+  const handleDeleteTrollUser = (userObj) => {
+      openConfirm("លុបគណនី (Delete User)", `តើអ្នកពិតជាចង់លុបគណនី និងរាល់ប្រវត្តិឆាតរបស់ ${userObj.username} ទាំងស្រុងមែនទេ?`, async () => {
+         if (db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
+            chats.forEach(async msg => {
+               if (msg && msg.userId === userObj.id) {
+                  await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id)).catch(()=>{});
+               }
+            });
+         }
+         showToast(`បានលុបគណនី ${userObj.username} ជោគជ័យ`);
+         setViewUserChat(null);
+      }, true); 
+  };
+
+  const handleApproveAppeal = async (appealItem) => {
+      try {
+         if (db) {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', appealItem.userId), { isBanned: false, warnings: 0 });
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'appeals', appealItem.userId));
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
+               targetId: appealItem.userId,
+               title: 'គណនីត្រូវបានបើកវិញជោគជ័យ ✅',
+               msg: 'សំណើរសុំសម្រុះសម្រួលរបស់អ្នកត្រូវបានអនុម័ត។ គណនីត្រូវបានបើកឲ្យប្រើប្រាស់ធម្មតាវិញហើយ។',
+               type: 'success',
+               timestamp: Date.now()
+            });
+         }
+         showToast('បានយល់ព្រមបើកគណនីឡើងវិញ');
+      } catch (err) {
+         showToast('មានបញ្ហាក្នុងការអនុម័តសំណើរ', 'error');
+      }
+  };
+
+  const handleRejectAppeal = async (appealItem) => {
+      try {
+         if (db) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'appeals', appealItem.userId));
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
+               targetId: appealItem.userId,
+               title: 'សំណើរសម្រុះសម្រួលត្រូវបានបដិសេធ ❌',
+               msg: 'សំណើរសុំសម្រុះសម្រួលរបស់អ្នកត្រូវបានបដិសេធ។ សូមសរសេរសេចក្តីសន្យារបស់អ្នកឡើងវិញឱ្យបានត្រឹមត្រូវ។',
+               type: 'error',
+               timestamp: Date.now()
+            });
+         }
+         showToast('បានបដិសេធសំណើរសម្រុះសម្រួល', 'error');
+      } catch (err) {
+         showToast('មានបញ្ហាក្នុងការបដិសេធសំណើរ', 'error');
+      }
+  };
+
   const handleAddCommune = async (e) => {
      e.preventDefault();
      if(!newCommune.trim()) return;
@@ -2189,50 +2339,51 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
          isOpen={!!confirmAction} 
          title={confirmAction?.title} 
          message={confirmAction?.message}
+         requirePassword={confirmAction?.requirePassword}
          onConfirm={handleConfirm}
          onCancel={() => setConfirmAction(null)}
       />
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#0F2B5C] text-white p-4 rounded-[20px] shadow-xl border border-slate-700 shrink-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#0F2B5C] text-white p-4 rounded-[16px] shadow-sm border border-slate-700 shrink-0">
         <div>
            <div className="flex items-center gap-2">
               <button onClick={() => setCurrentView('home')} className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition border border-white/20"><ArrowLeft className="w-3.5 h-3.5 text-white" /></button>
-              <h1 className="text-sm md:text-[15px] font-black flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-[#38BDF8]"/> Firebase Admin Panel</h1>
+              <h1 className="text-xs md:text-[13px] font-black flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-[#38BDF8]"/> Firebase Admin Panel</h1>
            </div>
-           <p className="text-[9px] text-sky-200 mt-1 pl-9 font-bold uppercase tracking-wider">ប្រព័ន្ធគ្រប់គ្រងទិន្នន័យផ្លូវការ</p>
+           <p className="text-[8.5px] text-sky-200 mt-1 pl-8 font-bold uppercase tracking-wider">ប្រព័ន្ធគ្រប់គ្រងទិន្នន័យផ្លូវការ</p>
         </div>
-        <button onClick={handleAdminLogout} className="mt-4 sm:mt-0 px-4 py-2 bg-white/10 hover:bg-rose-600 rounded-lg text-[10px] font-black flex items-center gap-1.5 transition-colors border border-white/20 active:scale-95"><LogOut className="w-3.5 h-3.5"/> ចាកចេញ</button>
+        <button onClick={handleAdminLogout} className="mt-3 sm:mt-0 px-3 py-1.5 bg-white/10 hover:bg-rose-600 rounded-lg text-[9px] font-black flex items-center gap-1.5 transition-colors border border-white/20 active:scale-95"><LogOut className="w-3 h-3"/> ចាកចេញ</button>
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
+      <div className="flex gap-1 overflow-x-auto hide-scrollbar pb-1">
         {[
-          {id: 'data', label: 'ទិន្នន័យ & ទីតាំង'}, {id: 'chat_manage', label: 'គ្រប់គ្រងទំនាក់ទំនង'}, {id: 'chat_monitor', label: 'គ្រប់គ្រងបទល្មើស (Trolls)'}, {id: 'approvals', label: 'អនុម័តសំណើរ'}, {id: 'security', label: 'កំណត់ត្រាសុវត្ថិភាព'}
+          {id: 'data', label: 'ទិន្នន័យ & ទីតាំង'}, {id: 'chat_manage', label: 'គ្រប់គ្រងទំនាក់ទំនង'}, {id: 'chat_monitor', label: 'គ្រប់គ្រងបទល្មើស (Trolls)'}, {id: 'appeals', label: 'សំណើសម្រុះសម្រួល'}, {id: 'approvals', label: 'អនុម័តសំណើរ'}, {id: 'security', label: 'កំណត់ត្រាសុវត្ថិភាព'}
         ].map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-2.5 rounded-xl text-[10.5px] font-black whitespace-nowrap transition-colors shadow-sm ${activeTab === t.id ? 'bg-[#0F2B5C] text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-3 py-2 rounded-xl text-[9.5px] font-black whitespace-nowrap transition-colors shadow-sm ${activeTab === t.id ? 'bg-[#0F2B5C] text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>{t.label}</button>
         ))}
       </div>
 
-      <div className="min-h-[400px]">
+      <div className="min-h-[350px]">
           {activeTab === 'approvals' && (
-            <div className="bg-white p-5 rounded-[20px] shadow-sm border border-slate-200">
-               <h3 className="font-black text-[13px] mb-4 border-l-4 border-amber-500 pl-2 text-[#0F2B5C]">សំណើររង់ចាំ (Pending: {pendingLocations?.length||0})</h3>
-               <div className="space-y-3">
-                 {pendingLocations?.length === 0 ? <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50"><p className="text-[11px] text-slate-400 font-bold">គ្មានសំណើរថ្មីទេ</p></div> : 
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+               <h3 className="font-black text-[12px] mb-3 border-l-4 border-amber-500 pl-2 text-[#0F2B5C]">សំណើររង់ចាំ (Pending: {pendingLocations?.length||0})</h3>
+               <div className="space-y-3.5">
+                 {pendingLocations?.length === 0 ? <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl bg-slate-50"><p className="text-[10px] text-slate-400 font-bold">គ្មានសំណើរថ្មីទេ</p></div> : 
                    pendingLocations.filter(Boolean).map(loc => {
                      const displayTitle = safeStr(loc.title);
                      return (
                      <div key={loc.id} className="p-3 bg-slate-50 rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-3 border border-slate-200 shadow-sm animate-in slide-in-from-bottom-2">
                         <div className="flex items-start gap-3 w-full md:w-auto">
-                          <img src={loc.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400'} className="w-12 h-12 object-cover rounded-xl bg-slate-200 shrink-0 shadow-sm border border-slate-200" alt="loc"/>
+                          <img src={loc.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300'} className="w-16 aspect-[16/10] object-cover rounded-xl bg-slate-200 shrink-0 shadow-sm border border-slate-200" alt="loc"/>
                           <div className="flex-1">
-                            <p className="font-black text-[13px] text-[#0F2B5C] leading-tight line-clamp-1">{displayTitle}</p>
-                            <p className="text-[10px] text-slate-600 font-bold mt-1 bg-white px-2 py-0.5 rounded border border-slate-200 w-fit">{safeStr(loc.category)}</p>
-                            <p className="text-[9px] text-slate-500 mt-1">ស្នើដោយ: {safeStr(loc.author)}</p>
+                            <p className="font-black text-[12.5px] text-[#0F2B5C] leading-tight line-clamp-1">{displayTitle}</p>
+                            <p className="text-[9.5px] text-slate-600 font-bold mt-1 bg-white px-1.5 py-0.5 rounded border border-slate-200 w-fit">{safeStr(loc.category)}</p>
+                            <p className="text-[8.5px] text-slate-500 mt-1">ស្នើដោយ: {safeStr(loc.author)}</p>
                           </div>
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
-                          <button onClick={()=>handleApprove(loc.id, loc.authorUid || null)} className="flex-1 md:flex-none bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow-md">ព្រម</button>
-                          <button onClick={()=>handleReject(loc.id, loc.authorUid || null)} className="flex-1 md:flex-none bg-rose-50 text-rose-600 border border-rose-200 px-4 py-2 rounded-lg font-bold text-[11px] shadow-sm">មិនព្រម</button>
+                          <button onClick={()=>handleApprove(loc.id, loc.authorUid || null)} className="flex-1 md:flex-none bg-[#10b981] text-white px-3 py-1.5 rounded-lg font-bold text-[10.5px] shadow-sm">ព្រម</button>
+                          <button onClick={()=>handleReject(loc.id, loc.authorUid || null)} className="flex-1 md:flex-none bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-lg font-bold text-[10.5px] shadow-sm">មិនព្រម</button>
                         </div>
                      </div>
                    )})
@@ -2242,32 +2393,32 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           )}
 
           {activeTab === 'chat_monitor' && (
-             <div className="bg-white p-5 rounded-[20px] shadow-sm border border-slate-200 animate-in fade-in duration-200">
-                <h3 className="font-black text-[13px] border-l-4 border-rose-500 pl-2 text-[#0F2B5C] mb-4">ការតាមដាន និងគ្រប់គ្រងបទល្មើស (Moderation)</h3>
-                <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1 hide-scrollbar">
-                   {usersList?.length === 0 ? <p className="text-center py-10 text-[11px] font-bold text-slate-400">គ្មាន User</p> :
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in duration-200">
+                <h3 className="font-black text-[12px] border-l-4 border-rose-500 pl-2 text-[#0F2B5C] mb-3">ការតាមដាន និងគ្រប់គ្រងបទល្មើស (Moderation)</h3>
+                <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1 hide-scrollbar">
+                   {usersList?.length === 0 ? <p className="text-center py-8 text-[10px] font-bold text-slate-400">គ្មាន User</p> :
                      usersList.sort((a,b)=>(b.lastActive||0)-(a.lastActive||0)).map(u => {
                         if (!u) return null;
                         const isOnline = (Date.now() - (u.lastActive||0)) < 120000;
                         if (u.isBanned) return null; 
 
                         return (
-                           <div key={u.id} onClick={() => setViewUserChat(u)} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-all shadow-sm">
-                              <div className="flex items-center gap-3">
+                           <div key={u.id} onClick={() => setViewUserChat(u)} className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 cursor-pointer transition-all shadow-sm">
+                              <div className="flex items-center gap-2.5">
                                  <div className="relative">
-                                    <img src={u.avatar} className="w-10 h-10 rounded-full object-cover border border-slate-200 bg-white" alt="av" />
-                                    <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                                    <img src={u.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-200 bg-white" alt="av" />
+                                    <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                                  </div>
                                  <div>
-                                    <h4 className="font-bold text-[13px] text-[#0F2B5C] flex items-center gap-1.5">
+                                    <h4 className="font-bold text-[12px] text-[#0F2B5C] flex items-center gap-1.5">
                                        {safeStr(u.username) || 'អ្នកប្រើប្រាស់មិនស្គាល់ឈ្មោះ'}
                                        {u.warnings > 0 && <span className="bg-amber-100 text-amber-600 text-[8px] px-1.5 py-0.5 rounded font-black border border-amber-200">Warnings: {u.warnings}</span>}
                                     </h4>
-                                    <p className={`text-[9px] font-bold mt-0.5 ${isOnline ? 'text-emerald-500' : 'text-slate-500'}`}>{isOnline ? 'Online' : 'Offline'}</p>
+                                    <p className={`text-[8.5px] font-bold mt-0.5 ${isOnline ? 'text-emerald-500' : 'text-slate-500'}`}>{isOnline ? 'Online' : 'Offline'}</p>
                                  </div>
                               </div>
-                              <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-rose-500">
-                                 <MessageCircle className="w-4.5 h-4.5" />
+                              <div className="w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-rose-500">
+                                 <MessageCircle className="w-4 h-4" />
                               </div>
                            </div>
                         )
@@ -2277,59 +2428,91 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
              </div>
           )}
 
+          {activeTab === 'appeals' && (
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 animate-in fade-in duration-200">
+                <h3 className="font-black text-[12px] border-l-4 border-sky-500 pl-2 text-[#0F2B5C] mb-3">សំណើសម្រុះសម្រួលទណ្ឌកម្ម (Appeals List)</h3>
+                <div className="space-y-3.5 max-h-[400px] overflow-y-auto pr-1 hide-scrollbar">
+                   {appeals.length === 0 ? (
+                      <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl bg-slate-50"><p className="text-[10px] text-slate-400 font-bold">គ្មានសំណើរសុំសម្រុះសម្រួលថ្មីទេ</p></div>
+                   ) : (
+                      appeals.map(item => item && (
+                         <div key={item.userId} className="p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                               <div className="flex items-center gap-2.5">
+                                  <img src={item.photo} className="w-14 aspect-[16/10] object-cover rounded-lg border border-slate-200 bg-white" alt="Facial Verification" />
+                                  <div>
+                                     <h4 className="font-black text-[12.5px] text-[#0F2B5C]">{safeStr(item.username)}</h4>
+                                     <span className="text-[8.5px] text-slate-400 font-bold block">{new Date(item.timestamp).toLocaleString()}</span>
+                                  </div>
+                               </div>
+                               <div className="flex gap-1.5 w-full sm:w-auto">
+                                  <button onClick={() => handleApproveAppeal(item)} className="flex-1 sm:flex-none bg-[#10b981] hover:bg-emerald-600 text-white px-3 py-1 rounded-lg font-black text-[10px] shadow-sm">យល់ព្រម (Approve)</button>
+                                  <button onClick={() => handleRejectAppeal(item)} className="flex-1 sm:flex-none bg-rose-50 hover:bg-rose-100 text-rose-500 border border-rose-100 px-3 py-1 rounded-lg font-black text-[10px] shadow-sm">បដិសេធ (Reject)</button>
+                               </div>
+                            </div>
+                            <div className="bg-white p-2.5 rounded-lg border border-slate-100 text-[11px] text-slate-600 font-medium italic leading-relaxed">
+                               "{safeStr(item.text)}"
+                            </div>
+                         </div>
+                      ))
+                   )}
+                </div>
+             </div>
+          )}
+
           {activeTab === 'chat_manage' && (
-             <div className="bg-white p-5 rounded-[20px] shadow-sm border border-slate-200 space-y-4">
-                <h3 className="font-black text-[13px] border-l-4 border-[#38BDF8] pl-2 text-[#0F2B5C]">បន្ថែមទំនាក់ទំនងសម្រាប់ Chat</h3>
+             <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3.5">
+                <h3 className="font-black text-[12px] border-l-4 border-[#38BDF8] pl-2 text-[#0F2B5C]">បន្ថែមទំនាក់ទំនងសម្រាប់ Chat</h3>
                 
-                <form onSubmit={handleAddChatTarget} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <form onSubmit={handleAddChatTarget} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <div>
-                         <label className="text-[10px] font-bold text-slate-500 block mb-1">ជ្រើសរើសស្រុក</label>
-                         <select value={newChatDistrictType} onChange={e=>setNewChatDistrictType(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[13px] font-bold text-slate-800">
+                         <label className="text-[9.5px] font-bold text-slate-500 block mb-1">ជ្រើសរើសស្រុក</label>
+                         <select value={newChatDistrictType} onChange={e=>setNewChatDistrictType(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold text-slate-800">
                              <option value="រតនមណ្ឌល">ស្រុករតនមណ្ឌល</option>
                              <option value="ផ្សេងៗ">ស្រុកផ្សេងៗ</option>
                          </select>
                       </div>
                       {newChatDistrictType === 'ផ្សេងៗ' && (
                          <div className="animate-in fade-in">
-                            <label className="text-[10px] font-bold text-slate-500 block mb-1">បញ្ចូលឈ្មោះស្រុក</label>
-                            <input type="text" value={newChatCustomDistrict} onChange={e=>setNewChatCustomDistrict(e.target.value)} required placeholder="ឧ: ស្រុកបាណន់..." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[13px] font-bold text-slate-800" />
+                            <label className="text-[9.5px] font-bold text-slate-500 block mb-1">បញ្ចូលឈ្មោះស្រុក</label>
+                            <input type="text" value={newChatCustomDistrict} onChange={e=>setNewChatCustomDistrict(e.target.value)} required placeholder="ឧ: ស្រុកបាណន់..." className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold text-slate-800" />
                          </div>
                       )}
                    </div>
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       <div>
-                         <label className="text-[10px] font-bold text-slate-500 block mb-1">ឈ្មោះទំនាក់ទំនង (Label)</label>
-                         <input type="text" value={newChatLabel} onChange={e=>setNewChatLabel(e.target.value)} required placeholder="ឧ: ប៉ុស្តិ៍ប៉ូលីសស្តៅ..." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[13px] font-bold text-slate-800" />
+                         <label className="text-[9.5px] font-bold text-slate-500 block mb-1">ឈ្មោះទំនាក់ទំនង (Label)</label>
+                         <input type="text" value={newChatLabel} onChange={e=>setNewChatLabel(e.target.value)} required placeholder="ឧ: ប៉ុស្តិ៍ប៉ូលីសស្តៅ..." className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold text-slate-800" />
                       </div>
                       <div>
-                         <label className="text-[10px] font-bold text-slate-500 block mb-1">តួនាទី (Role)</label>
-                         <input type="text" value={newChatRole} onChange={e=>setNewChatRole(e.target.value)} required placeholder="ឧ: รដ្ឋបាល..." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[13px] font-bold text-slate-800" />
+                         <label className="text-[9.5px] font-bold text-slate-500 block mb-1">តួនាទី (Role)</label>
+                         <input type="text" value={newChatRole} onChange={e=>setNewChatRole(e.target.value)} required placeholder="ឧ: រដ្ឋបាល..." className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold text-slate-800" />
                       </div>
                       <div>
-                         <label className="text-[10px] font-bold text-slate-500 block mb-1">រូបតំណាង (Avatar URL)</label>
-                         <input type="text" value={newChatAvatar} onChange={e=>setNewChatAvatar(e.target.value)} placeholder="https://..." className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-[13px] font-bold text-slate-800" />
+                         <label className="text-[9.5px] font-bold text-slate-500 block mb-1">រូបតំណាង (Avatar URL)</label>
+                         <input type="text" value={newChatAvatar} onChange={e=>setNewChatAvatar(e.target.value)} placeholder="https://..." className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold text-slate-800" />
                       </div>
                    </div>
-                   <button type="submit" className="bg-[#0F2B5C] text-white px-5 py-2 rounded-lg text-[11px] font-black shadow-lg">
+                   <button type="submit" className="bg-[#0F2B5C] text-white px-4 py-1.5 rounded-lg text-[10px] font-black shadow-md">
                       + បន្ថែមទំនាក់ទំនង
                    </button>
                 </form>
 
                 <div className="space-y-2">
-                   <h4 className="font-black text-[11px] text-slate-500 uppercase tracking-widest">បញ្ជីទំនាក់ទំនងបច្ចុប្បន្ន</h4>
-                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 hide-scrollbar">
+                   <h4 className="font-black text-[10px] text-slate-500 uppercase tracking-widest">បញ្ជីទំនាក់ទំនងបច្ចុប្បន្ន</h4>
+                   <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 hide-scrollbar">
                       {chatTargets && chatTargets.map(t => t && (
-                          <div key={t.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
-                             <div className="flex items-center gap-3">
-                                <img src={t.avatar} className="w-10 h-10 rounded-full object-cover border border-slate-200 bg-white" alt="avatar" />
+                          <div key={t.id} className="flex justify-between items-center p-2 bg-slate-50 rounded-xl border border-slate-200 shadow-sm">
+                             <div className="flex items-center gap-2.5">
+                                <img src={t.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-200 bg-white" alt="avatar" />
                                 <div>
-                                   <p className="text-[13px] font-black text-[#0F2B5C]">{safeStr(t.label)}</p>
-                                   <span className="text-[9px] text-slate-500 font-bold block">{safeStr(t.district)} • {safeStr(t.role)}</span>
+                                   <p className="text-[12px] font-black text-[#0F2B5C]">{safeStr(t.label)}</p>
+                                   <span className="text-[8.5px] text-slate-500 font-bold block">{safeStr(t.district)} • {safeStr(t.role)}</span>
                                 </div>
                              </div>
-                             <button onClick={()=>handleDeleteChatTarget(t.id)} className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg border border-rose-100 transition-all">
-                                <Trash2 className="w-4 h-4"/>
+                             <button onClick={()=>handleDeleteChatTarget(t.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-500 rounded-lg border border-rose-100 transition-all">
+                                <Trash2 className="w-3.5 h-3.5"/>
                              </button>
                           </div>
                       ))}
@@ -2339,44 +2522,44 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           )}
 
           {activeTab === 'data' && (
-             <div className="space-y-4 animate-in fade-in duration-200">
-                <div className="bg-white p-5 rounded-[20px] shadow-sm border border-slate-200">
-                   <h3 className="font-black text-[13px] mb-4 border-l-4 border-amber-500 pl-2 text-[#0F2B5C]">រចនាសម្ព័ន្ធទីតាំង (រតនមណ្ឌល)</h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                           <label className="text-[11px] font-bold text-slate-600 mb-1.5 block">បន្ថែមឃុំថ្មី</label>
-                           <form onSubmit={handleAddCommune} className="flex gap-1.5">
-                               <input type="text" value={newCommune} onChange={e=>setNewCommune(e.target.value)} placeholder="ឈ្មោះឃុំ..." className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[13px] outline-none text-slate-800 m-0"/>
-                               <button type="submit" className="btn-gradient px-4 rounded-lg text-[11px] font-black">បន្ថែម</button>
+             <div className="space-y-3.5 animate-in fade-in duration-200">
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                   <h3 className="font-black text-[12px] mb-3 border-l-4 border-amber-500 pl-2 text-[#0F2B5C]">រចនាសម្ព័ន្ធទីតាំង (រតនមណ្ឌល)</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                           <label className="text-[10px] font-bold text-slate-600 mb-1 block">បន្ថែមឃុំថ្មី</label>
+                           <form onSubmit={handleAddCommune} className="flex gap-1">
+                               <input type="text" value={newCommune} onChange={e=>setNewCommune(e.target.value)} placeholder="ឈ្មោះឃុំ..." className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[12px] outline-none text-slate-800 m-0"/>
+                               <button type="submit" className="btn-gradient px-3 rounded-lg text-[10px] font-black">បន្ថែម</button>
                            </form>
                        </div>
-                       <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                           <label className="text-[11px] font-bold text-slate-600 mb-1.5 block">បន្ថែមភូមិថ្មី</label>
-                           <form onSubmit={handleAddVillage} className="space-y-2">
-                               <select value={selectedCommune} onChange={e=>setSelectedCommune(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[13px] outline-none text-slate-800 m-0 cursor-pointer">
+                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                           <label className="text-[10px] font-bold text-slate-600 mb-1 block">បន្ថែមភូមិថ្មី</label>
+                           <form onSubmit={handleAddVillage} className="space-y-1.5">
+                               <select value={selectedCommune} onChange={e=>setSelectedCommune(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-[12px] outline-none text-slate-800 m-0 cursor-pointer">
                                    <option value="">ជ្រើសរើសឃុំ...</option>
                                    {dbRegions && dbRegions["រតនមណ្ឌល"] && Object.keys(dbRegions["រតនមណ្ឌល"]).map(c=><option key={c} value={c}>{c}</option>)}
                                </select>
-                               <div className="flex gap-1.5">
-                                   <input type="text" value={newVillage} onChange={e=>setNewVillage(e.target.value)} placeholder="ឈ្មោះភូមិ..." className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-[13px] outline-none text-slate-800 m-0"/>
-                                   <button type="submit" className="btn-gradient px-4 rounded-lg text-[11px] font-black">បន្ថែម</button>
+                               <div className="flex gap-1">
+                                   <input type="text" value={newVillage} onChange={e=>setNewVillage(e.target.value)} placeholder="ឈ្មោះភូមិ..." className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[12px] outline-none text-slate-800 m-0"/>
+                                   <button type="submit" className="btn-gradient px-3 rounded-lg text-[10px] font-black">បន្ថែម</button>
                                </div>
                            </form>
                        </div>
                    </div>
                    
-                   <div className="space-y-3">
+                   <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 hide-scrollbar">
                        {dbRegions && dbRegions["រតនមណ្ឌល"] && Object.entries(dbRegions["រតនមណ្ឌល"]).map(([cName, villages]) => (
                            <div key={cName} className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-                               <div className="bg-slate-100 p-3 flex justify-between items-center border-b border-slate-200">
-                                   <span className="font-black text-[12px] text-[#0F2B5C]">ឃុំ: {cName}</span>
+                               <div className="bg-slate-100 p-2 flex justify-between items-center border-b border-slate-200">
+                                   <span className="font-black text-[11px] text-[#0F2B5C]">ឃុំ: {cName}</span>
                                    <button onClick={()=>handleDeleteCommune(cName)} className="text-rose-500 p-1 bg-white rounded border border-rose-100"><Trash2 className="w-3.5 h-3.5"/></button>
                                </div>
-                               <div className="p-3 flex flex-wrap gap-1.5">
-                                   {villages.length === 0 ? <span className="text-[10px] text-slate-400">គ្មានភូមិ</span> : 
+                               <div className="p-2 flex flex-wrap gap-1">
+                                   {villages.length === 0 ? <span className="text-[9px] text-slate-400">គ្មានភូមិ</span> : 
                                      villages.map(vName => (
-                                         <div key={vName} className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600 flex items-center gap-1.5">
-                                             {vName} <button onClick={()=>handleDeleteVillage(cName, vName)} className="text-slate-400 hover:text-rose-500"><XCircle className="w-3 h-3"/></button>
+                                         <div key={vName} className="bg-white border border-slate-200 px-2 py-0.5 rounded-lg text-[9px] font-bold text-slate-600 flex items-center gap-1">
+                                             {vName} <button onClick={()=>handleDeleteVillage(cName, vName)} className="text-slate-400 hover:text-rose-500"><XCircle className="w-2.5 h-2.5"/></button>
                                          </div>
                                      ))
                                    }
@@ -2386,54 +2569,54 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                    </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-[20px] shadow-sm border border-slate-200">
-                    <h3 className="font-black text-[13px] mb-4 border-l-4 border-[#0F2B5C] pl-2 text-[#0F2B5C]">ទិន្នន័យដែលបានអនុម័តសរុប ({locations.filter(l=>l && l.status==='approved').length})</h3>
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 className="font-black text-[12px] mb-3 border-l-4 border-[#0F2B5C] pl-2 text-[#0F2B5C]">ទិន្នន័យដែលបានអនុម័តសរុប ({locations.filter(l=>l && l.status==='approved').length})</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <h4 className="font-black text-[11px] mb-3 text-[#0F2B5C] bg-white p-2 rounded-lg border border-slate-100 font-khmer">១. ស្រុករតនមណ្ឌល</h4>
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 hide-scrollbar">
-                               {locations.filter(l=>l && l.status==='approved' && l.district === 'រតនមណ្ឌល').length === 0 ? <p className="text-center py-4 text-[11px] text-slate-400 font-bold border border-dashed border-slate-200 rounded-lg">គ្មានទិន្នន័យ</p> :
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <h4 className="font-black text-[10.5px] mb-2.5 text-[#0F2B5C] bg-white p-2 rounded-lg border border-slate-100 font-khmer">១. ស្រុករតនមណ្ឌល</h4>
+                            <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 hide-scrollbar">
+                               {locations.filter(l=>l && l.status==='approved' && l.district === 'រតនមណ្ឌល').length === 0 ? <p className="text-center py-3 text-[10px] text-slate-400 font-bold border border-dashed border-slate-200 rounded-lg">គ្មានទិន្នន័យ</p> :
                                  locations.filter(l=>l && l.status==='approved' && l.district === 'រតនមណ្ឌល').map(loc => {
                                    if (!loc) return null;
                                    const displayTitle = safeStr(loc.title);
                                    return (
-                                   <div key={loc.id} className="flex justify-between items-center p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                   <div key={loc.id} className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-200 shadow-sm">
                                       <div className="flex items-center gap-2">
-                                         <img src={loc.image} className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0" alt="loc"/>
+                                         <img src={loc.image} className="w-12 aspect-[16/10] object-cover rounded-lg border border-slate-200 shrink-0" alt="loc"/>
                                          <div>
-                                            <p className="text-[12px] font-black text-[#0F2B5C] line-clamp-1">{displayTitle}</p>
-                                            <p className="text-[9px] text-slate-500 font-bold mt-0.5">{safeStr(loc.commune)} • {safeStr(loc.village)}</p>
+                                            <p className="text-[11.5px] font-black text-[#0F2B5C] line-clamp-1">{displayTitle}</p>
+                                            <p className="text-[8.5px] text-slate-500 font-bold mt-0.5">{safeStr(loc.commune)} • {safeStr(loc.village)}</p>
                                          </div>
                                       </div>
                                       <div className="flex gap-1 shrink-0">
-                                         <button onClick={()=>setEditingLoc(loc)} className="p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100"><Edit3 className="w-3.5 h-3.5"/></button>
-                                         <button onClick={()=>confirmDeleteLocation(loc.id)} className="p-2 bg-rose-50 text-rose-600 rounded-lg border border-rose-100"><Trash2 className="w-3.5 h-3.5"/></button>
+                                         <button onClick={()=>setEditingLoc(loc)} className="p-1.5 bg-amber-50 text-amber-600 rounded-lg border border-amber-100"><Edit3 className="w-3 h-3"/></button>
+                                         <button onClick={()=>confirmDeleteLocation(loc.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-100"><Trash2 className="w-3 h-3"/></button>
                                       </div>
                                    </div>
                                )})}
                             </div>
                         </div>
 
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <h4 className="font-black text-[11px] mb-3 text-[#38BDF8] bg-white p-2 rounded-lg border border-slate-100">២. ស្រុកផ្សេងៗ</h4>
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 hide-scrollbar">
-                               {locations.filter(l=>l && l.status==='approved' && l.district !== 'រតនមណ្ឌល').length === 0 ? <p className="text-center py-4 text-[11px] text-slate-400 font-bold border border-dashed border-slate-200 rounded-lg">គ្មានទិន្នន័យ</p> :
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <h4 className="font-black text-[10.5px] mb-2.5 text-[#38BDF8] bg-white p-2 rounded-lg border border-slate-100">២. ស្រុកផ្សេងៗ</h4>
+                            <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1 hide-scrollbar">
+                               {locations.filter(l=>l && l.status==='approved' && l.district !== 'រតនមណ្ឌល').length === 0 ? <p className="text-center py-3 text-[10px] text-slate-400 font-bold border border-dashed border-slate-200 rounded-lg">គ្មានទិន្នន័យ</p> :
                                  locations.filter(l=>l && l.status==='approved' && l.district !== 'រតនមណ្ឌល').map(loc => {
                                    if (!loc) return null;
                                    const displayTitle = safeStr(loc.title);
                                    return (
-                                   <div key={loc.id} className="flex justify-between items-center p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                   <div key={loc.id} className="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-200 shadow-sm">
                                       <div className="flex items-center gap-2">
-                                         <img src={loc.image} className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0" alt="loc"/>
+                                         <img src={loc.image} className="w-12 aspect-[16/10] object-cover rounded-lg border border-slate-200 shrink-0" alt="loc"/>
                                          <div>
-                                            <p className="text-[12px] font-black text-[#0F2B5C] line-clamp-1">{displayTitle}</p>
-                                            <p className="text-[9px] text-slate-500 font-bold mt-0.5">{safeStr(loc.district)}</p>
+                                            <p className="text-[11.5px] font-black text-[#0F2B5C] line-clamp-1">{displayTitle}</p>
+                                            <p className="text-[8.5px] text-slate-500 font-bold mt-0.5">{safeStr(loc.district)}</p>
                                          </div>
                                       </div>
                                       <div className="flex gap-1 shrink-0">
-                                         <button onClick={()=>setEditingLoc(loc)} className="p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100"><Edit3 className="w-3.5 h-3.5"/></button>
-                                         <button onClick={()=>confirmDeleteLocation(loc.id)} className="p-2 bg-rose-50 text-rose-600 rounded-lg border border-rose-100"><Trash2 className="w-3.5 h-3.5"/></button>
+                                         <button onClick={()=>setEditingLoc(loc)} className="p-1.5 bg-amber-50 text-amber-600 rounded-lg border border-amber-100"><Edit3 className="w-3 h-3"/></button>
+                                         <button onClick={()=>confirmDeleteLocation(loc.id)} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg border border-rose-100"><Trash2 className="w-3 h-3"/></button>
                                       </div>
                                    </div>
                                )})}
@@ -2445,22 +2628,22 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           )}
 
           {activeTab === 'security' && (
-            <div className="bg-white p-5 rounded-[20px] border border-slate-200 shadow-sm animate-in fade-in duration-200">
-               <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-black text-[13px] border-l-4 border-rose-500 pl-2 text-[#0F2B5C]">កំណត់ត្រាសុវត្ថិភាព (Cyber Security Logs)</h3>
-                 <button onClick={()=>clearLog()} className="text-[10px] bg-rose-50 text-rose-600 border border-rose-200 px-4 py-2 rounded-lg font-bold">លុបទាំងអស់</button>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm animate-in fade-in duration-200">
+               <div className="flex justify-between items-center mb-3">
+                 <h3 className="font-black text-[12px] border-l-4 border-rose-500 pl-2 text-[#0F2B5C]">កំណត់ត្រាសុវត្ថិភាព (Cyber Security Logs)</h3>
+                 <button onClick={()=>clearLog()} className="text-[9px] bg-rose-50 text-rose-600 border border-rose-200 px-3 py-1.5 rounded-lg font-bold">លុបទាំងអស់</button>
                </div>
-               <div className="space-y-2.5 max-h-[400px] overflow-y-auto pr-1 hide-scrollbar">
-                 {cyberLogs?.length === 0 ? <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl"><p className="text-[11px] font-bold text-slate-400">ប្រព័ន្ធមានសុវត្ថិភាពល្អ ១០០%</p></div> : 
+               <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1 hide-scrollbar">
+                 {cyberLogs?.length === 0 ? <div className="text-center py-8 border border-dashed border-slate-200 rounded-xl"><p className="text-[10px] font-bold text-slate-400">ប្រព័ន្ធមានសុវត្ថិភាពល្អ ១០០%</p></div> : 
                    cyberLogs?.map(l => {
                      if (!l) return null;
                      return (
-                     <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-[11px] relative shadow-sm animate-in slide-in-from-bottom-2">
-                        <p className="font-black text-rose-600 mb-1 flex items-center gap-1"><ShieldAlert className="w-3.5 h-3.5"/> Failed Login Attempt</p>
+                     <div key={l.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] relative shadow-sm animate-in slide-in-from-bottom-2">
+                        <p className="font-black text-rose-600 mb-0.5 flex items-center gap-1"><ShieldAlert className="w-3 h-3"/> Failed Login Attempt</p>
                         <p className="text-[#0F2B5C] font-bold mb-0.5">User: {l.username}</p>
-                        <p className="text-slate-500 mb-1">{l.device} • IP: {l.ip}</p>
-                        <p className="text-slate-400 text-[9px] font-medium">{new Date(l.timestamp).toLocaleString()}</p>
-                        <button onClick={()=>clearLog(l.id)} className="absolute top-3 right-3 text-slate-400 hover:text-rose-500 p-1 rounded-full"><X className="w-3.5 h-3.5"/></button>
+                        <p className="text-slate-500 mb-0.5">{l.device} • IP: {l.ip}</p>
+                        <p className="text-slate-400 text-[8.5px] font-medium">{new Date(l.timestamp).toLocaleString()}</p>
+                        <button onClick={()=>clearLog(l.id)} className="absolute top-2.5 right-2.5 text-slate-400 hover:text-rose-500 p-0.5 rounded-full"><X className="w-3 h-3"/></button>
                      </div>
                    )})
                  }
@@ -2471,31 +2654,31 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
 
       {editingLoc && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in pointer-events-auto">
-           <div className="bg-white w-full max-w-sm mx-auto rounded-[20px] p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 max-h-[85dvh] flex flex-col">
-              <h3 className="text-[14px] font-black mb-4 text-[#0F2B5C] border-b border-slate-100 pb-2">កែប្រែទិន្នន័យ (Update Document)</h3>
-              <div className="flex-1 overflow-y-auto hide-scrollbar space-y-3 px-1">
+           <div className="bg-white w-full max-w-sm mx-auto rounded-2xl p-4 shadow-2xl border border-slate-200 animate-in zoom-in-95 max-h-[80dvh] flex flex-col">
+              <h3 className="text-[13px] font-black mb-3 text-[#0F2B5C] border-b border-slate-100 pb-1.5">កែប្រែទិន្នន័យ (Update Document)</h3>
+              <div className="flex-1 overflow-y-auto hide-scrollbar space-y-2.5 px-0.5">
                      <div>
-                         <label className="text-[10px] font-bold text-slate-500 mb-1 block">ចំណងជើង / ចំណងជើង</label>
-                         <input value={safeStr(editingLoc.title)} onChange={e=>setEditingLoc({...editingLoc, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-[13px] font-bold outline-none"/>
+                         <label className="text-[9.5px] font-bold text-slate-500 mb-0.5 block">ចំណងជើង</label>
+                         <input value={safeStr(editingLoc.title)} onChange={e=>setEditingLoc({...editingLoc, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-[12px] font-bold outline-none"/>
                      </div>
-                     <div className="grid grid-cols-2 gap-3">
+                     <div className="grid grid-cols-2 gap-2.5">
                          <div>
-                             <label className="text-[10px] font-bold text-slate-500 mb-1 block">តួនាទី</label>
-                             <input value={safeStr(editingLoc.role)} onChange={e=>setEditingLoc({...editingLoc, role: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-[13px] font-bold outline-none"/>
+                             <label className="text-[9.5px] font-bold text-slate-500 mb-0.5 block">តួនាទី</label>
+                             <input value={safeStr(editingLoc.role)} onChange={e=>setEditingLoc({...editingLoc, role: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-[12px] font-bold outline-none"/>
                          </div>
                          <div>
-                             <label className="text-[10px] font-bold text-slate-500 mb-1 block">លេខទូរស័ព្ទ</label>
-                             <input value={safeStr(editingLoc.phone)} onChange={e=>setEditingLoc({...editingLoc, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-[13px] font-bold outline-none"/>
+                             <label className="text-[9.5px] font-bold text-slate-500 mb-0.5 block">លេខទូរស័ព្ទ</label>
+                             <input value={safeStr(editingLoc.phone)} onChange={e=>setEditingLoc({...editingLoc, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-[12px] font-bold outline-none"/>
                          </div>
                      </div>
                      <div>
-                         <label className="text-[10px] font-bold text-slate-500 mb-1 block">ការពណ៌នា</label>
-                         <textarea value={safeStr(editingLoc.desc)} onChange={e=>setEditingLoc({...editingLoc, desc: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-lg text-[13px] font-medium h-20 outline-none resize-none"></textarea>
+                         <label className="text-[9.5px] font-bold text-slate-500 mb-0.5 block">ការពណ៌នា</label>
+                         <textarea value={safeStr(editingLoc.desc)} onChange={e=>setEditingLoc({...editingLoc, desc: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-[12px] font-medium h-16 outline-none resize-none"></textarea>
                      </div>
               </div>
-              <div className="flex gap-2 pt-4 mt-auto border-t border-slate-100">
-                 <button type="button" onClick={()=>setEditingLoc(null)} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-[11px] border border-slate-200 active:scale-95 transition-all">បោះបង់</button>
-                 <button onClick={handleEditSave} className="flex-1 btn-gradient py-2.5 rounded-xl font-bold text-[11px] shadow-md">Update</button>
+              <div className="flex gap-2 pt-3 mt-auto border-t border-slate-100">
+                 <button type="button" onClick={()=>setEditingLoc(null)} className="flex-1 bg-slate-100 text-slate-600 py-2 rounded-xl font-bold text-[10px] border border-slate-200 active:scale-95 transition-all">បោះបង់</button>
+                 <button onClick={handleEditSave} className="flex-1 btn-gradient py-2 rounded-xl font-bold text-[10px] shadow-md">Update</button>
               </div>
            </div>
         </div>
@@ -2503,30 +2686,31 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
 
       {viewUserChat && (
          <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in pointer-events-auto font-khmer">
-             <div className="bg-white w-full max-w-md rounded-[24px] shadow-2xl overflow-hidden flex flex-col h-[75dvh] border border-slate-200 animate-in zoom-in-95 pointer-events-auto">
-                 <div className="p-3.5 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
-                    <div className="flex items-center gap-2.5">
-                       <img src={viewUserChat.avatar} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
+             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[70dvh] border border-slate-200 animate-in zoom-in-95 pointer-events-auto">
+                 <div className="p-3 border-b border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                    <div className="flex items-center gap-2">
+                       <img src={viewUserChat.avatar} className="w-7 h-7 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
                        <div>
-                          <h3 className="font-bold text-[13px] text-slate-800 leading-tight">{safeStr(viewUserChat.username)}</h3>
-                          <p className="text-[9px] text-slate-500 font-bold">ប្រវត្តិការឆាត</p>
+                          <h3 className="font-bold text-[12px] text-slate-800 leading-tight">{safeStr(viewUserChat.username)}</h3>
+                          <p className="text-[8px] text-slate-500 font-bold">ប្រវត្តិការឆាត</p>
                        </div>
                     </div>
-                    <button onClick={()=>setViewUserChat(null)} className="p-1.5 hover:bg-slate-200 rounded-full text-slate-500"><X className="w-4 h-4"/></button>
+                    <button onClick={()=>setViewUserChat(null)} className="p-1 hover:bg-slate-200 rounded-full text-slate-500"><X className="w-4 h-4"/></button>
                  </div>
                  
-                 <div className="bg-rose-50 p-2.5 flex gap-2 justify-center border-b border-rose-100 shrink-0">
-                     <button onClick={() => handleWarnUser(viewUserChat)} className="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition flex items-center gap-1"><ShieldAlert className="w-3.5 h-3.5"/> ព្រមាន (Warn)</button>
-                     <button onClick={() => handleBanUser(viewUserChat)} className="bg-rose-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm active:scale-95 transition flex items-center gap-1"><Ban className="w-3.5 h-3.5"/> ដក Device (Ban)</button>
+                 <div className="bg-rose-50 p-2 flex gap-1.5 justify-center border-b border-rose-100 shrink-0">
+                     <button onClick={() => handleWarnUser(viewUserChat)} className="bg-amber-500 text-white px-2.5 py-1 rounded-lg text-[9px] font-bold shadow-sm active:scale-95 transition flex items-center gap-0.5"><ShieldAlert className="w-3 h-3"/> ព្រមាន (Warn)</button>
+                     <button onClick={() => handleBanUser(viewUserChat)} className="bg-rose-600 text-white px-2.5 py-1 rounded-lg text-[9px] font-bold shadow-sm active:scale-95 transition flex items-center gap-0.5"><Ban className="w-3 h-3"/> ដក Device (Ban)</button>
+                     <button onClick={() => handleDeleteTrollUser(viewUserChat)} className="bg-[#0F2B5C] text-white px-2.5 py-1 rounded-lg text-[9px] font-bold shadow-sm active:scale-95 transition flex items-center gap-0.5"><Trash2 className="w-3 h-3"/> លុបចោល (Clear Troll)</button>
                  </div>
 
-                 <div className="flex-1 overflow-y-auto p-3 bg-slate-100/50 space-y-3 hide-scrollbar pb-6">
-                     {chats.filter(c => c && c.userId === viewUserChat.uid).length === 0 ? <p className="text-center text-[9px] font-bold text-slate-400 mt-10">គ្មានប្រវត្តិការឆាតទេ</p> : 
+                 <div className="flex-1 overflow-y-auto p-2.5 bg-slate-100/50 space-y-2.5 hide-scrollbar pb-4">
+                     {chats.filter(c => c && c.userId === viewUserChat.uid).length === 0 ? <p className="text-center text-[8.5px] font-bold text-slate-400 mt-8">គ្មានប្រវត្តិការឆាតទេ</p> : 
                        chats.filter(c => c && c.userId === viewUserChat.uid).map(msg => msg && (
                           <div key={msg.id} className="flex justify-start">
                              <div className="flex flex-col gap-0.5 max-w-[85%]">
-                                <span className="text-[8px] font-bold text-slate-400 ml-1">ផ្ញើទៅកាន់: {safeStr(msg.target)} • {new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                <div className="px-3.5 py-2 rounded-2xl text-[12.5px] font-medium leading-relaxed bg-white text-slate-800 shadow-sm border border-slate-200 rounded-bl-sm">
+                                <span className="text-[7.5px] font-bold text-slate-400 ml-1">ផ្ញើទៅកាន់: {safeStr(msg.target)} • {new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                <div className="px-3 py-1.5 rounded-xl text-[11.5px] font-medium leading-relaxed bg-white text-slate-800 shadow-sm border border-slate-200 rounded-bl-sm">
                                    {msg.imageUrl && <img src={msg.imageUrl} alt="attached" className="max-w-full rounded-lg mb-1 shadow-sm"/>}
                                    {msg.msgType === 'audio' && <p className="text-blue-500 font-bold">🎤 សារសំឡេង</p>}
                                    {msg.msgType === 'location' && <p className="text-rose-500 font-bold">📍 ទីតាំង</p>}
@@ -2548,26 +2732,26 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   const displayTitle = safeStr(location.title);
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between group hover:shadow-md transition-all relative">
-      <div className="absolute top-2.5 right-2.5 z-10">
-         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-2 rounded-full backdrop-blur-md border shadow-sm transition active:scale-95 ${isFavorite ? 'bg-rose-500 border-rose-600 text-white' : 'bg-white/80 border-slate-200 text-slate-400 hover:text-rose-500'}`}>
-            <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+      <div className="absolute top-2 right-2 z-10">
+         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-1.5 rounded-full backdrop-blur-md border shadow-sm transition active:scale-95 ${isFavorite ? 'bg-rose-500 border-rose-600 text-white' : 'bg-white/80 border-slate-200 text-slate-400 hover:text-rose-500'}`}>
+            <Heart className={`w-3 h-3 ${isFavorite ? 'fill-current' : ''}`} />
          </button>
       </div>
       
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
-         <div className="w-full h-28 bg-slate-100 overflow-hidden relative">
-            <img src={location.image} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="img" />
-            <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-md py-0.5 px-2 rounded-lg border border-slate-200 shadow-sm text-[8.5px] font-black text-[#0F2B5C] uppercase tracking-wider">{safeStr(location.category)}</div>
+         <div className="w-full aspect-[16/10] bg-slate-100 overflow-hidden relative shrink-0">
+            <img src={location.image} className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" alt="img" />
+            <div className="absolute bottom-1.5 left-1.5 bg-white/95 backdrop-blur-md py-0.5 px-1.5 rounded-md border border-slate-200 shadow-sm text-[8px] font-black text-[#0F2B5C] uppercase tracking-wider">{safeStr(location.category)}</div>
          </div>
-         <div className="p-3 flex flex-col justify-between flex-1">
+         <div className="p-2 flex flex-col justify-between flex-1">
             <div>
-               <h3 className="font-black text-[12.5px] text-[#0F2B5C] leading-tight line-clamp-1 mb-0.5">{displayTitle}</h3>
-               <p className="text-[9px] text-slate-500 font-bold mb-2 flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400"/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
-               <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 mb-2 font-medium">{safeStr(location.desc)}</p>
+               <h3 className="font-black text-[11px] text-[#0F2B5C] leading-tight line-clamp-1 mb-0.5">{displayTitle}</h3>
+               <p className="text-[8px] text-slate-500 font-bold mb-1.5 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-slate-400"/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
+               <p className="text-[10px] text-slate-500 leading-relaxed line-clamp-2 mb-1.5 font-medium">{safeStr(location.desc)}</p>
             </div>
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
-               <span className="text-[8.5px] font-bold text-[#38BDF8] flex items-center gap-0.5 bg-sky-50 px-1.5 py-0.5 rounded-md border border-sky-100"><Heart className="w-3 h-3 fill-current"/> {location.likes || 0} Likes</span>
-               <span className="text-[9px] font-bold text-slate-500 flex items-center gap-0.5">ព័ត៌មានបន្ថែម <ArrowRight className="w-3 h-3"/></span>
+            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-auto">
+               <span className="text-[8px] font-bold text-[#38BDF8] flex items-center gap-0.5 bg-sky-50 px-1 py-0.5 rounded-md border border-sky-100"><Heart className="w-2.5 h-2.5 fill-current"/> {location.likes || 0} Likes</span>
+               <span className="text-[8.5px] font-bold text-slate-500 flex items-center gap-0.5">ព័ត៌មានបន្ថែម <ArrowRight className="w-2.5 h-2.5"/></span>
             </div>
          </div>
       </div>
@@ -2580,49 +2764,49 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
   const displayTitle = safeStr(location.title);
   return (
     <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200 pointer-events-auto font-khmer">
-       <div className="bg-white w-full max-w-md rounded-t-[20px] md:rounded-[24px] overflow-hidden shadow-2xl flex flex-col h-[75dvh] md:h-auto md:max-h-[75vh] border border-slate-200">
-          <div className="relative w-full h-40 sm:h-44 bg-slate-100">
-             <img src={location.image} className="w-full h-full object-cover" alt="loc"/>
-             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex items-end justify-between">
+       <div className="bg-white w-full max-w-md rounded-t-2xl md:rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[70dvh] md:h-auto md:max-h-[75vh] border border-slate-200">
+          <div className="relative w-full aspect-[16/10] bg-slate-100 shrink-0">
+             <img src={location.image} className="w-full h-full object-cover object-center" alt="loc"/>
+             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 flex items-end justify-between">
                 <div>
-                   <span className="bg-[#38BDF8] text-white text-[8.5px] font-black px-2 py-0.5 rounded-lg shadow-sm border border-sky-400 uppercase">{safeStr(location.category)}</span>
-                   <h2 className="text-white font-black text-[15px] sm:text-base mt-1.5 leading-tight">{displayTitle}</h2>
+                   <span className="bg-[#38BDF8] text-white text-[8px] font-black px-1.5 py-0.5 rounded-lg shadow-sm border border-sky-400 uppercase">{safeStr(location.category)}</span>
+                   <h2 className="text-white font-black text-[13px] mt-1 leading-tight">{displayTitle}</h2>
                 </div>
-                <button onClick={() => toggleFavorite(location.id)} className={`p-2.5 rounded-full backdrop-blur-md shadow-md active:scale-95 transition ${isFav ? 'bg-rose-500 text-white' : 'bg-white text-slate-500'}`}>
-                   <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`}/>
+                <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full backdrop-blur-md shadow-sm active:scale-95 transition ${isFav ? 'bg-rose-500 text-white' : 'bg-white text-slate-500'}`}>
+                   <Heart className={`w-3 h-3 ${isFav ? 'fill-current' : ''}`}/>
                 </button>
              </div>
-             <button onClick={onClose} className="absolute top-3 right-3 p-1.5 bg-white/80 hover:bg-white rounded-full text-slate-700 shadow-md backdrop-blur-sm transition active:scale-95"><X className="w-4 h-4"/></button>
+             <button onClick={onClose} className="absolute top-2.5 right-2.5 p-1 bg-white/80 hover:bg-white rounded-full text-slate-700 shadow-sm backdrop-blur-sm transition active:scale-95"><X className="w-3.5 h-3.5"/></button>
           </div>
-          <div className="p-4 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
-             <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                   <span className="text-[9px] text-slate-400 font-bold uppercase block">តួនាទី / Role</span>
-                   <span className="font-black text-[12px] text-[#0F2B5C]">{safeStr(location.role || 'សមាជិក')}</span>
+          <div className="p-3 overflow-y-auto flex-1 space-y-3 hide-scrollbar">
+             <div className="grid grid-cols-2 gap-2">
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                   <span className="text-[8px] text-slate-400 font-bold uppercase block">តួនាទី / Role</span>
+                   <span className="font-black text-[11px] text-[#0F2B5C]">{safeStr(location.role || 'សមាជិក')}</span>
                 </div>
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                   <span className="text-[9px] text-slate-400 font-bold uppercase block">លេខទូរស័ព្ទ / Contact</span>
-                   <span className="font-black text-[12px] text-emerald-600 flex items-center gap-1"><Phone className="w-3.5 h-3.5"/> {safeStr(location.phone || 'គ្មានលេខ')}</span>
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                   <span className="text-[8px] text-slate-400 font-bold uppercase block">លេខទូរស័ព្ទ / Contact</span>
+                   <span className="font-black text-[11px] text-emerald-600 flex items-center gap-0.5"><Phone className="w-3 h-3"/> {safeStr(location.phone || 'គ្មានលេខ')}</span>
                 </div>
              </div>
 
-             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1">
-                <span className="text-[9px] text-slate-400 font-bold uppercase block">អាសយដ្ឋាន / Location Address</span>
-                <p className="font-bold text-[12px] text-slate-800 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-rose-500"/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
+             <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 space-y-0.5">
+                <span className="text-[8px] text-slate-400 font-bold uppercase block">អាសយដ្ឋាន / Location Address</span>
+                <p className="font-bold text-[11px] text-slate-800 flex items-center gap-1"><MapPin className="w-3 h-3 text-rose-500"/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
              </div>
 
-             <div className="space-y-1">
-                <span className="text-[9px] text-slate-400 font-bold uppercase block">ព័ត៌មានលម្អិត / Description</span>
-                <p className="text-[12.5px] text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{safeStr(location.desc || 'គ្មានការពណ៌នាព័ត៌មានបន្ថែមទេ។')}</p>
+             <div className="space-y-0.5">
+                <span className="text-[8px] text-slate-400 font-bold uppercase block">ព័ត៌មានលម្អិត / Description</span>
+                <p className="text-[11.5px] text-slate-600 leading-relaxed font-medium bg-slate-50 p-2.5 rounded-xl border border-slate-100">{safeStr(location.desc || 'គ្មានការពណ៌នាព័ត៌មានបន្ថែមទេ។')}</p>
              </div>
           </div>
           
-          <div className="p-3 bg-slate-50 border-t border-slate-100 shrink-0 pb-safe flex gap-2">
+          <div className="p-2.5 bg-slate-50 border-t border-slate-100 shrink-0 pb-safe flex gap-2">
              <a 
                 href={location.phone ? `tel:${location.phone}` : '#'} 
                 onClick={(e) => { if (!location.phone) e.preventDefault(); }} 
-                className={`flex-1 py-3 rounded-xl font-black text-[12.5px] flex items-center justify-center gap-1.5 transition active:scale-95 border ${
-                   location.phone ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg' : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                className={`flex-1 py-2.5 rounded-xl font-black text-[11.5px] flex items-center justify-center gap-1 transition active:scale-95 border ${
+                   location.phone ? 'bg-emerald-500 border-emerald-600 text-white shadow-sm' : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
                 }`}
              >
                 <Phone className="w-3.5 h-3.5" />
@@ -2633,7 +2817,7 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
                 href={location.mapUrl || (location.coords ? `https://www.google.com/maps?q=${location.coords.lat},${location.coords.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayTitle)}`)} 
                 target="_blank" 
                 rel="noreferrer"
-                className="flex-1 py-3 bg-[#0F2B5C] hover:bg-[#0a1e45] text-white border border-[#0F2B5C] rounded-xl font-black text-[12.5px] flex items-center justify-center gap-1.5 shadow-lg active:scale-95 text-center"
+                className="flex-1 py-2.5 bg-[#0F2B5C] hover:bg-[#0a1e45] text-white border border-[#0F2B5C] rounded-xl font-black text-[11.5px] flex items-center justify-center gap-1 shadow-sm active:scale-95 text-center"
              >
                 <Map className="w-3.5 h-3.5 text-[#38BDF8]"/>
                 <span>ផែនទី (Location)</span>
@@ -2646,6 +2830,6 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
 
 const GPSButton = ({ gpsStatus, handleGPS, className = "" }) => (
     <button onClick={handleGPS} className={`rounded-full flex items-center justify-center transition-all border ${gpsStatus === 'green' ? 'bg-emerald-50 border-emerald-200 text-emerald-500' : 'bg-white border-slate-200 text-[#0F2B5C]'} ${className}`} title="ចាប់ទីតាំង GPS">
-        {gpsStatus === 'loading' ? <Loader2 className="w-5 h-5 animate-spin"/> : <MapPin className="w-5 h-5" />}
+        {gpsStatus === 'loading' ? <Loader2 className="w-4.5 h-4.5 animate-spin"/> : <MapPin className="w-4.5 h-4.5" />}
     </button>
 );
