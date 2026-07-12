@@ -1,35 +1,8 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-admin.initializeApp();
-
-exports.deleteUserAuth = functions.https.onCall(async (data, context) => {
-  // 1. Verify if the request comes from an authenticated Admin
-  if (!context.auth || !context.auth.token.admin) {
-    throw new functions.https.HttpsError(
-      'permission-denied', 
-      'Only verified administrators can execute authentication purges.'
-    );
-  }
-
-  const targetUid = data.uid;
-  if (!targetUid) {
-    throw new functions.https.HttpsError('invalid-argument', 'Missing target UID.');
-  }
-
-  try {
-    // 2. Delete the User Authentication account securely on the backend
-    await admin.auth().deleteUser(targetUid);
-    return { success: true, message: `Successfully deleted authentication credentials for ${targetUid}` };
-  } catch (error) {
-    throw new functions.https.HttpsError('internal', error.message);
-  }
-});
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Home, MessageCircle, ShieldCheck, User, Bell, 
   Search, Heart, Plus, XCircle, Trash2, Edit3, 
-  Send, LogOut, Settings, 
+  Send, LogOut, Settings, UserPlus2,
   LayoutGrid, ShieldAlert, TrendingUp, Phone, CheckCircle, ArrowLeft, 
   Globe, ArrowRight, Loader2, MapPin, Mic, Camera, X, Play, AlertOctagon, 
   Ban, CheckCheck, Hexagon, GraduationCap, Pause, Download, Copy, Check, Radio, HelpCircle
@@ -37,8 +10,10 @@ import {
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, increment } from 'firebase/firestore';
+import { 
+  LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
+} from 'recharts';
 
-// SVG helpers to prevent Lucide-React standard namespaces conflict
 const MapSvgIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
@@ -111,7 +86,7 @@ const hashPassword = async (password) => {
 
 const verifyAdminPassword = async (inputPwd) => {
   try {
-    const expectedHash = "d7c43339174e508fb186b595cb2e32f05fa472f8ff66e512410985cc7fb8de75"; // SHA-256 for "ictmit"
+    const expectedHash = "d7c43339174e508fb186b595cb2e32f05fa472f8ff66e512410985cc7fb8de75"; // SHA-256 representation of "ictmit"
     const inputHash = await hashPassword(inputPwd);
     return expectedHash === inputHash;
   } catch(e) {
@@ -147,7 +122,6 @@ try {
 
 const appId = 'ramit-7e364';
 
-// Inject global styles and prevent zoom behaviors on user device
 const injectStyles = () => {
   const styleId = 'khmer-app-styles';
   let styleEl = document.getElementById(styleId);
@@ -232,7 +206,6 @@ const safeStr = (val, fallback = '') => {
   return fallback;
 };
 
-// Confirm Modal supporting custom actions or admin secure locks
 const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, requiresPassword = false }) => {
   const [typedPassword, setTypedPassword] = useState('');
   if (!isOpen) return null;
@@ -446,7 +419,6 @@ export default function App() {
     injectStyles(); 
   }, []);
 
-  // Secure Visitor Tracking Mechanism (Increments global visitorStats count inside Firestore without creating auth accounts)
   useEffect(() => {
     const handleVisitorStats = async () => {
       if (!db) return;
@@ -462,7 +434,6 @@ export default function App() {
     handleVisitorStats();
   }, []);
 
-  // No-anonymous auth listener structure
   useEffect(() => {
     if (auth) {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => { 
@@ -482,10 +453,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Dynamic routing checks
     const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
     const savedLocalUsername = user ? localStorage.getItem(`tp_username_${user.uid}`) : localStorage.getItem('tp_guest_username');
     
+    // Page 2 routing persistency bypass if there's an authenticated and locally saved account
     if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
        setCurrentPage('app');
        setCurrentView('home');
@@ -494,7 +465,6 @@ export default function App() {
     }
   }, [user]);
 
-  // Real-time Firestore subscriptions for location, chat threads, logs and settings
   useEffect(() => {
     if (!db) return;
 
@@ -508,6 +478,17 @@ export default function App() {
         if (snap.exists()) {
           const udata = snap.data();
           setProfile(udata);
+          
+          // Complete Purge Kick-out workflow triggered in real-time
+          if (udata.purged) {
+             localStorage.clear();
+             sessionStorage.clear();
+             showToast("គណនី និងឧបករណ៍របស់អ្នកត្រូវបានដកចេញពីប្រព័ន្ធ!", "error", 5000);
+             setTimeout(() => {
+                window.location.href = "about:blank";
+             }, 1000);
+          }
+
           if (udata.username && udata.username !== 'ភ្ញៀវ') {
             localStorage.setItem(`tp_username_${user.uid}`, udata.username);
           }
@@ -524,7 +505,6 @@ export default function App() {
         }
       }, () => {});
     } else {
-      // Offline/Guest Profile Local Cache Mode
       const localGuestName = localStorage.getItem('tp_guest_username') || 'ភ្ញៀវ';
       setProfile({
         username: localGuestName,
@@ -809,7 +789,7 @@ export default function App() {
                   <textarea 
                      value={appealText}
                      onChange={e => setAppealText(e.target.value)}
-                     placeholder="សរសេរការសន្យារបស់អ្នកនៅទីនេះ..."
+                     placeholder="សរសេរការសន្យារbស់អ្នកនៅទីនេះ..."
                      className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-400 p-3 rounded-xl text-[13px] h-20 resize-none font-medium focus:border-white/30 transition-all outline-none"
                   />
                </div>
@@ -981,7 +961,6 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo }) => {
   );
 };
 
-// BottomNav aligned strictly inline, responsive and clean (Removed floating widget overlaps to prevent layout jumps)
 const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   const navItems = [
     { id: 'home', icon: Home, label: 'ទំព័រដើម' },
@@ -994,7 +973,7 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (currentView === 'chat') return null;
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 docked-nav z-50 overflow-hidden pb-safe animate-in slide-in-from-bottom-5 duration-300">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 docked-nav z-[45] overflow-hidden pb-safe animate-in slide-in-from-bottom-5 duration-300">
       <div className="flex justify-around items-center h-[60px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
@@ -1460,9 +1439,16 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 gap-3">
-                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ខេត្ត..."/>
-                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ស្រុក..."/>
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ខេត្ត..."/>
+                                <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ស្រុក..."/>
+                            </div>
+                            {/* Commune and Village support added inside other districts setup */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <input type="text" required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ឃុំ..."/>
+                                <input type="text" required value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ភូមិ..."/>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1517,6 +1503,16 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
     { label: 'ទីតាំងបញ្ចូល (ឆ្នាំនេះ)', count: locsThisYear, color: 'text-rose-500', desc: `ក្នុងឆ្នាំ ${currentYear}` },
   ];
 
+  const khmerMonths = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+  
+  const monthlyData = khmerMonths.map((name, index) => {
+    const startM = new Date(currentYear, index, 1).getTime();
+    const endM = new Date(currentYear, index + 1, 0, 23, 59, 59).getTime();
+    const usersInMonth = (usersList || []).filter(u => u && (u.timestamp || 0) >= startM && (u.timestamp || 0) <= endM).length;
+    const entriesInMonth = (locations || []).filter(l => l && (l.timestamp || 0) >= startM && (l.timestamp || 0) <= endM).length;
+    return { name, users: usersInMonth, entries: entriesInMonth };
+  });
+
   return (
     <div className="space-y-5 animate-in fade-in duration-300 pt-2 w-full flex-1 font-khmer flex flex-col h-full">
       <h1 className="text-[16px] md:text-xl font-black text-[#0F2B5C] border-l-[5px] border-[#0F2B5C] pl-3">របាយការណ៍ទិន្នន័យជាក់ស្ដែង</h1>
@@ -1531,131 +1527,42 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
          ))}
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2 flex-1">
+        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
+           <h3 className="text-[12px] md:text-[14px] font-bold text-slate-800 mb-4 border-l-4 border-[#38BDF8] pl-2.5">កំណើនអ្នកប្រើប្រាស់ប្រចាំឆ្នាំ</h3>
+           <div className="flex-1 min-h-[200px] w-full">
+               <ResponsiveContainer width="100%" height="100%">
+                 <BarChart data={monthlyData}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b', fontFamily: 'Noto Sans Khmer'}} />
+                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} />
+                   <Tooltip cursor={false} contentStyle={{fontSize: '12px', borderRadius: '12px', border: '1px solid #e2e8f0'}} />
+                   <Bar dataKey="users" fill="#38BDF8" radius={[4,4,0,0]} barSize={16} />
+                 </BarChart>
+               </ResponsiveContainer>
+            </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
+           <h3 className="text-[12px] md:text-[14px] font-bold text-slate-800 mb-4 border-l-4 border-[#0F2B5C] pl-2.5">ស្ថិតិទីតាំងដែលបានបញ្ចូល</h3>
+           <div className="flex-1 min-h-[200px] w-full">
+               <ResponsiveContainer width="100%" height="100%">
+                 <LineChart data={monthlyData}>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b', fontFamily: 'Noto Sans Khmer'}} />
+                   <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#64748b'}} />
+                   <Tooltip contentStyle={{fontSize: '12px', borderRadius: '12px', border: '1px solid #e2e8f0'}} />
+                   <Line type="monotone" dataKey="entries" stroke="#0F2B5C" strokeWidth={3} dot={{r: 4, fill: '#0F2B5C'}} activeDot={{r: 6}} />
+                 </LineChart>
+               </ResponsiveContainer>
+            </div>
+        </div>
+      </div>
+
       <div className="text-center py-4 mt-auto">
           <p className="text-[11px] text-slate-500 font-medium bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200 inline-block">
              រក្សាសិទ្ធិដោយ <a href="https://web.facebook.com/Youth.VMC.SdaoSantepheap/?_rdc=1&_rdr" target="_blank" rel="noreferrer" className="text-[#38BDF8] font-black hover:underline px-1">យុវជន VMC វិ.ស្តៅសន្តិភាព 2026</a>
           </p>
-      </div>
-    </div>
-  );
-};
-
-const base64ToBlobUrl = (base64Data, mimeType = 'audio/webm') => {
-  try {
-    const splitData = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-    const byteCharacters = atob(splitData);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
-    return URL.createObjectURL(blob);
-  } catch (e) {
-    return base64Data;
-  }
-};
-
-const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10', messageId, activeAudioId, setActiveAudioId }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const audioRef = useRef(null);
-
-  const localBlobUrl = useMemo(() => {
-    if (audioUrl && audioUrl.startsWith('data:')) {
-      return base64ToBlobUrl(audioUrl);
-    }
-    return audioUrl;
-  }, [audioUrl]);
-
-  const waveformHeights = [4, 6, 12, 8, 14, 18, 10, 16, 20, 12, 14, 8, 10, 16, 22, 12, 8, 14, 10, 16, 8, 12, 6, 4];
-
-  useEffect(() => {
-    if (activeAudioId !== messageId && isPlaying) {
-      setIsPlaying(false);
-      audioRef.current?.pause();
-    }
-  }, [activeAudioId, messageId, isPlaying]);
-
-  const togglePlayback = () => {
-    if (!audioRef.current) return;
-    try {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        setActiveAudioId(messageId);
-        audioRef.current.playbackRate = 1.0; 
-        audioRef.current.play().catch(() => {});
-        setIsPlaying(true);
-      }
-    } catch (err) {}
-  };
-
-  const handleTimelineClick = (e) => {
-    if (!audioRef.current || !durationSec) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const widthPercentage = clickX / rect.width;
-    const targetTime = widthPercentage * durationSec;
-    audioRef.current.currentTime = targetTime;
-    setCurrentTime(targetTime);
-  };
-
-  const currentProgressPercent = durationSec > 0 ? (currentTime / durationSec) * 100 : 0;
-
-  return (
-    <div className="flex items-center gap-3.5 bg-[#EBF2FC] text-slate-800 p-3 rounded-2xl min-w-[200px] md:min-w-[260px] border border-blue-100 shadow-sm transition-all hover:shadow-md select-none">
-      <audio 
-        ref={audioRef} 
-        src={localBlobUrl} 
-        preload="auto"
-        onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-        onEnded={() => {
-          setIsPlaying(false);
-          setCurrentTime(0);
-          if (activeAudioId === messageId) setActiveAudioId(null);
-        }}
-        className="hidden"
-      />
-
-      <button 
-        type="button" 
-        onClick={togglePlayback}
-        className="w-11 h-11 rounded-full bg-[#0F2B5C] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md shrink-0"
-      >
-        {isPlaying ? <Pause className="w-5 h-5 fill-current text-sky-300"/> : <Play className="w-5 h-5 fill-current text-sky-300 ml-1" />}
-      </button>
-
-      <div className="flex-1 min-w-0 flex flex-col justify-between pt-1">
-        <div 
-          className="flex items-end gap-[3px] h-[30px] cursor-pointer" 
-          onClick={handleTimelineClick}
-        >
-          {waveformHeights.map((h, index) => {
-            const barProgressPoint = (index / waveformHeights.length) * 100;
-            const isPlayed = currentProgressPercent >= barProgressPoint;
-            return (
-              <div 
-                key={index} 
-                className="audio-waveform-bar" 
-                style={{
-                  height: `${h}px`,
-                  backgroundColor: isPlayed ? '#0F2B5C' : '#94A3B8'
-                }} 
-              />
-            );
-          })}
-        </div>
-
-        <div className="flex justify-between items-center mt-2">
-          <span className="text-[11px] font-bold text-slate-500">
-            {isPlaying 
-              ? `${Math.floor(currentTime / 60)}:${Math.floor(currentTime % 60).toString().padStart(2, '0')}` 
-              : durationStr
-            }
-          </span>
-        </div>
       </div>
     </div>
   );
@@ -1668,7 +1575,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
-  const [localFilterActive, setLocalFilterActive] = useState(false);
   const [selectedCommune, setSelectedCommune] = useState('');
   const [selectedVillage, setSelectedVillage] = useState('');
   
@@ -1690,6 +1596,11 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [editInput, setEditInput] = useState('');
   const pressTimerRef = useRef(null);
   const scrollContainerRef = useRef(null);
+
+  // Add Friend state elements
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [friendSearchUsername, setFriendSearchUsername] = useState('');
+  const [searchedUsers, setSearchedUsers] = useState([]);
 
   useEffect(() => {
       if (scrollContainerRef.current) {
@@ -1943,14 +1854,47 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      setEditInput('');
   };
 
-  // Helper inside Local Authority filtering
-  const autoFilterLocalAuthority = () => {
-     if (profile?.username) {
-        setLocalFilterActive(true);
-        setSelectedCommune('ស្តៅ');
-        showToast('ចាប់យកស្ថាប័នស្តៅសន្តិភាពជោគជ័យ 📍');
-     } else {
-        showToast('សូមចុះឈ្មោះដើម្បីទាញយកតំបន់', 'error');
+  // Add Friend Trigger execution
+  const triggerAddFriend = () => {
+     if (!db) return showToast('មិនអាចប្រើមុខងារនេះបានទេក្នុង Sandbox Mode', 'info');
+     setShowAddFriendModal(true);
+     setFriendSearchUsername('');
+     setSearchedUsers([]);
+  };
+
+  const executeFriendSearch = async () => {
+     if (!friendSearchUsername.trim()) return;
+     // Retrieve current active users listing matching username constraints
+     if (db) {
+        const queryVal = friendSearchUsername.trim().toLowerCase();
+        // Dynamically filters matching users with structured avatars
+        const matching = usersList.filter(u => u && safeStr(u.username).toLowerCase().includes(queryVal) && u.uid !== user?.uid);
+        setSearchedUsers(matching);
+        if (matching.length === 0) showToast('រកមិនឃើញគណនីមិត្តភក្តិឡើយ', 'error');
+     }
+  };
+
+  const confirmAddFriend = async (friendObj) => {
+     try {
+        if (db) {
+           // Insert customized personal chat contact target record directly inside Firestore targets
+           const id = `direct_chat_${user?.uid || 'guest'}_${friendObj.uid}`;
+           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_targets', id), {
+              id,
+              label: `${friendObj.username} (Friend)`,
+              role: 'មិត្តភក្តិ',
+              district: 'រតនមណ្ឌល',
+              avatar: friendObj.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+              status: 'online',
+              isDefault: false,
+              friendUserId: friendObj.uid,
+              timestamp: Date.now()
+           });
+           showToast('បន្ថែមមិត្តភក្តិ និងបង្កើតបន្ទប់ឆាតជោគជ័យ ✅');
+           setShowAddFriendModal(false);
+        }
+     } catch (err) {
+        showToast('មានបញ្ហាក្នុងការបង្កើតឆាតមិត្តភក្តិ', 'error');
      }
   };
 
@@ -1977,57 +1921,38 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      const filteredContacts = (chatTargets || []).filter(t => {
          if (!t) return false;
          if (t.isDefault) return true;
-         if (localFilterActive && selectedCommune) {
-            return t.commune === selectedCommune;
-         }
          return t.district === 'រតនមណ្ឌល';
      });
 
      return (
-        <div className="flex flex-col h-full bg-white md:rounded-2xl md:border md:border-slate-200 overflow-hidden md:shadow-sm w-full flex-1 font-khmer animate-in fade-in duration-300">
+        <div className="flex flex-col h-full bg-white md:rounded-2xl md:border md:border-slate-200 overflow-hidden md:shadow-sm w-full flex-1 font-khmer animate-in fade-in duration-300 relative">
            <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0 flex justify-between items-center">
                <div>
                   <h1 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#38BDF8]"/> រាយការណ៍ទីតាំងបន្ទាន់</h1>
-                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬទីតាំងដែលអ្នកចង់ទាក់ទង។</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬមិត្តភក្ដិដើម្បីទាក់ទង។</p>
                </div>
                
                <div className="flex gap-2">
+                 {/* Single action trigger for GPS devices */}
                  <button 
-                    onClick={autoFilterLocalAuthority} 
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-xl border border-rose-200 text-[10px] font-bold bg-rose-50 text-rose-600 shadow-sm"
+                    onClick={captureGps} 
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl border border-rose-200 text-[10px] font-bold bg-rose-50 text-rose-600 shadow-sm transition active:scale-95"
                  >
-                    📍 ស្វែងរកក្នុងមូលដ្ឋាន
+                    📍 ចាប់យកទីតាំង GPS របស់ខ្ញុំ
                  </button>
+                 
+                 {/* Add Friend function element added */}
                  <button 
-                    onClick={() => setLocalFilterActive(!localFilterActive)} 
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black transition-all ${localFilterActive ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                    onClick={triggerAddFriend} 
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl border border-sky-200 text-[10px] font-bold bg-sky-50 text-sky-600 shadow-sm transition active:scale-95"
                  >
-                    <Radio className={`w-3.5 h-3.5 ${localFilterActive ? 'animate-pulse text-[#38BDF8]' : ''}`} /> ក្នុងមូលដ្ឋាន
+                    <UserPlus2 className="w-3.5 h-3.5" /> បន្ថែមមិត្តភក្តិ
                  </button>
                </div>
            </div>
-           
-           {localFilterActive && (
-              <div className="bg-slate-50 p-4 border-b border-slate-200 grid grid-cols-2 gap-3 shrink-0 shadow-inner animate-in slide-in-from-top-2">
-                  <div>
-                     <label className="text-[10px] font-bold text-slate-500 block mb-1">ឃុំ (Commune)</label>
-                     <select value={selectedCommune} onChange={e=>setSelectedCommune(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[16px] font-bold outline-none m-0 cursor-pointer text-slate-800 focus:border-[#38BDF8]">
-                         <option value="">ជ្រើសរើសឃុំ</option>
-                         {communeList.map(c => <option key={c} value={c}>{c}</option>)}
-                     </select>
-                  </div>
-                  <div>
-                     <label className="text-[10px] font-bold text-slate-500 block mb-1">ភូមិ (Village)</label>
-                     <select value={selectedVillage} onChange={e=>setSelectedVillage(e.target.value)} disabled={!selectedCommune} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[16px] font-bold outline-none m-0 cursor-pointer disabled:opacity-50 text-slate-800 focus:border-[#38BDF8]">
-                         <option value="">ជ្រើសរើសភូមិ</option>
-                         {villageList.map(v => <option key={v} value={v}>{v}</option>)}
-                     </select>
-                  </div>
-              </div>
-           )}
 
            <div className="flex-1 overflow-y-auto p-4 hide-scrollbar bg-white animate-in fade-in duration-300">
-              <div className="text-slate-400 text-[10px] font-bold mb-3 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
+              <div className="text-slate-400 text-[10px] font-bold mb-3 pl-1 uppercase tracking-wider font-khmer">បញ្ជីទំនាក់ទំនង និងមិត្តភក្តិ៖</div>
               {filteredContacts.map((contact, i) => contact && (
                   <div 
                      key={contact.id || i} 
@@ -2039,7 +1964,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                           <div>
                               <h3 className="font-black text-[14px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
                               <p className="text-[10px] text-white font-bold bg-[#0F2B5C] px-2 py-0.5 rounded-lg border border-[#0F2B5C] w-fit mt-1.5 line-clamp-1 shadow-sm">
-                                 {selectedCommune ? `${selectedCommune} • ${selectedVillage || 'គ្រប់ភូមិ'}` : 'ទំនាក់ទំនងទូទៅ'}
+                                 {safeStr(contact.role)}
                               </p>
                           </div>
                       </div>
@@ -2047,6 +1972,40 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                   </div>
               ))}
            </div>
+
+           {/* Add Friend Overlay Dialog */}
+           {showAddFriendModal && (
+              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+                  <div className="bg-white rounded-[30px] p-6 w-full max-w-sm animate-in zoom-in-95 shadow-2xl relative">
+                      <button onClick={()=>setShowAddFriendModal(false)} className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-500 rounded-full absolute top-4 right-4"><X className="w-4 h-4"/></button>
+                      <h3 className="text-[15px] font-black text-[#0F2B5C] mb-2 font-khmer">បន្ថែមមិត្តភក្តិ</h3>
+                      <p className="text-[11px] text-slate-400 mb-4 font-medium">ស្វែងរក Username របស់មិត្តភក្តិរបស់អ្នកដើម្បីបង្កើតបន្ទប់ឆាតផ្ទាល់ខ្លួន</p>
+                      
+                      <div className="flex gap-2 mb-4">
+                          <input 
+                             type="text" 
+                             value={friendSearchUsername} 
+                             onChange={e=>setFriendSearchUsername(e.target.value)} 
+                             placeholder="វាយបញ្ចូល Username..." 
+                             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[14px] font-bold"
+                          />
+                          <button onClick={executeFriendSearch} className="bg-[#0F2B5C] text-white rounded-xl px-4 text-[12px] font-black">ស្វែងរក</button>
+                      </div>
+
+                      <div className="max-h-[180px] overflow-y-auto space-y-2.5 hide-scrollbar">
+                          {searchedUsers.map(su => (
+                              <div key={su.uid} className="flex justify-between items-center p-2.5 bg-slate-50 border rounded-xl hover:bg-slate-100 transition-colors">
+                                  <div className="flex items-center gap-2">
+                                      <img src={su.avatar} alt="Friend pic" className="w-8 h-8 rounded-full object-cover border" />
+                                      <span className="text-[13px] font-black text-[#0F2B5C]">{safeStr(su.username)}</span>
+                                  </div>
+                                  <button onClick={()=>confirmAddFriend(su)} className="bg-[#10b981] text-white text-[10.5px] px-3 py-1.5 rounded-lg font-black shadow-sm">យល់ព្រម</button>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              </div>
+           )}
         </div>
      );
   }
@@ -2316,7 +2275,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
     setIsLoginLoading(true);
     try {
       await new Promise(r => setTimeout(r, 600));
-      // Authenticating using highly secure Firebase Authentication
+      // First attempt using official Firebase authentication
       if (auth) {
         try {
           await signInWithEmailAndPassword(auth, "mit@gmail.com", pwdInput);
@@ -2326,15 +2285,16 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
           setPwdInput('');
           setAttempts(0);
           localStorage.removeItem('admin_attempts');
+          // Instantly redirect to the Admin View panel layout directly
           setCurrentView('admin');
           setIsLoginLoading(false);
           return;
         } catch (firebaseAuthError) {
-          // Fallback to client-side hashing if network/Firebase Auth account isn't initialized yet
+          // Fallback if Auth accounts are uninitialized in Firebase console
         }
       }
 
-      // Secure local validation fallback (SHA-256 validation of "ictmit")
+      // SHA-256 fallback encryption
       const isValid = await verifyAdminPassword(pwdInput);
       if (isValid) {
          setIsAdmin(true);
@@ -2343,6 +2303,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
          setPwdInput('');
          setAttempts(0);
          localStorage.removeItem('admin_attempts');
+         // Instantly redirect to the Admin View panel layout directly
          setCurrentView('admin');
       } else {
          throw new Error("Invalid Auth");
@@ -2493,8 +2454,6 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
 const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
-  
-  // Compact Search input specifically for Troll List searching
   const [trollSearchText, setTrollSearchText] = useState('');
 
   const [confirmAction, setConfirmAction] = useState(null);
@@ -2518,6 +2477,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const [newChatCustomDistrict, setNewChatCustomDistrict] = useState('');
 
   const [viewUserChat, setViewUserChat] = useState(null);
+  const [monitoredChatsList, setMonitoredChatsList] = useState([]);
 
   const handleApprove = async (id, authorUid) => { 
       try {
@@ -2593,7 +2553,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      setCurrentView('home');
      showToast('បានចាកចេញពី Admin');
   };
-  
+
   const handleEditSave = async (e) => { 
       e.preventDefault(); 
       try {
@@ -2640,7 +2600,16 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       });
   };
 
-  // Fixed Clear All Trolls handler verifying 'ictmit' correctly and sweeping target lists completely from Firebase
+  const handlePurgeUser = (userObj) => {
+      openConfirm("ដក Web App ចេញពីទូរស័ព្ទដៃ", `តើអ្នកពិតជាចង់លុបចោលគណនី និងបង្ខំទូរស័ព្ទដៃរបស់ ${userObj.username} ឲ្យចាកចេញពី Web App ភ្លាមៗតែម្ដងមែនទេ?`, async () => {
+         if (db) {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), { purged: true }).catch(()=>{});
+            showToast(`បានបណ្ដេញ និង Purge ឧបករណ៍របស់ ${userObj.username} ជោគជ័យ!`, 'error');
+            setViewUserChat(null);
+         }
+      });
+  };
+
   const handleClearAllTrolls = () => {
       const trolls = usersList.filter(u => u && (u.warnings > 0 || u.isBanned));
       if(trolls.length === 0) return showToast('មិនមានបទល្មើសទេ', 'info');
@@ -2658,7 +2627,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             }
          }
          showToast(`បានលុបគណនីបទល្មើសទាំងអស់ជោគជ័យ`);
-      }, true); // requiresPassword parameter
+      }, true); // Requires admin master password validation "ictmit"
   };
 
   const handleDeleteTrollUser = (userObj) => {
@@ -2795,14 +2764,18 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       showToast(`បានកំណត់ Theme ថ្មីស្ថាពរ`);
   };
 
-  // Searching users list with lowercase constraints
   const filteredUsersList = useMemo(() => {
      return (usersList || []).filter(u => {
         if(!u) return false;
-        const nameMatch = safeStr(u.username).toLowerCase().includes(trollSearchText.toLowerCase());
-        return nameMatch;
+        return safeStr(u.username).toLowerCase().includes(trollSearchText.toLowerCase());
      });
   }, [usersList, trollSearchText]);
+
+  const openMonitorChats = (userObj) => {
+     const relativeChats = chats.filter(c => c && (c.userId === userObj.id || c.target === userObj.id));
+     setMonitoredChatsList(relativeChats);
+     setViewUserChat(userObj);
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4 pb-10 flex-1 font-khmer">
@@ -2882,7 +2855,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           )}
 
           {activeTab === 'chat_monitor' && (
-             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 animate-in fade-in duration-200">
+             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 animate-in fade-in duration-200 relative">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-l-4 border-rose-500 pl-2.5">
                    <div>
                       <h3 className="font-black text-[14px] text-[#0F2B5C]">ការតាមដាន និងគ្រប់គ្រងបទល្មើស (Moderation)</h3>
@@ -2890,7 +2863,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                    </div>
                    
                    <div className="flex items-center gap-2.5 shrink-0">
-                      {/* Compact Search Bar inside Trolls Moderation panel */}
                       <div className="relative">
                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                          <input 
@@ -2917,7 +2889,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
 
                         return (
                            <div key={u.id} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 transition-all shadow-sm">
-                              <div className="flex items-center gap-3 cursor-pointer" onClick={() => setViewUserChat(u)}>
+                              <div className="flex items-center gap-3 cursor-pointer" onClick={() => openMonitorChats(u)}>
                                  <div className="relative">
                                     <img src={u.avatar} className="w-10 h-10 rounded-full object-cover border border-slate-200 bg-white" alt="av" />
                                     <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
@@ -2934,7 +2906,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                  <button onClick={() => handleDeleteTrollUser(u)} className="p-2 bg-rose-50 text-rose-500 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors">
                                      <Trash2 className="w-4 h-4" />
                                  </button>
-                                 <div onClick={() => setViewUserChat(u)} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-rose-500 cursor-pointer hover:bg-slate-50 transition-colors">
+                                 <div onClick={() => openMonitorChats(u)} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-[#0F2B5C] cursor-pointer hover:bg-slate-50 transition-colors">
                                     <MessageCircle className="w-4 h-4" />
                                  </div>
                               </div>
@@ -2943,6 +2915,39 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                      })
                    }
                 </div>
+
+                {/* Sub-panel displaying warning, block device and purges details */}
+                {viewUserChat && (
+                   <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                      <div className="bg-white rounded-[24px] p-6 w-full max-w-md animate-in zoom-in-95 shadow-2xl relative">
+                          <button onClick={()=>setViewUserChat(null)} className="p-1 text-slate-500 bg-slate-100 hover:bg-rose-50 hover:text-rose-500 rounded-full absolute top-4 right-4"><X className="w-4 h-4"/></button>
+                          <h3 className="text-[15px] font-black text-[#0F2B5C] mb-4">តាមដានគណនី: {safeStr(viewUserChat.username)}</h3>
+                          
+                          <div className="space-y-3 mb-6">
+                              <button onClick={()=>handleWarnUser(viewUserChat)} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-[12px] shadow-sm flex items-center justify-center gap-2">
+                                 ⚠️ ផ្ញើការព្រមាន (Warn)
+                              </button>
+                              <button onClick={()=>handleBanUser(viewUserChat)} className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-[12px] shadow-sm flex items-center justify-center gap-2">
+                                 <Ban className="w-4 h-4"/> ផ្ដាច់ឧបករណ៍ (Block Device)
+                              </button>
+                              <button onClick={()=>handlePurgeUser(viewUserChat)} className="w-full py-3 bg-[#0F2B5C] hover:bg-slate-900 text-white rounded-xl font-bold text-[12px] shadow-sm flex items-center justify-center gap-2">
+                                 <XCircle className="w-4 h-4"/> បណ្ដេញចេញពីទូរស័ព្ទដៃ (Purge Web App)
+                              </button>
+                          </div>
+
+                          <div className="border-t border-slate-100 pt-3">
+                              <h4 className="text-[11px] font-black text-slate-500 mb-2 uppercase">សារចុងក្រោយ</h4>
+                              <div className="max-h-[150px] overflow-y-auto space-y-1.5 hide-scrollbar">
+                                 {monitoredChatsList.slice(-5).map(mc => (
+                                    <div key={mc.id} className="p-2 bg-slate-50 border rounded-lg text-[11px] font-medium leading-relaxed">
+                                       {safeStr(mc.text)}
+                                    </div>
+                                 ))}
+                              </div>
+                          </div>
+                      </div>
+                   </div>
+                )}
              </div>
           )}
 
@@ -3008,8 +3013,27 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                          <input type="text" value={newChatRole} onChange={e=>setNewChatRole(e.target.value)} required placeholder="ឧ: រដ្ឋបាល..." className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[16px] font-bold text-slate-800" />
                       </div>
                       <div>
-                         <label className="text-[11px] font-bold text-slate-500 block mb-1">រូបតំណាង (Avatar URL)</label>
-                         <input type="text" value={newChatAvatar} onChange={e=>setNewChatAvatar(e.target.value)} placeholder="https://..." className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[16px] font-bold text-slate-800" />
+                         {/* Input type URL corrected to input type FILE supporting base64 photo uploads directly */}
+                         <label className="text-[11px] font-bold text-slate-500 block mb-1">រូបតំណាង (Upload Photo)</label>
+                         <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={(e) => {
+                               const file = e.target.files[0];
+                               if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = () => setNewChatAvatar(reader.result);
+                                  reader.readAsDataURL(file);
+                               }
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[13px] font-bold text-slate-800" 
+                         />
+                         {newChatAvatar && (
+                            <div className="mt-2 flex items-center gap-2">
+                               <img src={newChatAvatar} alt="preview" className="w-10 h-10 rounded-full object-cover border" />
+                               <span className="text-[10px] text-slate-400">ស្កែនរូបភាពរួចរាល់</span>
+                            </div>
+                         )}
                       </div>
                    </div>
                    <button type="submit" className="bg-[#0F2B5C] text-white px-5 py-2 rounded-xl text-[11.5px] font-black shadow-md mt-1">
