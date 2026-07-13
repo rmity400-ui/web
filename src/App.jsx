@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Home, MessageCircle, ShieldCheck, User, Bell, 
   Search, Heart, Plus, XCircle, Trash2, Edit3, 
-  Send, LogOut, Settings, UserPlus2,
+  Send, LogOut, Settings, 
   LayoutGrid, ShieldAlert, TrendingUp, Phone, CheckCircle, ArrowLeft, 
   Globe, ArrowRight, Loader2, MapPin, Mic, Camera, X, Play, AlertOctagon, 
   Ban, CheckCheck, Hexagon, GraduationCap, Pause, Download, Copy, Check, Radio, HelpCircle
@@ -86,7 +86,7 @@ const hashPassword = async (password) => {
 
 const verifyAdminPassword = async (inputPwd) => {
   try {
-    const expectedHash = "d7c43339174e508fb186b595cb2e32f05fa472f8ff66e512410985cc7fb8de75"; // SHA-256 representation of "ictmit"
+    const expectedHash = "d7c43339174e508fb186b595cb2e32f05fa472f8ff66e512410985cc7fb8de75"; // SHA-256 for "ictmit"
     const inputHash = await hashPassword(inputPwd);
     return expectedHash === inputHash;
   } catch(e) {
@@ -439,10 +439,13 @@ export default function App() {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => { 
           if (currentUser) {
             setUser(currentUser);
-            setIsAdmin(currentUser.email === 'mit@gmail.com');
+            // Verify if this specific device has active admin session token
+            const localAdminActive = sessionStorage.getItem('tp_admin_active') === 'true';
+            setIsAdmin(currentUser.email === 'mit@gmail.com' && localAdminActive);
           } else {
             setUser(null);
             setIsAdmin(false);
+            sessionStorage.removeItem('tp_admin_active');
           }
           setIsAuthLoading(false);
       });
@@ -456,7 +459,6 @@ export default function App() {
     const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
     const savedLocalUsername = user ? localStorage.getItem(`tp_username_${user.uid}`) : localStorage.getItem('tp_guest_username');
     
-    // Page 2 routing persistency bypass if there's an authenticated and locally saved account
     if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
        setCurrentPage('app');
        setCurrentView('home');
@@ -479,14 +481,16 @@ export default function App() {
           const udata = snap.data();
           setProfile(udata);
           
-          // Complete Purge Kick-out workflow triggered in real-time
-          if (udata.purged) {
-             localStorage.clear();
+          /* Instant Force Logout Execution */
+          if (udata.forceLogout) {
+             updateDoc(profileRef, { forceLogout: false }).catch(()=>{});
              sessionStorage.clear();
-             showToast("គណនី និងឧបករណ៍របស់អ្នកត្រូវបានដកចេញពីប្រព័ន្ធ!", "error", 5000);
-             setTimeout(() => {
-                window.location.href = "about:blank";
-             }, 1000);
+             localStorage.removeItem(`tp_username_${user.uid}`);
+             if (auth) {
+                signOut(auth).catch(()=>{});
+             }
+             setCurrentPage('gateway');
+             showToast('គណនីរបស់អ្នកត្រូវបានដកចេញពីប្រព័ន្ធដោយ Admin!', 'error', 5000);
           }
 
           if (udata.username && udata.username !== 'ភ្ញៀវ') {
@@ -500,7 +504,8 @@ export default function App() {
             uid: user.uid,
             timestamp: Date.now(),
             isBanned: false,
-            warnings: 0
+            warnings: 0,
+            forceLogout: false
           }, { merge: true });
         }
       }, () => {});
@@ -647,7 +652,8 @@ export default function App() {
           status: 'online',
           uid: user.uid,
           isBanned: false,
-          warnings: 0
+          warnings: 0,
+          forceLogout: false
         }, { merge: true });
     } else {
       localStorage.setItem('tp_guest_username', finalizedUsername);
@@ -761,7 +767,7 @@ export default function App() {
 
            <div className="w-full max-w-xs bg-white/10 p-4 rounded-2xl border border-white/10 space-y-4 mb-4">
                <div>
-                  <label className="text-[11px] uppercase font-bold text-slate-300 block mb-1.5 text-left">១. ថតរូបមុខបញ្ជាក់អត្តសញ្ញាណ *</label>
+                  <label className="text-[11px] uppercase font-bold text-slate-300 block mb-1.5 text-left">១.  ថតរូបមុខបញ្ជាក់អត្តសញ្ញាណ *</label>
                   
                   {isCapturing && (
                     <div className="w-full aspect-[4/3] bg-black rounded-xl overflow-hidden relative mb-2">
@@ -789,7 +795,7 @@ export default function App() {
                   <textarea 
                      value={appealText}
                      onChange={e => setAppealText(e.target.value)}
-                     placeholder="សរសេរការសន្យារbស់អ្នកនៅទីនេះ..."
+                     placeholder="សរសេរការសន្យារបស់អ្នកនៅទីនេះ..."
                      className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-400 p-3 rounded-xl text-[13px] h-20 resize-none font-medium focus:border-white/30 transition-all outline-none"
                   />
                </div>
@@ -900,7 +906,7 @@ export default function App() {
            {currentView === 'home' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} setCurrentView={setCurrentView} /></div>}
            {currentView === 'data' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} captureGps={handleGPS} /></div>}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} captureGps={handleGPS} gpsCoords={gpsCoords} /></div>}
+           {currentView === 'chat' && <div className="flex-1 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} /></div>}
            {currentView === 'account' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2">
@@ -970,10 +976,9 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   ];
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
-  if (currentView === 'chat') return null;
-
+  // Note: We DO NOT hide the bottom nav menu in Chat tab anymore so users can switch pages easily
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 docked-nav z-[45] overflow-hidden pb-safe animate-in slide-in-from-bottom-5 duration-300">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 docked-nav z-50 overflow-hidden pb-safe animate-in slide-in-from-bottom-5 duration-300">
       <div className="flex justify-around items-center h-[60px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
@@ -1439,16 +1444,12 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ខេត្ត..."/>
-                                <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ស្រុក..."/>
-                            </div>
-                            {/* Commune and Village support added inside other districts setup */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <input type="text" required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ឃុំ..."/>
-                                <input type="text" required value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ភូមិ..."/>
-                            </div>
+                        // Added Province, District, Commune, and Village to Other Districts Form
+                        <div className="grid grid-cols-2 gap-3">
+                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ខេត្ត..."/>
+                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ស្រុក..."/>
+                            <input type="text" required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ឃុំ..."/>
+                            <input type="text" required value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ភូមិ..."/>
                         </div>
                     )}
                 </div>
@@ -1527,6 +1528,7 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
          ))}
       </div>
 
+      {/* Recharts graphs reinstated beautifully and responsively */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2 flex-1">
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
            <h3 className="text-[12px] md:text-[14px] font-bold text-slate-800 mb-4 border-l-4 border-[#38BDF8] pl-2.5">កំណើនអ្នកប្រើប្រាស់ប្រចាំឆ្នាំ</h3>
@@ -1568,13 +1570,135 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
   );
 };
 
-const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], dbRegions, captureGps, gpsCoords }) => {
+const base64ToBlobUrl = (base64Data, mimeType = 'audio/webm') => {
+  try {
+    const splitData = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+    const byteCharacters = atob(splitData);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+    return URL.createObjectURL(blob);
+  } catch (e) {
+    return base64Data;
+  }
+};
+
+const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10', messageId, activeAudioId, setActiveAudioId }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef(null);
+
+  const localBlobUrl = useMemo(() => {
+    if (audioUrl && audioUrl.startsWith('data:')) {
+      return base64ToBlobUrl(audioUrl);
+    }
+    return audioUrl;
+  }, [audioUrl]);
+
+  const waveformHeights = [4, 6, 12, 8, 14, 18, 10, 16, 20, 12, 14, 8, 10, 16, 22, 12, 8, 14, 10, 16, 8, 12, 6, 4];
+
+  useEffect(() => {
+    if (activeAudioId !== messageId && isPlaying) {
+      setIsPlaying(false);
+      audioRef.current?.pause();
+    }
+  }, [activeAudioId, messageId, isPlaying]);
+
+  const togglePlayback = () => {
+    if (!audioRef.current) return;
+    try {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        setActiveAudioId(messageId);
+        audioRef.current.playbackRate = 1.0; 
+        audioRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      }
+    } catch (err) {}
+  };
+
+  const handleTimelineClick = (e) => {
+    if (!audioRef.current || !durationSec) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const widthPercentage = clickX / rect.width;
+    const targetTime = widthPercentage * durationSec;
+    audioRef.current.currentTime = targetTime;
+    setCurrentTime(targetTime);
+  };
+
+  const currentProgressPercent = durationSec > 0 ? (currentTime / durationSec) * 100 : 0;
+
+  return (
+    <div className="flex items-center gap-3.5 bg-[#EBF2FC] text-slate-800 p-3 rounded-2xl min-w-[200px] md:min-w-[260px] border border-blue-100 shadow-sm transition-all hover:shadow-md select-none">
+      <audio 
+        ref={audioRef} 
+        src={localBlobUrl} 
+        preload="auto"
+        onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          if (activeAudioId === messageId) setActiveAudioId(null);
+        }}
+        className="hidden"
+      />
+
+      <button 
+        type="button" 
+        onClick={togglePlayback}
+        className="w-11 h-11 rounded-full bg-[#0F2B5C] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md shrink-0"
+      >
+        {isPlaying ? <Pause className="w-5 h-5 fill-current text-sky-300"/> : <Play className="w-5 h-5 fill-current text-sky-300 ml-1" />}
+      </button>
+
+      <div className="flex-1 min-w-0 flex flex-col justify-between pt-1">
+        <div 
+          className="flex items-end gap-[3px] h-[30px] cursor-pointer" 
+          onClick={handleTimelineClick}
+        >
+          {waveformHeights.map((h, index) => {
+            const barProgressPoint = (index / waveformHeights.length) * 100;
+            const isPlayed = currentProgressPercent >= barProgressPoint;
+            return (
+              <div 
+                key={index} 
+                className="audio-waveform-bar" 
+                style={{
+                  height: `${h}px`,
+                  backgroundColor: isPlayed ? '#0F2B5C' : '#94A3B8'
+                }} 
+              />
+            );
+          })}
+        </div>
+
+        <div className="flex justify-between items-center mt-2">
+          <span className="text-[11px] font-bold text-slate-500">
+            {isPlaying 
+              ? `${Math.floor(currentTime / 60)}:${Math.floor(currentTime % 60).toString().padStart(2, '0')}` 
+              : durationStr
+            }
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], dbRegions, captureGps, gpsCoords, usersList = [] }) => {
   const [activeChatUser, setActiveChatUser] = useState(null); 
   const messagesEndRef = useRef(null);
 
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
+  const [localFilterActive, setLocalFilterActive] = useState(false);
   const [selectedCommune, setSelectedCommune] = useState('');
   const [selectedVillage, setSelectedVillage] = useState('');
   
@@ -1597,10 +1721,14 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const pressTimerRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  // Add Friend state elements
+  /* Add Friend System State */
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const [friendSearchUsername, setFriendSearchUsername] = useState('');
-  const [searchedUsers, setSearchedUsers] = useState([]);
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
+  const [localFriends, setLocalFriends] = useState(() => {
+     try {
+       return JSON.parse(localStorage.getItem('tp_my_friends') || '[]');
+     } catch (e) { return []; }
+  });
 
   useEffect(() => {
       if (scrollContainerRef.current) {
@@ -1854,48 +1982,24 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      setEditInput('');
   };
 
-  // Add Friend Trigger execution
-  const triggerAddFriend = () => {
-     if (!db) return showToast('មិនអាចប្រើមុខងារនេះបានទេក្នុង Sandbox Mode', 'info');
-     setShowAddFriendModal(true);
-     setFriendSearchUsername('');
-     setSearchedUsers([]);
-  };
-
-  const executeFriendSearch = async () => {
-     if (!friendSearchUsername.trim()) return;
-     // Retrieve current active users listing matching username constraints
-     if (db) {
-        const queryVal = friendSearchUsername.trim().toLowerCase();
-        // Dynamically filters matching users with structured avatars
-        const matching = usersList.filter(u => u && safeStr(u.username).toLowerCase().includes(queryVal) && u.uid !== user?.uid);
-        setSearchedUsers(matching);
-        if (matching.length === 0) showToast('រកមិនឃើញគណនីមិត្តភក្តិឡើយ', 'error');
-     }
-  };
-
-  const confirmAddFriend = async (friendObj) => {
-     try {
-        if (db) {
-           // Insert customized personal chat contact target record directly inside Firestore targets
-           const id = `direct_chat_${user?.uid || 'guest'}_${friendObj.uid}`;
-           await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'chat_targets', id), {
-              id,
-              label: `${friendObj.username} (Friend)`,
-              role: 'មិត្តភក្តិ',
-              district: 'រតនមណ្ឌល',
-              avatar: friendObj.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-              status: 'online',
-              isDefault: false,
-              friendUserId: friendObj.uid,
-              timestamp: Date.now()
-           });
-           showToast('បន្ថែមមិត្តភក្តិ និងបង្កើតបន្ទប់ឆាតជោគជ័យ ✅');
-           setShowAddFriendModal(false);
-        }
-     } catch (err) {
-        showToast('មានបញ្ហាក្នុងការបង្កើតឆាតមិត្តភក្តិ', 'error');
-     }
+  /* Add Friend Logic execution */
+  const handleSelectFriend = (targetUser) => {
+     const alreadyAdded = localFriends.some(f => f.id === targetUser.id);
+     if (alreadyAdded) return showToast('គណនីនេះជាមិត្តភក្តិរបស់អ្នករួចរាល់ហើយ', 'info');
+     
+     const updated = [...localFriends, {
+         id: targetUser.id,
+         label: targetUser.username,
+         role: 'មិត្តភក្តិ',
+         district: 'រតនមណ្ឌល',
+         avatar: targetUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+         status: 'online',
+         isFriend: true
+     }];
+     setLocalFriends(updated);
+     localStorage.setItem('tp_my_friends', JSON.stringify(updated));
+     showToast('បន្ថែមមិត្តភក្តិជោគជ័យ ✅');
+     setShowAddFriendModal(false);
   };
 
   if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
@@ -1918,41 +2022,45 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      };
      const villageList = selectedCommune && communeVillages[selectedCommune] ? communeVillages[selectedCommune] : [];
 
-     const filteredContacts = (chatTargets || []).filter(t => {
+     // Merge standard contacts with user private Friends
+     const mergedContacts = [...(chatTargets || []), ...localFriends];
+
+     const filteredContacts = mergedContacts.filter(t => {
          if (!t) return false;
          if (t.isDefault) return true;
+         if (localFilterActive && selectedCommune) {
+            return t.commune === selectedCommune;
+         }
          return t.district === 'រតនមណ្ឌល';
      });
 
      return (
-        <div className="flex flex-col h-full bg-white md:rounded-2xl md:border md:border-slate-200 overflow-hidden md:shadow-sm w-full flex-1 font-khmer animate-in fade-in duration-300 relative">
+        <div className="flex flex-col h-full bg-white md:rounded-2xl md:border md:border-slate-200 overflow-hidden md:shadow-sm w-full flex-1 font-khmer animate-in fade-in duration-300">
            <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0 flex justify-between items-center">
                <div>
                   <h1 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#38BDF8]"/> រាយការណ៍ទីតាំងបន្ទាន់</h1>
-                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬមិត្តភក្ដិដើម្បីទាក់ទង។</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬមិត្តភក្តិដែលអ្នកចង់ទាក់ទង។</p>
                </div>
                
                <div className="flex gap-2">
-                 {/* Single action trigger for GPS devices */}
+                 {/* GPS device locating button & Add Friend triggers */}
                  <button 
                     onClick={captureGps} 
-                    className="flex items-center gap-1 px-3 py-2 rounded-xl border border-rose-200 text-[10px] font-bold bg-rose-50 text-rose-600 shadow-sm transition active:scale-95"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 text-[10px] font-bold bg-rose-50 text-rose-600 shadow-sm"
                  >
-                    📍 ចាប់យកទីតាំង GPS របស់ខ្ញុំ
+                    📍 GPS ឧបករណ៍ខ្ញុំ
                  </button>
-                 
-                 {/* Add Friend function element added */}
                  <button 
-                    onClick={triggerAddFriend} 
-                    className="flex items-center gap-1 px-3 py-2 rounded-xl border border-sky-200 text-[10px] font-bold bg-sky-50 text-sky-600 shadow-sm transition active:scale-95"
+                    onClick={() => setShowAddFriendModal(true)} 
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-sky-200 text-[10px] font-bold bg-sky-50 text-sky-600 shadow-sm"
                  >
-                    <UserPlus2 className="w-3.5 h-3.5" /> បន្ថែមមិត្តភក្តិ
+                    ➕ បន្ថែមមិត្តភក្តិ
                  </button>
                </div>
            </div>
-
+           
            <div className="flex-1 overflow-y-auto p-4 hide-scrollbar bg-white animate-in fade-in duration-300">
-              <div className="text-slate-400 text-[10px] font-bold mb-3 pl-1 uppercase tracking-wider font-khmer">បញ្ជីទំនាក់ទំនង និងមិត្តភក្តិ៖</div>
+              <div className="text-slate-400 text-[10px] font-bold mb-3 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
               {filteredContacts.map((contact, i) => contact && (
                   <div 
                      key={contact.id || i} 
@@ -1964,7 +2072,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                           <div>
                               <h3 className="font-black text-[14px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
                               <p className="text-[10px] text-white font-bold bg-[#0F2B5C] px-2 py-0.5 rounded-lg border border-[#0F2B5C] w-fit mt-1.5 line-clamp-1 shadow-sm">
-                                 {safeStr(contact.role)}
+                                 {contact.isFriend ? 'មិត្តភក្តិសន្ទនាផ្ទាល់' : 'ទំនាក់ទំនងទូទៅ'}
                               </p>
                           </div>
                       </div>
@@ -1973,37 +2081,44 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
               ))}
            </div>
 
-           {/* Add Friend Overlay Dialog */}
+           {/* Add Friend Modal layout */}
            {showAddFriendModal && (
-              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                  <div className="bg-white rounded-[30px] p-6 w-full max-w-sm animate-in zoom-in-95 shadow-2xl relative">
-                      <button onClick={()=>setShowAddFriendModal(false)} className="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-500 rounded-full absolute top-4 right-4"><X className="w-4 h-4"/></button>
-                      <h3 className="text-[15px] font-black text-[#0F2B5C] mb-2 font-khmer">បន្ថែមមិត្តភក្តិ</h3>
-                      <p className="text-[11px] text-slate-400 mb-4 font-medium">ស្វែងរក Username របស់មិត្តភក្តិរបស់អ្នកដើម្បីបង្កើតបន្ទប់ឆាតផ្ទាល់ខ្លួន</p>
-                      
-                      <div className="flex gap-2 mb-4">
-                          <input 
-                             type="text" 
-                             value={friendSearchUsername} 
-                             onChange={e=>setFriendSearchUsername(e.target.value)} 
-                             placeholder="វាយបញ្ចូល Username..." 
-                             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[14px] font-bold"
-                          />
-                          <button onClick={executeFriendSearch} className="bg-[#0F2B5C] text-white rounded-xl px-4 text-[12px] font-black">ស្វែងរក</button>
-                      </div>
+              <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                 <div className="bg-white w-full max-w-sm rounded-[24px] p-6 shadow-2xl border border-slate-100 flex flex-col h-[70vh] animate-in zoom-in-95">
+                    <div className="flex justify-between items-center mb-4 shrink-0">
+                       <h3 className="font-black text-[15px] text-[#0F2B5C]">ស្វែងរកមិត្តភក្តិ (Add Friend)</h3>
+                       <button onClick={() => setShowAddFriendModal(false)} className="p-1.5 bg-slate-100 rounded-full text-slate-500"><X className="w-4 h-4"/></button>
+                    </div>
 
-                      <div className="max-h-[180px] overflow-y-auto space-y-2.5 hide-scrollbar">
-                          {searchedUsers.map(su => (
-                              <div key={su.uid} className="flex justify-between items-center p-2.5 bg-slate-50 border rounded-xl hover:bg-slate-100 transition-colors">
-                                  <div className="flex items-center gap-2">
-                                      <img src={su.avatar} alt="Friend pic" className="w-8 h-8 rounded-full object-cover border" />
-                                      <span className="text-[13px] font-black text-[#0F2B5C]">{safeStr(su.username)}</span>
-                                  </div>
-                                  <button onClick={()=>confirmAddFriend(su)} className="bg-[#10b981] text-white text-[10.5px] px-3 py-1.5 rounded-lg font-black shadow-sm">យល់ព្រម</button>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
+                    <div className="relative mb-3 shrink-0">
+                       <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                       <input 
+                          type="text"
+                          placeholder="ស្វែងរកតាមឈ្មោះ Username..."
+                          value={friendSearchQuery}
+                          onChange={e => setFriendSearchQuery(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-[13px] font-bold outline-none"
+                       />
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-3 hide-scrollbar pr-1">
+                       {usersList
+                          .filter(u => u && u.id !== user?.uid && safeStr(u.username).toLowerCase().includes(friendSearchQuery.toLowerCase()))
+                          .map(u => (
+                             <div key={u.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-100 transition-all">
+                                <div className="flex items-center gap-2.5">
+                                   <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 bg-white object-cover" alt="uav" />
+                                   <div>
+                                      <p className="font-black text-[13px] text-slate-800">{safeStr(u.username)}</p>
+                                      <span className="text-[10px] text-slate-400 font-bold block">User ID: {u.id.substring(0,8)}</span>
+                                   </div>
+                                </div>
+                                <button onClick={() => handleSelectFriend(u)} className="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10.5px] font-black shadow-sm transition-colors">Add</button>
+                             </div>
+                          ))
+                       }
+                    </div>
+                 </div>
               </div>
            )}
         </div>
@@ -2275,35 +2390,33 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
     setIsLoginLoading(true);
     try {
       await new Promise(r => setTimeout(r, 600));
-      // First attempt using official Firebase authentication
       if (auth) {
         try {
           await signInWithEmailAndPassword(auth, "mit@gmail.com", pwdInput);
+          sessionStorage.setItem('tp_admin_active', 'true');
           setIsAdmin(true);
           showToast('ចូលប្រើជា Admin ជោគជ័យ');
           setShowAdminLogin(false);
           setPwdInput('');
           setAttempts(0);
           localStorage.removeItem('admin_attempts');
-          // Instantly redirect to the Admin View panel layout directly
+          
           setCurrentView('admin');
           setIsLoginLoading(false);
           return;
-        } catch (firebaseAuthError) {
-          // Fallback if Auth accounts are uninitialized in Firebase console
-        }
+        } catch (firebaseAuthError) {}
       }
 
-      // SHA-256 fallback encryption
       const isValid = await verifyAdminPassword(pwdInput);
       if (isValid) {
+         sessionStorage.setItem('tp_admin_active', 'true');
          setIsAdmin(true);
          showToast('ចូលប្រើជា Admin ជោគជ័យ');
          setShowAdminLogin(false);
          setPwdInput('');
          setAttempts(0);
          localStorage.removeItem('admin_attempts');
-         // Instantly redirect to the Admin View panel layout directly
+         
          setCurrentView('admin');
       } else {
          throw new Error("Invalid Auth");
@@ -2454,7 +2567,9 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
 const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
+  
   const [trollSearchText, setTrollSearchText] = useState('');
+  const [selectedTrollUser, setSelectedTrollUser] = useState(null);
 
   const [confirmAction, setConfirmAction] = useState(null);
   const openConfirm = (title, message, action, requirePassword = false) => setConfirmAction({ title, message, action, requirePassword });
@@ -2475,9 +2590,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const [newChatAvatar, setNewChatAvatar] = useState('');
   const [newChatDistrictType, setNewChatDistrictType] = useState('រតនមណ្ឌល');
   const [newChatCustomDistrict, setNewChatCustomDistrict] = useState('');
-
-  const [viewUserChat, setViewUserChat] = useState(null);
-  const [monitoredChatsList, setMonitoredChatsList] = useState([]);
 
   const handleApprove = async (id, authorUid) => { 
       try {
@@ -2553,7 +2665,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      setCurrentView('home');
      showToast('បានចាកចេញពី Admin');
   };
-
+  
   const handleEditSave = async (e) => { 
       e.preventDefault(); 
       try {
@@ -2576,6 +2688,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       setEditingLoc(null); 
   };
 
+  /* Tracking & Punishment Options (Warn, Ban Device, Force Logout) */
   const handleWarnUser = (userObj) => {
       openConfirm("ព្រមាន (Warning)", `តើអ្នកចង់ព្រមានដល់ ${userObj.username}? វានឹងកត់ត្រាកំហុសរបស់គាត់។`, async () => {
          if (db) {
@@ -2589,6 +2702,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             }).catch(()=>{});
          }
          showToast(`បានព្រមាន ${userObj.username} ជោគជ័យ`);
+         setSelectedTrollUser(null);
       });
   };
 
@@ -2596,20 +2710,21 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       openConfirm("ដក Device (Ban)", `តើអ្នកពិតជាចង់ផ្តាច់ និងដកសិទ្ធិប្រើប្រាស់ពី ${userObj.username} ជារៀងរហូតមែនទេ? (គណនីនឹងត្រូវ Block)`, async () => {
          if (db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), { isBanned: true }).catch(()=>{});
          showToast(`បានដក Device របស់ ${userObj.username} រួចរាល់!`, 'error');
-         setViewUserChat(null); 
+         setSelectedTrollUser(null);
       });
   };
 
-  const handlePurgeUser = (userObj) => {
-      openConfirm("ដក Web App ចេញពីទូរស័ព្ទដៃ", `តើអ្នកពិតជាចង់លុបចោលគណនី និងបង្ខំទូរស័ព្ទដៃរបស់ ${userObj.username} ឲ្យចាកចេញពី Web App ភ្លាមៗតែម្ដងមែនទេ?`, async () => {
+  const handleForceLogoutUser = (userObj) => {
+      openConfirm("ដក Web App ចេញពីទូរស័ព្ទ (Force Logout)", `តើអ្នកពិតជាចង់ទាត់ ${userObj.username} ចេញពីទូរស័ព្ទដៃរបស់គាត់ស្វ័យប្រវត្តមែនទេ?`, async () => {
          if (db) {
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), { purged: true }).catch(()=>{});
-            showToast(`បានបណ្ដេញ និង Purge ឧបករណ៍របស់ ${userObj.username} ជោគជ័យ!`, 'error');
-            setViewUserChat(null);
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), { forceLogout: true }).catch(()=>{});
          }
+         showToast(`បានទាត់ ${userObj.username} ចេញពីទូរស័ព្ទដៃរួចរាល់`);
+         setSelectedTrollUser(null);
       });
   };
 
+  /* Fixed bulk purge of Troll Users (requires password verification) */
   const handleClearAllTrolls = () => {
       const trolls = usersList.filter(u => u && (u.warnings > 0 || u.isBanned));
       if(trolls.length === 0) return showToast('មិនមានបទល្មើសទេ', 'info');
@@ -2627,7 +2742,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             }
          }
          showToast(`បានលុបគណនីបទល្មើសទាំងអស់ជោគជ័យ`);
-      }, true); // Requires admin master password validation "ictmit"
+      }, true); 
   };
 
   const handleDeleteTrollUser = (userObj) => {
@@ -2641,7 +2756,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             });
          }
          showToast(`បានលុបគណនី ${userObj.username} ជោគជ័យ`);
-         setViewUserChat(null);
+         setSelectedTrollUser(null);
       }, true);
   };
 
@@ -2726,6 +2841,18 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      });
   };
 
+  /* Avatar upload function inside contacts management instead of text links */
+  const handleChatTargetAvatarUpload = (e) => {
+     const file = e.target.files[0];
+     if(!file) return;
+     const reader = new FileReader();
+     reader.onload = () => {
+         setNewChatAvatar(reader.result);
+         showToast('បញ្ចូលរូបភាពទំនាក់ទំនងជោគជ័យ');
+     };
+     reader.readAsDataURL(file);
+  };
+
   const handleAddChatTarget = async (e) => {
      e.preventDefault();
      if(!newChatLabel.trim()) return;
@@ -2767,15 +2894,10 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const filteredUsersList = useMemo(() => {
      return (usersList || []).filter(u => {
         if(!u) return false;
-        return safeStr(u.username).toLowerCase().includes(trollSearchText.toLowerCase());
+        const nameMatch = safeStr(u.username).toLowerCase().includes(trollSearchText.toLowerCase());
+        return nameMatch;
      });
   }, [usersList, trollSearchText]);
-
-  const openMonitorChats = (userObj) => {
-     const relativeChats = chats.filter(c => c && (c.userId === userObj.id || c.target === userObj.id));
-     setMonitoredChatsList(relativeChats);
-     setViewUserChat(userObj);
-  };
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4 pb-10 flex-1 font-khmer">
@@ -2855,7 +2977,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           )}
 
           {activeTab === 'chat_monitor' && (
-             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 animate-in fade-in duration-200 relative">
+             <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 animate-in fade-in duration-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-l-4 border-rose-500 pl-2.5">
                    <div>
                       <h3 className="font-black text-[14px] text-[#0F2B5C]">ការតាមដាន និងគ្រប់គ្រងបទល្មើស (Moderation)</h3>
@@ -2880,6 +3002,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                    </div>
                 </div>
                 
+                {}
                 <div className="space-y-2.5 max-h-[450px] overflow-y-auto pr-1 hide-scrollbar">
                    {filteredUsersList?.length === 0 ? <p className="text-center py-10 text-[12px] font-bold text-slate-400">គ្មានគណនីត្រូវតាមលក្ខខណ្ឌស្វែងរកឡើយ</p> :
                      filteredUsersList.sort((a,b)=>(b.lastActive||0)-(a.lastActive||0)).map(u => {
@@ -2889,7 +3012,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
 
                         return (
                            <div key={u.id} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 transition-all shadow-sm">
-                              <div className="flex items-center gap-3 cursor-pointer" onClick={() => openMonitorChats(u)}>
+                              <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedTrollUser(u)}>
                                  <div className="relative">
                                     <img src={u.avatar} className="w-10 h-10 rounded-full object-cover border border-slate-200 bg-white" alt="av" />
                                     <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
@@ -2906,9 +3029,10 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                  <button onClick={() => handleDeleteTrollUser(u)} className="p-2 bg-rose-50 text-rose-500 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors">
                                      <Trash2 className="w-4 h-4" />
                                  </button>
-                                 <div onClick={() => openMonitorChats(u)} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-[#0F2B5C] cursor-pointer hover:bg-slate-50 transition-colors">
+                                 {/* Chat Icon now correctly opens the tracking/punishment modal instead of viewUserChat */}
+                                 <button onClick={() => setSelectedTrollUser(u)} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-rose-500 hover:bg-slate-50 transition-colors">
                                     <MessageCircle className="w-4 h-4" />
-                                 </div>
+                                 </button>
                               </div>
                            </div>
                         )
@@ -2916,35 +3040,25 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                    }
                 </div>
 
-                {/* Sub-panel displaying warning, block device and purges details */}
-                {viewUserChat && (
-                   <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                      <div className="bg-white rounded-[24px] p-6 w-full max-w-md animate-in zoom-in-95 shadow-2xl relative">
-                          <button onClick={()=>setViewUserChat(null)} className="p-1 text-slate-500 bg-slate-100 hover:bg-rose-50 hover:text-rose-500 rounded-full absolute top-4 right-4"><X className="w-4 h-4"/></button>
-                          <h3 className="text-[15px] font-black text-[#0F2B5C] mb-4">តាមដានគណនី: {safeStr(viewUserChat.username)}</h3>
-                          
-                          <div className="space-y-3 mb-6">
-                              <button onClick={()=>handleWarnUser(viewUserChat)} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-[12px] shadow-sm flex items-center justify-center gap-2">
-                                 ⚠️ ផ្ញើការព្រមាន (Warn)
-                              </button>
-                              <button onClick={()=>handleBanUser(viewUserChat)} className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold text-[12px] shadow-sm flex items-center justify-center gap-2">
-                                 <Ban className="w-4 h-4"/> ផ្ដាច់ឧបករណ៍ (Block Device)
-                              </button>
-                              <button onClick={()=>handlePurgeUser(viewUserChat)} className="w-full py-3 bg-[#0F2B5C] hover:bg-slate-900 text-white rounded-xl font-bold text-[12px] shadow-sm flex items-center justify-center gap-2">
-                                 <XCircle className="w-4 h-4"/> បណ្ដេញចេញពីទូរស័ព្ទដៃ (Purge Web App)
-                              </button>
-                          </div>
-
-                          <div className="border-t border-slate-100 pt-3">
-                              <h4 className="text-[11px] font-black text-slate-500 mb-2 uppercase">សារចុងក្រោយ</h4>
-                              <div className="max-h-[150px] overflow-y-auto space-y-1.5 hide-scrollbar">
-                                 {monitoredChatsList.slice(-5).map(mc => (
-                                    <div key={mc.id} className="p-2 bg-slate-50 border rounded-lg text-[11px] font-medium leading-relaxed">
-                                       {safeStr(mc.text)}
-                                    </div>
-                                 ))}
-                              </div>
-                          </div>
+                {selectedTrollUser && (
+                   <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+                      <div className="bg-white rounded-[24px] p-6 max-w-sm w-full border border-slate-200 shadow-2xl animate-in zoom-in-95">
+                         <div className="flex justify-between items-center mb-4">
+                            <h4 className="font-black text-[14px] text-[#0F2B5C]">តាមដានឆាត និងដាក់ពិន័យ</h4>
+                            <button onClick={() => setSelectedTrollUser(null)} className="p-1 bg-slate-100 rounded-full text-slate-500"><X className="w-4 h-4"/></button>
+                         </div>
+                         <div className="flex items-center gap-3 mb-5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <img src={selectedTrollUser.avatar} className="w-12 h-12 rounded-full border object-cover bg-white" alt="pav" />
+                            <div>
+                               <p className="font-black text-[13px] text-slate-800">{selectedTrollUser.username}</p>
+                               <span className="text-[11px] text-amber-500 font-bold block">Warnings: {selectedTrollUser.warnings || 0}</span>
+                            </div>
+                         </div>
+                         <div className="space-y-3">
+                            <button onClick={() => handleWarnUser(selectedTrollUser)} className="w-full py-3 bg-amber-500 text-white font-black text-[12px] rounded-xl shadow-md active:scale-95 transition-transform">១. ព្រមាន (Warn)</button>
+                            <button onClick={() => handleBanUser(selectedTrollUser)} className="w-full py-3 bg-rose-600 text-white font-black text-[12px] rounded-xl shadow-md active:scale-95 transition-transform">២. Block ឧបករណ៍ (Ban Device)</button>
+                            <button onClick={() => handleForceLogoutUser(selectedTrollUser)} className="w-full py-3 bg-slate-800 text-white font-black text-[12px] rounded-xl shadow-md active:scale-95 transition-transform">៣. ដក Web App ចេញពីទូរស័ព្ទ (Force Logout)</button>
+                         </div>
                       </div>
                    </div>
                 )}
@@ -3013,27 +3127,15 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                          <input type="text" value={newChatRole} onChange={e=>setNewChatRole(e.target.value)} required placeholder="ឧ: រដ្ឋបាល..." className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[16px] font-bold text-slate-800" />
                       </div>
                       <div>
-                         {/* Input type URL corrected to input type FILE supporting base64 photo uploads directly */}
-                         <label className="text-[11px] font-bold text-slate-500 block mb-1">រូបតំណាង (Upload Photo)</label>
-                         <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={(e) => {
-                               const file = e.target.files[0];
-                               if (file) {
-                                  const reader = new FileReader();
-                                  reader.onload = () => setNewChatAvatar(reader.result);
-                                  reader.readAsDataURL(file);
-                               }
-                            }}
-                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[13px] font-bold text-slate-800" 
-                         />
-                         {newChatAvatar && (
-                            <div className="mt-2 flex items-center gap-2">
-                               <img src={newChatAvatar} alt="preview" className="w-10 h-10 rounded-full object-cover border" />
-                               <span className="text-[10px] text-slate-400">ស្កែនរូបភាពរួចរាល់</span>
-                            </div>
-                         )}
+                         <label className="text-[11px] font-bold text-slate-500 block mb-1">រូបតំណាង (Upload Picture)</label>
+                         {/* Replaced Text input URL with secure file uploader */}
+                         <div className="flex items-center gap-2">
+                            <label className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-[12px] font-bold cursor-pointer hover:bg-slate-50">
+                               ជ្រើសរើសរូបភាព
+                               <input type="file" accept="image/*" className="hidden" onChange={handleChatTargetAvatarUpload} />
+                            </label>
+                            {newChatAvatar && <img src={newChatAvatar} className="w-9 h-9 rounded-full object-cover border" alt="preview" />}
+                         </div>
                       </div>
                    </div>
                    <button type="submit" className="bg-[#0F2B5C] text-white px-5 py-2 rounded-xl text-[11.5px] font-black shadow-md mt-1">
