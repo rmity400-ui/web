@@ -14,6 +14,7 @@ import {
   LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
 } from 'recharts';
 
+// SVG helpers to prevent Lucide-React standard namespaces conflict
 const MapSvgIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
@@ -641,7 +642,7 @@ export default function App() {
     const finalizedUsername = regName.trim();
     
     sessionStorage.removeItem('tp_is_guest');
-    const targetUid = user ? user.uid : 'usr_' + Date.now();
+    const targetUid = user ? user.uid : 'guest';
     localStorage.setItem(`tp_username_${targetUid}`, finalizedUsername);
 
     if (db && user) {
@@ -820,10 +821,10 @@ export default function App() {
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-[#0F2B5C] stroke-none rotate-90 scale-90" />
                 <GraduationCap className="relative z-10 w-16 h-16 text-[#38BDF8] animate-pulse" />
             </div>
-            <h1 className={`font-logo font-black text-4xl tracking-widest ${cosmicTheme ? 'text-white' : 'text-[#0F2B5C]'} mb-2 drop-shadow-sm`}>
+            <h1 className="font-logo font-black text-4xl tracking-widest text-[#0F2B5C] mb-2 drop-shadow-sm">
                 TP<span className="text-[#38BDF8]">CAMBODIA</span>
             </h1>
-            <p className={`text-[11px] ${cosmicTheme ? 'text-sky-300' : 'text-slate-400'} font-bold uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm`}>VMC Volunteer Group</p>
+            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">VMC Volunteer Group</p>
         </div>
 
         <div className="w-full md:w-1/2 md:h-full md:rounded-none md:rounded-l-[50px] bg-[#0F2B5C] rounded-t-[50px] px-8 py-14 flex flex-col justify-center items-center text-center pb-[max(env(safe-area-inset-bottom),50px)] shadow-[0_-15px_50px_rgba(15,43,92,0.15)] relative overflow-hidden z-10">
@@ -976,7 +977,6 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   ];
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
-  // Note: We DO NOT hide the bottom nav menu in Chat tab anymore so users can switch pages easily
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 docked-nav z-50 overflow-hidden pb-safe animate-in slide-in-from-bottom-5 duration-300">
       <div className="flex justify-around items-center h-[60px] px-2 relative">
@@ -1004,16 +1004,18 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
 
 const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotificationsOpen, searchQuery, setSearchQuery, db, appId, user, appLogo, currentView }) => {
     return (
-        <div className="bg-white border-b border-slate-200 pt-[calc(env(safe-area-inset-top,10px)+12px)] px-5 md:px-8 pb-4 shadow-sm relative z-40 shrink-0 w-full rounded-b-[24px] md:rounded-none">
-           <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden p-0.5 shadow-sm border border-slate-100">
-                    <img src={appLogo} className="w-full h-full object-cover rounded-full" alt="Logo" />
+        <div className="bg-white border-b border-slate-100/80 pt-[calc(env(safe-area-inset-top,24px)+22px)] px-5 md:px-8 pb-6 shadow-md relative z-40 shrink-0 w-full rounded-b-[36px] md:rounded-none">
+           <div className="flex justify-between items-center w-full h-14 md:h-16">
+              <div className="flex items-center gap-4 h-full">
+                 <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden p-1 shadow-sm border border-slate-100/80 transition-all duration-300 hover:scale-105 shrink-0">
+                    <img src={appLogo} className="w-full h-full object-cover rounded-xl" alt="Logo" />
                  </div>
-                 <h1 className="font-logo font-extrabold text-[16px] leading-tight text-[#0F2B5C] tracking-wide uppercase">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
+                 <h1 className="font-logo font-extrabold text-[18px] md:text-[21px] leading-none text-[#0F2B5C] tracking-wider uppercase select-none">
+                    TP<span className="text-[#38BDF8]">CAMBODIA</span>
+                 </h1>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3.5 h-full">
                  <button 
                    onClick={async () => {
                       sessionStorage.removeItem('tp_is_guest');
@@ -1022,18 +1024,24 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                       }
                       setCurrentPage('gateway');
                    }} 
-                   className="flex items-center gap-1.5 text-[11px] font-bold text-[#0F2B5C] bg-slate-50 border border-slate-200 shadow-sm py-2 px-3 rounded-xl hover:bg-slate-100 active:scale-95 transition-transform"
+                   className="flex items-center justify-center gap-2 text-[13px] font-bold text-[#0F2B5C] bg-white border border-slate-100/80 shadow-sm h-12 px-5 rounded-2xl hover:bg-slate-50 hover:shadow-md active:scale-95 transition-all"
                  >
-                    <ArrowLeft className="w-4 h-4" /> ត្រឡប់
+                    <ArrowLeft className="w-4 h-4 shrink-0 stroke-[2.5px]" /> 
+                    <span className="hidden xs:inline">ត្រឡប់</span>
                  </button>
 
-                 <div className="relative">
-                     <button className="p-2.5 bg-slate-50 rounded-full active:scale-95 transition shadow-sm relative border border-slate-200 hover:bg-slate-100" onClick={() => setNotificationsOpen(!notificationsOpen)}>
-                        <Bell className="w-5 h-5 text-[#0F2B5C]" />
-                        {notifications && notifications.length > 0 && <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
+                 <div className="relative h-12 w-12">
+                     <button 
+                       className="w-full h-full bg-white rounded-2xl active:scale-95 hover:shadow-md transition-all shadow-sm relative border border-slate-100/80 hover:bg-slate-50 flex items-center justify-center" 
+                       onClick={() => setNotificationsOpen(!notificationsOpen)}
+                     >
+                        <Bell className="w-5.5 h-5.5 text-[#0F2B5C]" />
+                        {notifications && notifications.length > 0 && (
+                          <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
+                        )}
                      </button>
                      {notificationsOpen && (
-                        <div className="absolute right-0 mt-3 w-[320px] md:w-[380px] bg-white shadow-2xl rounded-[24px] border border-slate-200 overflow-hidden z-50 text-slate-800 animate-in fade-in zoom-in-95 pointer-events-auto">
+                        <div className="absolute right-0 mt-4 w-[320px] md:w-[380px] bg-white shadow-2xl rounded-[24px] border border-slate-200 overflow-hidden z-50 text-slate-800 animate-in fade-in zoom-in-95 pointer-events-auto">
                           <div className="p-4 border-b border-slate-100 font-bold flex justify-between text-[13px] bg-slate-50 items-center text-[#0F2B5C]">
                             <span>ការជូនដំណឹង (Notifications)</span>
                             <button onClick={() => setNotificationsOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-full transition-colors"><X className="w-4 h-4 text-slate-500" /></button>
@@ -1059,25 +1067,25 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
               </div>
            </div>
            
-           <div className="flex flex-col w-full mt-2">
-              {currentView === 'home' && (
+           {currentView === 'home' && (
+               <div className="flex flex-col w-full mt-6 md:mt-7 animate-in fade-in slide-in-from-top-2 duration-300">
                   <form onSubmit={(e) => {
                      e.preventDefault();
                      document.activeElement?.blur(); 
-                  }} className="relative w-full animate-in fade-in slide-in-from-top-2">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  }} className="relative w-full max-w-2xl mx-auto">
+                    <div className="absolute left-4.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                        <Search className="w-5 h-5" />
                     </div>
                     <input 
                       type="search" 
                       placeholder="ស្វែងរកទីតាំង ឬសេវាកម្ម..." 
-                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-[20px] py-4 pl-12 pr-4 outline-none text-[16px] font-bold border border-slate-200 focus:border-[#38BDF8] focus:bg-white transition-all m-0 shadow-inner" 
+                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-2xl py-4 pl-12 pr-4 outline-none text-[16px] font-bold border border-slate-200/80 focus:border-[#38BDF8] focus:bg-white transition-all m-0 shadow-inner" 
                       value={searchQuery} 
                       onChange={(e) => setSearchQuery(e.target.value)} 
                     />
                   </form>
-              )}
-           </div>
+               </div>
+           )}
         </div>
     );
 };
@@ -1171,6 +1179,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     district: '', 
     commune: '', 
     village: '',
+    image: null,
     contacts: [{ name: '', phone: '' }]
   });
   const [loading, setLoading] = useState(false);
@@ -1210,9 +1219,21 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
       district: '', 
       commune: '', 
       village: '',
+      image: null,
       contacts: [{ name: '', phone: '' }]
     });
     setIsAddModalOpen(true);
+  };
+
+  const handleFormImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+       setForm(prev => ({ ...prev, image: reader.result }));
+       showToast('បញ្ចូលរូបភាពទីតាំងជោគជ័យ');
+    };
+    reader.readAsDataURL(file);
   };
 
   const setGPSForForm = () => {
@@ -1444,7 +1465,6 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                             </div>
                         </div>
                     ) : (
-                        // Added Province, District, Commune, and Village to Other Districts Form
                         <div className="grid grid-cols-2 gap-3">
                             <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ខេត្ត..."/>
                             <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ស្រុក..."/>
@@ -1456,10 +1476,28 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
                 <div>
                     <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase">ទីតាំង (GPS)</label>
-                    <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/30' : 'bg-slate-100 text-slate-600 border-slate-300'} border-2 py-4 rounded-2xl font-bold text-[12px] flex items-center justify-center gap-2 active:scale-95 transition-all truncate px-2`}>
+                    <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/30' : 'bg-slate-100 text-slate-600 border-slate-300'} border-2 py-4 rounded-2xl font-bold text-[12px] flex items-center justify-center gap-2 active:scale-95 transition-all truncate px-2 mb-3`}>
                        <MapPin className="w-4 h-4 shrink-0"/>
                        {form.coords ? '✓ ចាប់បានទីតាំងជោគជ័យ' : 'ចុចដើម្បីទាញយក GPS'}
                     </button>
+                    
+                    {/* Input upload picture added beautifully under GPS button */}
+                    <div className="mt-3">
+                       <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase">រូបភាពភ្ជាប់ទីតាំង (Upload Photo)</label>
+                       <div className="flex flex-col gap-2">
+                          <label className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 border-dashed py-4 rounded-2xl font-bold text-[12px] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95">
+                             <Camera className="w-4 h-4 shrink-0" />
+                             {form.image ? '✓ បានបញ្ចូលរូបភាពរួចរាល់' : 'ចុចទីនេះដើម្បីបញ្ចូលរូបភាព'}
+                             <input type="file" accept="image/*" onChange={handleFormImageUpload} className="hidden" />
+                          </label>
+                          {form.image && (
+                             <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-slate-200">
+                                <img src={form.image} alt="Form preview" className="w-full h-full object-cover" />
+                                <button type="button" onClick={() => setForm(prev => ({ ...prev, image: null }))} className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full"><X className="w-4 h-4"/></button>
+                             </div>
+                          )}
+                       </div>
+                    </div>
                 </div>
                 
                 <div>
@@ -1528,7 +1566,6 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
          ))}
       </div>
 
-      {/* Recharts graphs reinstated beautifully and responsively */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-2 flex-1">
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
            <h3 className="text-[12px] md:text-[14px] font-bold text-slate-800 mb-4 border-l-4 border-[#38BDF8] pl-2.5">កំណើនអ្នកប្រើប្រាស់ប្រចាំឆ្នាំ</h3>
@@ -1693,14 +1730,13 @@ const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10',
 
 const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], dbRegions, captureGps, gpsCoords, usersList = [] }) => {
   const [activeChatUser, setActiveChatUser] = useState(null); 
-  const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   const [localFilterActive, setLocalFilterActive] = useState(false);
   const [selectedCommune, setSelectedCommune] = useState('');
-  const [selectedVillage, setSelectedVillage] = useState('');
   
   const [activeAudioId, setActiveAudioId] = useState(null);
 
@@ -1719,7 +1755,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [editingMsg, setEditingMsg] = useState(null);
   const [editInput, setEditInput] = useState('');
   const pressTimerRef = useRef(null);
-  const scrollContainerRef = useRef(null);
 
   /* Add Friend System State */
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
@@ -2003,26 +2038,17 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   };
 
   if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in flex-1 font-khmer">
-         <div className="w-16 h-16 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-4 border border-slate-200 shadow-sm"><MessageCircle className="w-8 h-8" /></div>
-         <h2 className="text-[16px] font-black mb-2 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 text-[12px] mb-6 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
-         <button onClick={() => setCurrentView('account')} className="btn-gradient px-6 py-3 rounded-xl font-bold text-[12px] shadow-sm active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
-      </div>
-    );
+     return (
+       <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in flex-1 font-khmer">
+          <div className="w-16 h-16 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-4 border border-slate-200 shadow-sm"><MessageCircle className="w-8 h-8" /></div>
+          <h2 className="text-[16px] font-black mb-2 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
+          <p className="text-slate-500 text-[12px] mb-6 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
+          <button onClick={() => setCurrentView('account')} className="btn-gradient px-6 py-3 rounded-xl font-bold text-[12px] shadow-sm active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
+       </div>
+     );
   }
 
   if (!activeChatUser) {
-     const communeList = ["ស្តៅ", "ត្រែង", "ផ្លូវមាស"];
-     const communeVillages = {
-       "ស្តៅ": ["ស្តៅ", "បាណង់", "ស្នឹង"],
-       "ត្រែង": ["ត្រែង", "គីឡូម៉ែត្រ៣៨", "ជាម"],
-       "ផ្លូវមាស": ["ផ្លូវមាស", "ទឹកសាប"]
-     };
-     const villageList = selectedCommune && communeVillages[selectedCommune] ? communeVillages[selectedCommune] : [];
-
-     // Merge standard contacts with user private Friends
      const mergedContacts = [...(chatTargets || []), ...localFriends];
 
      const filteredContacts = mergedContacts.filter(t => {
@@ -2043,7 +2069,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                </div>
                
                <div className="flex gap-2">
-                 {/* GPS device locating button & Add Friend triggers */}
                  <button 
                     onClick={captureGps} 
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 text-[10px] font-bold bg-rose-50 text-rose-600 shadow-sm"
@@ -2061,7 +2086,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
            
            <div className="flex-1 overflow-y-auto p-4 hide-scrollbar bg-white animate-in fade-in duration-300">
               <div className="text-slate-400 text-[10px] font-bold mb-3 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
-              {filteredContacts.map((contact, i) => contact && (
+              {filteredContacts.length === 0 ? <p className="text-center py-10 text-[11px] text-slate-400 font-bold">គ្មានទំនាក់ទំនង</p> : 
+                filteredContacts.map((contact, i) => contact && (
                   <div 
                      key={contact.id || i} 
                      onClick={() => setActiveChatUser(contact)}
@@ -2129,7 +2155,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const filteredChats = (chats || []).filter(c => {
       if (!c) return false;
       if (isAdmin) return c.target === activeChatUser?.id;
-      return c.userId === senderUid && c.target === activeChatUser?.id;
+      return (c.userId === senderUid && c.target === activeChatUser?.id) || (c.userId === activeChatUser?.id && c.target === senderUid);
   });
 
   return (
@@ -2211,7 +2237,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         ) : (
           filteredChats.map(msg => {
             if (!msg) return null;
-            const isMe = isAdmin ? msg.target === activeChatUser?.id : msg.userId === senderUid;
+            const isMe = msg.userId === senderUid;
             
             let msgContent;
             if (msg.msgType === 'location') {
@@ -2370,6 +2396,12 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   const [attempts, setAttempts] = useState(Number(localStorage.getItem('admin_attempts')) || 0);
 
   useEffect(() => {
+     if (profile?.username) {
+        setLocalName(profile.username);
+     }
+  }, [profile]);
+
+  useEffect(() => {
      if (lockoutTime > 0) {
         const interval = setInterval(() => {
            if (Date.now() > lockoutTime) {
@@ -2455,13 +2487,13 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
       if(!localName.trim() || localName.trim() === 'ភ្ញៀវ') return showToast('ឈ្មោះមិនអាចទទេ ឬដាក់ថាភ្ញៀវទេ', 'error');
       
       const targetUid = user ? user.uid : 'guest';
-      localStorage.setItem(`tp_username_${targetUid}`, localName);
+      localStorage.setItem(`tp_username_${targetUid}`, localName.trim());
       if (db && user) {
          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
-            username: localName
+            username: localName.trim()
          }).catch(()=>{});
       } else {
-         localStorage.setItem('tp_guest_username', localName);
+         localStorage.setItem('tp_guest_username', localName.trim());
       }
       setIsEditingName(false);
       showToast('រក្សាទុកជោគជ័យ');
@@ -2477,10 +2509,8 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
              avatar: b64
           }).catch(()=>{});
-          setProfile(p => ({ ...p, avatar: b64 }));
           showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
        } else {
-          setProfile(p => ({ ...p, avatar: b64 }));
           showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
        }
     };
@@ -2570,6 +2600,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   
   const [trollSearchText, setTrollSearchText] = useState('');
   const [selectedTrollUser, setSelectedTrollUser] = useState(null);
+  const [chatTab, setChatTab] = useState('police');
 
   const [confirmAction, setConfirmAction] = useState(null);
   const openConfirm = (title, message, action, requirePassword = false) => setConfirmAction({ title, message, action, requirePassword });
@@ -2724,29 +2755,27 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       });
   };
 
-  /* Fixed bulk purge of Troll Users (requires password verification) */
+  /* Fixed bulk purge of Users with masked Password validation */
   const handleClearAllTrolls = () => {
-      const trolls = usersList.filter(u => u && (u.warnings > 0 || u.isBanned));
-      if(trolls.length === 0) return showToast('មិនមានបទល្មើសទេ', 'info');
-
-      openConfirm("លុបទិន្នន័យបទល្មើសទាំងអស់", `តើអ្នកពិតជាចង់លុបគណនីដែលមានបទល្មើសទាំងអស់ចំនួន ${trolls.length} ចេញពី Firebase ទាំងស្រុងមែនទេ?`, async () => {
+      openConfirm("លុបទិន្នន័យអ្នកប្រើប្រាស់ទាំងអស់", "តើអ្នកពិតជាចង់លុបគណនីអ្នកប្រើប្រាស់ទាំងអស់ចេញពី Firebase ទាំងស្រុងមែនទេ? សកម្មភាពនេះត្រូវការវាយកូដសម្ងាត់បញ្ជាក់!", async () => {
          showToast('កំពុងដំណើរការលុប...', 'info');
          if (db) {
-            for(const userObj of trolls) {
+            for(const userObj of usersList) {
                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
-               chats.forEach(async msg => {
-                  if (msg && msg.userId === userObj.id) {
-                     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id)).catch(()=>{});
-                  }
-               });
             }
+            chats.forEach(async msg => {
+               if (msg) {
+                  await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id)).catch(()=>{});
+               }
+            });
          }
-         showToast(`បានលុបគណនីបទល្មើសទាំងអស់ជោគជ័យ`);
-      }, true); 
+         showToast(`បានលុបគណនីអ្នកប្រើប្រាស់ទាំងអស់ជោគជ័យ`);
+         setSelectedTrollUser(null);
+      }, true); // requiresPassword is true (will require 'ictmit' in password box)
   };
 
   const handleDeleteTrollUser = (userObj) => {
-      openConfirm("លុបគណនី (Delete User)", `តើអ្នកពិតជាចង់លុបគណនី និងរាល់ប្រវត្តិឆាតរបស់ ${userObj.username} ទាំងស្រុងមែនទេ?`, async () => {
+      openConfirm("លុបគណនី (Delete User)", `តើអ្នកពិតជាចង់លុបគណនី និងរាល់ប្រវត្តិឆាតរបស់ ${userObj.username} ទាំងស្រុងមែនទេ? សកម្មភាពនេះត្រូវការបញ្ជាក់លេខសម្ងាត់!`, async () => {
          if (db) {
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
             chats.forEach(async msg => {
@@ -2757,7 +2786,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
          }
          showToast(`បានលុបគណនី ${userObj.username} ជោគជ័យ`);
          setSelectedTrollUser(null);
-      }, true);
+      }, true); // requiresPassword is true
   };
 
   const handleApproveAppeal = async (appealItem) => {
@@ -2841,7 +2870,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      });
   };
 
-  /* Avatar upload function inside contacts management instead of text links */
   const handleChatTargetAvatarUpload = (e) => {
      const file = e.target.files[0];
      if(!file) return;
@@ -2996,13 +3024,13 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                          />
                       </div>
                       
+                      {/* Name of the button updated to "លុប User ទាំងអស់" */}
                       <button onClick={handleClearAllTrolls} className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg text-[10.5px] font-black transition-colors border border-rose-200 shrink-0">
-                         លុបបទល្មើសទាំងអស់
+                         លុប User ទាំងអស់
                       </button>
                    </div>
                 </div>
                 
-                {}
                 <div className="space-y-2.5 max-h-[450px] overflow-y-auto pr-1 hide-scrollbar">
                    {filteredUsersList?.length === 0 ? <p className="text-center py-10 text-[12px] font-bold text-slate-400">គ្មានគណនីត្រូវតាមលក្ខខណ្ឌស្វែងរកឡើយ</p> :
                      filteredUsersList.sort((a,b)=>(b.lastActive||0)-(a.lastActive||0)).map(u => {
@@ -3029,7 +3057,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                  <button onClick={() => handleDeleteTrollUser(u)} className="p-2 bg-rose-50 text-rose-500 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors">
                                      <Trash2 className="w-4 h-4" />
                                  </button>
-                                 {/* Chat Icon now correctly opens the tracking/punishment modal instead of viewUserChat */}
                                  <button onClick={() => setSelectedTrollUser(u)} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-rose-500 hover:bg-slate-50 transition-colors">
                                     <MessageCircle className="w-4 h-4" />
                                  </button>
@@ -3041,24 +3068,69 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                 </div>
 
                 {selectedTrollUser && (
-                   <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-                      <div className="bg-white rounded-[24px] p-6 max-w-sm w-full border border-slate-200 shadow-2xl animate-in zoom-in-95">
-                         <div className="flex justify-between items-center mb-4">
-                            <h4 className="font-black text-[14px] text-[#0F2B5C]">តាមដានឆាត និងដាក់ពិន័យ</h4>
-                            <button onClick={() => setSelectedTrollUser(null)} className="p-1 bg-slate-100 rounded-full text-slate-500"><X className="w-4 h-4"/></button>
+                   <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col h-[75vh] animate-in zoom-in-95">
+                         
+                         {/* Header Modal */}
+                         <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0">
+                            <h3 className="font-bold flex items-center gap-2">
+                               <Search className="w-5 h-5" /> តាមដាន: {selectedTrollUser.username}
+                            </h3>
+                            <button onClick={() => setSelectedTrollUser(null)} className="hover:bg-white/20 p-1 rounded-full transition">
+                               <X className="w-6 h-6" />
+                            </button>
                          </div>
-                         <div className="flex items-center gap-3 mb-5 bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                            <img src={selectedTrollUser.avatar} className="w-12 h-12 rounded-full border object-cover bg-white" alt="pav" />
-                            <div>
-                               <p className="font-black text-[13px] text-slate-800">{selectedTrollUser.username}</p>
-                               <span className="text-[11px] text-amber-500 font-bold block">Warnings: {selectedTrollUser.warnings || 0}</span>
+                         
+                         {/* ជម្រើសទាំង ៣ ខាងលើ (Tabs) */}
+                         <div className="flex border-b bg-gray-50 text-[13px] font-bold text-gray-500 shrink-0 font-khmer">
+                            <button 
+                               onClick={() => setChatTab('police')} 
+                               className={`flex-1 p-3 text-center transition ${chatTab === 'police' ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'hover:bg-gray-100'}`}
+                            >ប៉ូលីស</button>
+                            <button 
+                               onClick={() => setChatTab('hospital')} 
+                               className={`flex-1 p-3 text-center transition ${chatTab === 'hospital' ? 'bg-white border-b-2 border-green-600 text-green-600' : 'hover:bg-gray-100'}`}
+                            >ពេទ្យ</button>
+                            <button 
+                               onClick={() => setChatTab('fire')} 
+                               className={`flex-1 p-3 text-center transition ${chatTab === 'fire' ? 'bg-white border-b-2 border-red-600 text-red-600' : 'hover:bg-gray-100'}`}
+                            >អគ្គីភ័យ</button>
+                         </div>
+
+                         {/* កន្លែងបង្ហាញសារ (Chat Area) */}
+                         <div className="p-4 flex-1 overflow-y-auto bg-gray-100 space-y-4 font-khmer">
+                            <div className="text-center text-gray-400 text-xs my-2 font-semibold">កំណត់ត្រាប្រព័ន្ធសម្ងាត់</div>
+                            
+                            <div className="bg-white p-3 rounded-xl rounded-tl-none border border-gray-200 shadow-sm w-4/5">
+                               <p className="font-bold text-gray-700 text-xs mb-1">ស្ថាប័ន {chatTab === 'police' ? 'ប៉ូលីស' : chatTab === 'hospital' ? 'មន្ទីរពេទ្យ' : 'ពន្លត់អគ្គីភ័យ'}</p>
+                               <p className="text-gray-800 text-sm">តើមានការអ្វីឲ្យយើងជួយ?</p>
+                            </div>
+
+                            <div className="bg-blue-500 text-white p-3 rounded-xl rounded-tr-none shadow-sm w-4/5 ml-auto">
+                               <p className="font-bold text-blue-100 text-xs mb-1">{selectedTrollUser.username}</p>
+                               <p className="text-[13px]">
+                                  សុំជំនួយបន្ទាន់នៅទីតាំងនេះ! 
+                                  {chatTab === 'police' ? ' (រាយការណ៍មានចោរកម្ម)' : chatTab === 'hospital' ? ' (មានអ្នករបួសធ្ងន់)' : ' (មានភ្លើងឆេះផ្ទះ)'}
+                               </p>
+                               {(selectedTrollUser.warnings > 0 || selectedTrollUser.isBanned) && (
+                                  <p className="text-[11px] text-red-200 mt-2 italic">* ព័ត៌មាននេះត្រូវបានសម្គាល់ថាក្លែងក្លាយ (Fake)</p>
+                               )}
                             </div>
                          </div>
-                         <div className="space-y-3">
-                            <button onClick={() => handleWarnUser(selectedTrollUser)} className="w-full py-3 bg-amber-500 text-white font-black text-[12px] rounded-xl shadow-md active:scale-95 transition-transform">១. ព្រមាន (Warn)</button>
-                            <button onClick={() => handleBanUser(selectedTrollUser)} className="w-full py-3 bg-rose-600 text-white font-black text-[12px] rounded-xl shadow-md active:scale-95 transition-transform">២. Block ឧបករណ៍ (Ban Device)</button>
-                            <button onClick={() => handleForceLogoutUser(selectedTrollUser)} className="w-full py-3 bg-slate-800 text-white font-black text-[12px] rounded-xl shadow-md active:scale-95 transition-transform">៣. ដក Web App ចេញពីទូរស័ព្ទ (Force Logout)</button>
+
+                         {/* ផ្ទាំងដាក់ពិន័យនៅខាងក្រោម */}
+                         <div className="p-3 bg-white border-t border-gray-200 space-y-2 shrink-0 font-khmer">
+                            <button onClick={() => handleWarnUser(selectedTrollUser)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-[12px] rounded-xl shadow-sm active:scale-95 transition-all">
+                               <AlertOctagon className="w-4 h-4"/> ១. ព្រមាន (Warn)
+                            </button>
+                            <button onClick={() => handleBanUser(selectedTrollUser)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-[12px] rounded-xl shadow-sm active:scale-95 transition-all">
+                               <Ban className="w-4 h-4"/> ២. Block ឧបករណ៍ (Ban Device)
+                            </button>
+                            <button onClick={() => handleForceLogoutUser(selectedTrollUser)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-black text-[12px] rounded-xl shadow-sm active:scale-95 transition-all">
+                               <LogOut className="w-4 h-4"/> ៣. ដក Web App ចេញពីទូរស័ព្ទ
+                            </button>
                          </div>
+
                       </div>
                    </div>
                 )}
@@ -3128,7 +3200,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                       </div>
                       <div>
                          <label className="text-[11px] font-bold text-slate-500 block mb-1">រូបតំណាង (Upload Picture)</label>
-                         {/* Replaced Text input URL with secure file uploader */}
                          <div className="flex items-center gap-2">
                             <label className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-[12px] font-bold cursor-pointer hover:bg-slate-50">
                                ជ្រើសរើសរូបភាព
@@ -3317,10 +3388,14 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
       </div>
       
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
-         <div className="w-full h-24 bg-slate-50 flex items-center justify-center border-b border-slate-100 shrink-0 relative">
-            <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                {getCategoryIcon(location.category)}
-            </div>
+         <div className="w-full h-24 bg-slate-50 flex items-center justify-center border-b border-slate-100 shrink-0 relative overflow-hidden">
+            {location.image ? (
+               <img src={location.image} alt={displayTitle} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            ) : (
+               <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                   {getCategoryIcon(location.category)}
+               </div>
+            )}
             <div className="absolute bottom-2 left-2 bg-[#0F2B5C] text-white py-1 px-2 rounded-lg text-[9px] font-black uppercase tracking-wider">{safeStr(location.category)}</div>
          </div>
          <div className="p-3 flex flex-col justify-between flex-1">
@@ -3362,15 +3437,21 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
   return (
     <div className="fixed inset-0 z-[150] bg-slate-900/70 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 pointer-events-auto font-khmer">
        <div className="bg-white w-full max-w-lg rounded-t-3xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col h-[75dvh] md:h-auto md:max-h-[85vh] border border-slate-200 animate-in slide-in-from-bottom duration-300">
-          <div className="relative w-full py-8 bg-slate-50 border-b border-slate-100 flex flex-col items-center justify-center shrink-0">
-             <div className="p-5 bg-white border border-slate-200 rounded-3xl shadow-sm mb-3">
+          <div className="relative w-full py-8 bg-slate-50 border-b border-slate-100 flex flex-col items-center justify-center shrink-0 overflow-hidden">
+             {location.image ? (
+                <div className="absolute inset-0 w-full h-full opacity-35 filter blur-md">
+                   <img src={location.image} alt="blurred background" className="w-full h-full object-cover" />
+                </div>
+             ) : null}
+             
+             <div className="p-5 bg-white border border-slate-200 rounded-3xl shadow-sm mb-3 z-10">
                 {getCategoryIcon(location.category)}
              </div>
-             <div className="text-center px-4">
+             <div className="text-center px-4 z-10">
                 <span className="bg-[#0F2B5C] text-white text-[10px] font-black px-2.5 py-1 rounded-xl shadow-sm uppercase tracking-wider">{safeStr(location.category)}</span>
                 <h2 className="text-[#0F2B5C] font-black text-[16px] mt-2 leading-tight">{displayTitle}</h2>
              </div>
-             <div className="absolute top-3 right-3 flex items-center gap-2">
+             <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
                 <button onClick={() => toggleFavorite(location.id)} className={`p-2.5 rounded-full shadow-sm active:scale-95 transition ${isFav ? 'bg-rose-500 text-white' : 'bg-white text-slate-500'}`}>
                    <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`}/>
                 </button>
@@ -3379,6 +3460,13 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
           </div>
           <div className="p-4 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
              
+             {/* Show Image beautifully if uploaded inside detail view */}
+             {location.image && (
+                <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden border border-slate-200 shadow-sm shrink-0">
+                   <img src={location.image} className="w-full h-full object-cover" alt="Location snapshot" />
+                </div>
+             )}
+
              <div className="bg-slate-50 p-3.5 rounded-[20px] border border-slate-100 space-y-3">
                 <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block">បញ្ជីខ្សែទូរស័ព្ទទាក់ទង / Contact Lines ({contactLines.length})</span>
                 <div className="space-y-2.5">
