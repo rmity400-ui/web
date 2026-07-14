@@ -14,7 +14,6 @@ import {
   LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
 } from 'recharts';
 
-// SVG helpers to prevent Lucide-React standard namespaces conflict
 const MapSvgIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
     <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
@@ -162,7 +161,7 @@ const injectStyles = () => {
     .hide-scrollbar::-webkit-scrollbar { display: none; }
     .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+    .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
     .pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
 
     .btn-gradient {
@@ -173,14 +172,15 @@ const injectStyles = () => {
     .btn-gradient:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(15, 43, 92, 0.15); }
     
     .premium-card {
-       background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.03); border: 1px solid rgba(226, 232, 240, 0.7);
+       background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); border: 1px solid rgba(226, 232, 240, 0.8);
     }
     
     .docked-nav {
        background: rgba(255, 255, 255, 0.98); 
-       backdrop-filter: blur(20px); 
-       -webkit-backdrop-filter: blur(20px);
-       border-top: 1px solid rgba(226, 232, 240, 0.8);
+       backdrop-filter: blur(24px); 
+       -webkit-backdrop-filter: blur(24px);
+       border-top: 1px solid rgba(226, 232, 240, 0.9);
+       padding-bottom: max(env(safe-area-inset-bottom), 14px);
     }
     
     .telegram-bg {
@@ -225,7 +225,7 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, requiresPas
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 animate-in fade-in duration-200 pointer-events-auto font-khmer">
-      <div className="bg-white rounded-[20px] shadow-2xl p-5 w-full max-w-sm animate-in zoom-in-95 border border-slate-100">
+      <div className="bg-white rounded-[24px] shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 border border-slate-100">
         <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mb-3 mx-auto border border-rose-100">
           <ShieldAlert className="w-6 h-6 text-rose-500" />
         </div>
@@ -440,13 +440,11 @@ export default function App() {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => { 
           if (currentUser) {
             setUser(currentUser);
-            // Verify if this specific device has active admin session token
             const localAdminActive = sessionStorage.getItem('tp_admin_active') === 'true';
-            setIsAdmin(currentUser.email === 'mit@gmail.com' && localAdminActive);
+            setIsAdmin(currentUser.email === 'mit@gmail.com' || localAdminActive);
           } else {
             setUser(null);
             setIsAdmin(false);
-            sessionStorage.removeItem('tp_admin_active');
           }
           setIsAuthLoading(false);
       });
@@ -462,7 +460,7 @@ export default function App() {
     
     if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
        setCurrentPage('app');
-       setCurrentView('home');
+       setCurrentView(prev => prev === 'admin' ? 'admin' : 'home');
     } else {
        setCurrentPage('gateway');
     }
@@ -482,7 +480,6 @@ export default function App() {
           const udata = snap.data();
           setProfile(udata);
           
-          /* Instant Force Logout Execution */
           if (udata.forceLogout) {
              updateDoc(profileRef, { forceLogout: false }).catch(()=>{});
              sessionStorage.clear();
@@ -642,7 +639,7 @@ export default function App() {
     const finalizedUsername = regName.trim();
     
     sessionStorage.removeItem('tp_is_guest');
-    const targetUid = user ? user.uid : 'guest';
+    const targetUid = user ? user.uid : 'usr_' + Date.now();
     localStorage.setItem(`tp_username_${targetUid}`, finalizedUsername);
 
     if (db && user) {
@@ -821,10 +818,10 @@ export default function App() {
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-[#0F2B5C] stroke-none rotate-90 scale-90" />
                 <GraduationCap className="relative z-10 w-16 h-16 text-[#38BDF8] animate-pulse" />
             </div>
-            <h1 className="font-logo font-black text-4xl tracking-widest text-[#0F2B5C] mb-2 drop-shadow-sm">
+            <h1 className={`font-logo font-black text-4xl tracking-widest ${cosmicTheme ? 'text-white' : 'text-[#0F2B5C]'} mb-2 drop-shadow-sm`}>
                 TP<span className="text-[#38BDF8]">CAMBODIA</span>
             </h1>
-            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">VMC Volunteer Group</p>
+            <p className={`text-[11px] ${cosmicTheme ? 'text-sky-300' : 'text-slate-400'} font-bold uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm`}>VMC Volunteer Group</p>
         </div>
 
         <div className="w-full md:w-1/2 md:h-full md:rounded-none md:rounded-l-[50px] bg-[#0F2B5C] rounded-t-[50px] px-8 py-14 flex flex-col justify-center items-center text-center pb-[max(env(safe-area-inset-bottom),50px)] shadow-[0_-15px_50px_rgba(15,43,92,0.15)] relative overflow-hidden z-10">
@@ -907,7 +904,7 @@ export default function App() {
            {currentView === 'home' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} setCurrentView={setCurrentView} /></div>}
            {currentView === 'data' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} captureGps={handleGPS} /></div>}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} /></div>}
+           {currentView === 'chat' && <div className="flex-1 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} captureGps={handleGPS} gpsCoords={gpsCoords} /></div>}
            {currentView === 'account' && <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 pb-24 hide-scrollbar pt-2">
@@ -977,9 +974,12 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   ];
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
+  // Do not display overlapping panels in conversational view
+  if (currentView === 'chat') return null;
+
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 docked-nav z-50 overflow-hidden pb-safe animate-in slide-in-from-bottom-5 duration-300">
-      <div className="flex justify-around items-center h-[60px] px-2 relative">
+      <div className="flex justify-around items-center h-[52px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
@@ -1004,18 +1004,16 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
 
 const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotificationsOpen, searchQuery, setSearchQuery, db, appId, user, appLogo, currentView }) => {
     return (
-        <div className="bg-white border-b border-slate-100/80 pt-[calc(env(safe-area-inset-top,24px)+22px)] px-5 md:px-8 pb-6 shadow-md relative z-40 shrink-0 w-full rounded-b-[36px] md:rounded-none">
-           <div className="flex justify-between items-center w-full h-14 md:h-16">
-              <div className="flex items-center gap-4 h-full">
-                 <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden p-1 shadow-sm border border-slate-100/80 transition-all duration-300 hover:scale-105 shrink-0">
-                    <img src={appLogo} className="w-full h-full object-cover rounded-xl" alt="Logo" />
+        <div className="bg-white border-b border-slate-200 pt-[calc(env(safe-area-inset-top,10px)+12px)] px-5 md:px-8 pb-4 shadow-sm relative z-40 shrink-0 w-full rounded-b-[24px] md:rounded-none">
+           <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden p-0.5 shadow-sm border border-slate-100">
+                    <img src={appLogo} className="w-full h-full object-cover rounded-full" alt="Logo" />
                  </div>
-                 <h1 className="font-logo font-extrabold text-[18px] md:text-[21px] leading-none text-[#0F2B5C] tracking-wider uppercase select-none">
-                    TP<span className="text-[#38BDF8]">CAMBODIA</span>
-                 </h1>
+                 <h1 className="font-logo font-extrabold text-[16px] leading-tight text-[#0F2B5C] tracking-wide uppercase">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
               </div>
 
-              <div className="flex items-center gap-3.5 h-full">
+              <div className="flex items-center gap-2">
                  <button 
                    onClick={async () => {
                       sessionStorage.removeItem('tp_is_guest');
@@ -1024,24 +1022,18 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                       }
                       setCurrentPage('gateway');
                    }} 
-                   className="flex items-center justify-center gap-2 text-[13px] font-bold text-[#0F2B5C] bg-white border border-slate-100/80 shadow-sm h-12 px-5 rounded-2xl hover:bg-slate-50 hover:shadow-md active:scale-95 transition-all"
+                   className="flex items-center gap-1.5 text-[11px] font-bold text-[#0F2B5C] bg-slate-50 border border-slate-200 shadow-sm py-2 px-3 rounded-xl hover:bg-slate-100 active:scale-95 transition-transform"
                  >
-                    <ArrowLeft className="w-4 h-4 shrink-0 stroke-[2.5px]" /> 
-                    <span className="hidden xs:inline">ត្រឡប់</span>
+                    <ArrowLeft className="w-4 h-4" /> ត្រឡប់
                  </button>
 
-                 <div className="relative h-12 w-12">
-                     <button 
-                       className="w-full h-full bg-white rounded-2xl active:scale-95 hover:shadow-md transition-all shadow-sm relative border border-slate-100/80 hover:bg-slate-50 flex items-center justify-center" 
-                       onClick={() => setNotificationsOpen(!notificationsOpen)}
-                     >
-                        <Bell className="w-5.5 h-5.5 text-[#0F2B5C]" />
-                        {notifications && notifications.length > 0 && (
-                          <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
-                        )}
+                 <div className="relative">
+                     <button className="p-2.5 bg-slate-50 rounded-full active:scale-95 transition shadow-sm relative border border-slate-200 hover:bg-slate-100" onClick={() => setNotificationsOpen(!notificationsOpen)}>
+                        <Bell className="w-5 h-5 text-[#0F2B5C]" />
+                        {notifications && notifications.length > 0 && <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>}
                      </button>
                      {notificationsOpen && (
-                        <div className="absolute right-0 mt-4 w-[320px] md:w-[380px] bg-white shadow-2xl rounded-[24px] border border-slate-200 overflow-hidden z-50 text-slate-800 animate-in fade-in zoom-in-95 pointer-events-auto">
+                        <div className="absolute right-0 mt-3 w-[320px] md:w-[380px] bg-white shadow-2xl rounded-[24px] border border-slate-200 overflow-hidden z-50 text-slate-800 animate-in fade-in zoom-in-95 pointer-events-auto">
                           <div className="p-4 border-b border-slate-100 font-bold flex justify-between text-[13px] bg-slate-50 items-center text-[#0F2B5C]">
                             <span>ការជូនដំណឹង (Notifications)</span>
                             <button onClick={() => setNotificationsOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-full transition-colors"><X className="w-4 h-4 text-slate-500" /></button>
@@ -1067,25 +1059,25 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
               </div>
            </div>
            
-           {currentView === 'home' && (
-               <div className="flex flex-col w-full mt-6 md:mt-7 animate-in fade-in slide-in-from-top-2 duration-300">
+           <div className="flex flex-col w-full mt-2">
+              {currentView === 'home' && (
                   <form onSubmit={(e) => {
                      e.preventDefault();
                      document.activeElement?.blur(); 
-                  }} className="relative w-full max-w-2xl mx-auto">
-                    <div className="absolute left-4.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  }} className="relative w-full animate-in fade-in slide-in-from-top-2">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                        <Search className="w-5 h-5" />
                     </div>
                     <input 
                       type="search" 
                       placeholder="ស្វែងរកទីតាំង ឬសេវាកម្ម..." 
-                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-2xl py-4 pl-12 pr-4 outline-none text-[16px] font-bold border border-slate-200/80 focus:border-[#38BDF8] focus:bg-white transition-all m-0 shadow-inner" 
+                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-[20px] py-4 pl-12 pr-4 outline-none text-[16px] font-bold border border-slate-200 focus:border-[#38BDF8] focus:bg-white transition-all m-0 shadow-inner" 
                       value={searchQuery} 
                       onChange={(e) => setSearchQuery(e.target.value)} 
                     />
                   </form>
-               </div>
-           )}
+              )}
+           </div>
         </div>
     );
 };
@@ -1179,7 +1171,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     district: '', 
     commune: '', 
     village: '',
-    image: null,
+    photo: '',
     contacts: [{ name: '', phone: '' }]
   });
   const [loading, setLoading] = useState(false);
@@ -1219,21 +1211,10 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
       district: '', 
       commune: '', 
       village: '',
-      image: null,
+      photo: '',
       contacts: [{ name: '', phone: '' }]
     });
     setIsAddModalOpen(true);
-  };
-
-  const handleFormImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-       setForm(prev => ({ ...prev, image: reader.result }));
-       showToast('បញ្ចូលរូបភាពទីតាំងជោគជ័យ');
-    };
-    reader.readAsDataURL(file);
   };
 
   const setGPSForForm = () => {
@@ -1371,6 +1352,41 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                 </div>
 
                 <div>
+                   <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase tracking-wider">រូបភាពទីតាំង (Photo Attachment) *</label>
+                   {form.photo ? (
+                      <div className="relative w-full aspect-[16/10] bg-black/10 rounded-2xl overflow-hidden border border-slate-200 mb-2">
+                         <img src={form.photo} alt="Preview" className="w-full h-full object-cover" />
+                         <button 
+                           type="button" 
+                           onClick={() => setForm({...form, photo: ''})} 
+                           className="absolute top-2.5 right-2.5 p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-full shadow-lg transition active:scale-95"
+                         >
+                            <Trash2 className="w-4.5 h-4.5" />
+                         </button>
+                      </div>
+                   ) : (
+                      <div className="flex gap-2">
+                         <label className="flex-1 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl py-6 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors">
+                            <Camera className="w-7 h-7 text-slate-400 mb-1" />
+                            <span className="text-[12px] font-bold text-slate-500">ថតរូប ឬ ជ្រើសរើសរូបភាព</span>
+                            <input 
+                               type="file" 
+                               accept="image/*" 
+                               className="hidden" 
+                               onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (!file) return;
+                                  const r = new FileReader();
+                                  r.onload = () => setForm({...form, photo: r.result});
+                                  r.readAsDataURL(file);
+                               }} 
+                            />
+                         </label>
+                      </div>
+                   )}
+                </div>
+
+                <div>
                   <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase tracking-wider">ប្រភេទ Category *</label>
                   <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[16px] outline-none font-bold shadow-inner appearance-none cursor-pointer text-slate-800 focus:border-[#38BDF8]">
                     <option value="ឃុំ">ឃុំ</option>
@@ -1468,36 +1484,16 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                         <div className="grid grid-cols-2 gap-3">
                             <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ខេត្ត..."/>
                             <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ស្រុក..."/>
-                            <input type="text" required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ឃុំ..."/>
-                            <input type="text" required value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[13px] outline-none font-bold shadow-sm focus:border-[#38BDF8]" placeholder="ភូមិ..."/>
                         </div>
                     )}
                 </div>
 
                 <div>
                     <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase">ទីតាំង (GPS)</label>
-                    <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/30' : 'bg-slate-100 text-slate-600 border-slate-300'} border-2 py-4 rounded-2xl font-bold text-[12px] flex items-center justify-center gap-2 active:scale-95 transition-all truncate px-2 mb-3`}>
+                    <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/30' : 'bg-slate-100 text-slate-600 border-slate-300'} border-2 py-4 rounded-2xl font-bold text-[12px] flex items-center justify-center gap-2 active:scale-95 transition-all truncate px-2`}>
                        <MapPin className="w-4 h-4 shrink-0"/>
                        {form.coords ? '✓ ចាប់បានទីតាំងជោគជ័យ' : 'ចុចដើម្បីទាញយក GPS'}
                     </button>
-                    
-                    {/* Input upload picture added beautifully under GPS button */}
-                    <div className="mt-3">
-                       <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase">រូបភាពភ្ជាប់ទីតាំង (Upload Photo)</label>
-                       <div className="flex flex-col gap-2">
-                          <label className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 border-dashed py-4 rounded-2xl font-bold text-[12px] flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95">
-                             <Camera className="w-4 h-4 shrink-0" />
-                             {form.image ? '✓ បានបញ្ចូលរូបភាពរួចរាល់' : 'ចុចទីនេះដើម្បីបញ្ចូលរូបភាព'}
-                             <input type="file" accept="image/*" onChange={handleFormImageUpload} className="hidden" />
-                          </label>
-                          {form.image && (
-                             <div className="relative w-full aspect-[16/10] rounded-xl overflow-hidden border border-slate-200">
-                                <img src={form.image} alt="Form preview" className="w-full h-full object-cover" />
-                                <button type="button" onClick={() => setForm(prev => ({ ...prev, image: null }))} className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full"><X className="w-4 h-4"/></button>
-                             </div>
-                          )}
-                       </div>
-                    </div>
                 </div>
                 
                 <div>
@@ -1553,7 +1549,7 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
   });
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-300 pt-2 w-full flex-1 font-khmer flex flex-col h-full">
+    <div className="space-y-5 animate-in fade-in duration-300 pt-2 w-full flex-1 font-khmer flex flex-col h-full pb-10">
       <h1 className="text-[16px] md:text-xl font-black text-[#0F2B5C] border-l-[5px] border-[#0F2B5C] pl-3">របាយការណ៍ទិន្នន័យជាក់ស្ដែង</h1>
       
       <div className="grid grid-cols-2 gap-3.5 md:grid-cols-3">
@@ -1607,136 +1603,16 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
   );
 };
 
-const base64ToBlobUrl = (base64Data, mimeType = 'audio/webm') => {
-  try {
-    const splitData = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-    const byteCharacters = atob(splitData);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
-    return URL.createObjectURL(blob);
-  } catch (e) {
-    return base64Data;
-  }
-};
-
-const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10', messageId, activeAudioId, setActiveAudioId }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const audioRef = useRef(null);
-
-  const localBlobUrl = useMemo(() => {
-    if (audioUrl && audioUrl.startsWith('data:')) {
-      return base64ToBlobUrl(audioUrl);
-    }
-    return audioUrl;
-  }, [audioUrl]);
-
-  const waveformHeights = [4, 6, 12, 8, 14, 18, 10, 16, 20, 12, 14, 8, 10, 16, 22, 12, 8, 14, 10, 16, 8, 12, 6, 4];
-
-  useEffect(() => {
-    if (activeAudioId !== messageId && isPlaying) {
-      setIsPlaying(false);
-      audioRef.current?.pause();
-    }
-  }, [activeAudioId, messageId, isPlaying]);
-
-  const togglePlayback = () => {
-    if (!audioRef.current) return;
-    try {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        setActiveAudioId(messageId);
-        audioRef.current.playbackRate = 1.0; 
-        audioRef.current.play().catch(() => {});
-        setIsPlaying(true);
-      }
-    } catch (err) {}
-  };
-
-  const handleTimelineClick = (e) => {
-    if (!audioRef.current || !durationSec) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const widthPercentage = clickX / rect.width;
-    const targetTime = widthPercentage * durationSec;
-    audioRef.current.currentTime = targetTime;
-    setCurrentTime(targetTime);
-  };
-
-  const currentProgressPercent = durationSec > 0 ? (currentTime / durationSec) * 100 : 0;
-
-  return (
-    <div className="flex items-center gap-3.5 bg-[#EBF2FC] text-slate-800 p-3 rounded-2xl min-w-[200px] md:min-w-[260px] border border-blue-100 shadow-sm transition-all hover:shadow-md select-none">
-      <audio 
-        ref={audioRef} 
-        src={localBlobUrl} 
-        preload="auto"
-        onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-        onEnded={() => {
-          setIsPlaying(false);
-          setCurrentTime(0);
-          if (activeAudioId === messageId) setActiveAudioId(null);
-        }}
-        className="hidden"
-      />
-
-      <button 
-        type="button" 
-        onClick={togglePlayback}
-        className="w-11 h-11 rounded-full bg-[#0F2B5C] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-md shrink-0"
-      >
-        {isPlaying ? <Pause className="w-5 h-5 fill-current text-sky-300"/> : <Play className="w-5 h-5 fill-current text-sky-300 ml-1" />}
-      </button>
-
-      <div className="flex-1 min-w-0 flex flex-col justify-between pt-1">
-        <div 
-          className="flex items-end gap-[3px] h-[30px] cursor-pointer" 
-          onClick={handleTimelineClick}
-        >
-          {waveformHeights.map((h, index) => {
-            const barProgressPoint = (index / waveformHeights.length) * 100;
-            const isPlayed = currentProgressPercent >= barProgressPoint;
-            return (
-              <div 
-                key={index} 
-                className="audio-waveform-bar" 
-                style={{
-                  height: `${h}px`,
-                  backgroundColor: isPlayed ? '#0F2B5C' : '#94A3B8'
-                }} 
-              />
-            );
-          })}
-        </div>
-
-        <div className="flex justify-between items-center mt-2">
-          <span className="text-[11px] font-bold text-slate-500">
-            {isPlaying 
-              ? `${Math.floor(currentTime / 60)}:${Math.floor(currentTime % 60).toString().padStart(2, '0')}` 
-              : durationStr
-            }
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], dbRegions, captureGps, gpsCoords, usersList = [] }) => {
+const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], dbRegions, captureGps, gpsCoords }) => {
   const [activeChatUser, setActiveChatUser] = useState(null); 
-  const scrollContainerRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
   const [localFilterActive, setLocalFilterActive] = useState(false);
   const [selectedCommune, setSelectedCommune] = useState('');
+  const [selectedVillage, setSelectedVillage] = useState('');
   
   const [activeAudioId, setActiveAudioId] = useState(null);
 
@@ -1755,15 +1631,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [editingMsg, setEditingMsg] = useState(null);
   const [editInput, setEditInput] = useState('');
   const pressTimerRef = useRef(null);
-
-  /* Add Friend System State */
-  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
-  const [friendSearchQuery, setFriendSearchQuery] = useState('');
-  const [localFriends, setLocalFriends] = useState(() => {
-     try {
-       return JSON.parse(localStorage.getItem('tp_my_friends') || '[]');
-     } catch (e) { return []; }
-  });
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
       if (scrollContainerRef.current) {
@@ -2017,41 +1885,37 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      setEditInput('');
   };
 
-  /* Add Friend Logic execution */
-  const handleSelectFriend = (targetUser) => {
-     const alreadyAdded = localFriends.some(f => f.id === targetUser.id);
-     if (alreadyAdded) return showToast('គណនីនេះជាមិត្តភក្តិរបស់អ្នករួចរាល់ហើយ', 'info');
-     
-     const updated = [...localFriends, {
-         id: targetUser.id,
-         label: targetUser.username,
-         role: 'មិត្តភក្តិ',
-         district: 'រតនមណ្ឌល',
-         avatar: targetUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-         status: 'online',
-         isFriend: true
-     }];
-     setLocalFriends(updated);
-     localStorage.setItem('tp_my_friends', JSON.stringify(updated));
-     showToast('បន្ថែមមិត្តភក្តិជោគជ័យ ✅');
-     setShowAddFriendModal(false);
+  const autoFilterLocalAuthority = () => {
+     if (profile?.username) {
+        setLocalFilterActive(true);
+        setSelectedCommune('ស្តៅ');
+        showToast('ចាប់យកស្ថាប័នស្តៅសន្តិភាពជោគជ័យ 📍');
+     } else {
+        showToast('សូមចុះឈ្មោះដើម្បីទាញយកតំបន់', 'error');
+     }
   };
 
   if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
-     return (
-       <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in flex-1 font-khmer">
-          <div className="w-16 h-16 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-4 border border-slate-200 shadow-sm"><MessageCircle className="w-8 h-8" /></div>
-          <h2 className="text-[16px] font-black mb-2 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-          <p className="text-slate-500 text-[12px] mb-6 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
-          <button onClick={() => setCurrentView('account')} className="btn-gradient px-6 py-3 rounded-xl font-bold text-[12px] shadow-sm active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
-       </div>
-     );
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in flex-1 font-khmer">
+         <div className="w-16 h-16 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-4 border border-slate-200 shadow-sm"><MessageCircle className="w-8 h-8" /></div>
+         <h2 className="text-[16px] font-black mb-2 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
+         <p className="text-slate-500 text-[12px] mb-6 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
+         <button onClick={() => setCurrentView('account')} className="btn-gradient px-6 py-3 rounded-xl font-bold text-[12px] shadow-sm active:scale-95 transition-transform">កំណត់ឈ្មោះឥឡូវនេះ</button>
+      </div>
+    );
   }
 
   if (!activeChatUser) {
-     const mergedContacts = [...(chatTargets || []), ...localFriends];
+     const communeList = ["ស្តៅ", "ត្រែង", "ផ្លូវមាស"];
+     const communeVillages = {
+       "ស្តៅ": ["ស្តៅ", "បាណង់", "ស្នឹង"],
+       "ត្រែង": ["ត្រែង", "គីឡូម៉ែត្រ៣៨", "ជាម"],
+       "ផ្លូវមាស": ["ផ្លូវមាស", "ទឹកសាប"]
+     };
+     const villageList = selectedCommune && communeVillages[selectedCommune] ? communeVillages[selectedCommune] : [];
 
-     const filteredContacts = mergedContacts.filter(t => {
+     const filteredContacts = (chatTargets || []).filter(t => {
          if (!t) return false;
          if (t.isDefault) return true;
          if (localFilterActive && selectedCommune) {
@@ -2065,29 +1929,47 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
            <div className="p-4 border-b border-slate-100 bg-slate-50 shrink-0 flex justify-between items-center">
                <div>
                   <h1 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#38BDF8]"/> រាយការណ៍ទីតាំងបន្ទាន់</h1>
-                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬមិត្តភក្តិដែលអ្នកចង់ទាក់ទង។</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬទីតាំងដែលអ្នកចង់ទាក់ទង។</p>
                </div>
                
                <div className="flex gap-2">
                  <button 
-                    onClick={captureGps} 
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 text-[10px] font-bold bg-rose-50 text-rose-600 shadow-sm"
+                    onClick={autoFilterLocalAuthority} 
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-xl border border-rose-200 text-[10px] font-bold bg-rose-50 text-rose-600 shadow-sm"
                  >
-                    📍 GPS ឧបករណ៍ខ្ញុំ
+                    📍 ស្វែងរកក្នុងមូលដ្ឋាន
                  </button>
                  <button 
-                    onClick={() => setShowAddFriendModal(true)} 
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-sky-200 text-[10px] font-bold bg-sky-50 text-sky-600 shadow-sm"
+                    onClick={() => setLocalFilterActive(!localFilterActive)} 
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[10px] font-black transition-all ${localFilterActive ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}`}
                  >
-                    ➕ បន្ថែមមិត្តភក្តិ
+                    <Radio className={`w-3.5 h-3.5 ${localFilterActive ? 'animate-pulse text-[#38BDF8]' : ''}`} /> ក្នុងមូលដ្ឋាន
                  </button>
                </div>
            </div>
            
+           {localFilterActive && (
+              <div className="bg-slate-50 p-4 border-b border-slate-200 grid grid-cols-2 gap-3 shrink-0 shadow-inner animate-in slide-in-from-top-2">
+                  <div>
+                     <label className="text-[10px] font-bold text-slate-500 block mb-1">ឃុំ (Commune)</label>
+                     <select value={selectedCommune} onChange={e=>setSelectedCommune(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[16px] font-bold outline-none m-0 cursor-pointer text-slate-800 focus:border-[#38BDF8]">
+                         <option value="">ជ្រើសរើសឃុំ</option>
+                         {communeList.map(c => <option key={c} value={c}>{c}</option>)}
+                     </select>
+                  </div>
+                  <div>
+                     <label className="text-[10px] font-bold text-slate-500 block mb-1">ភូមិ (Village)</label>
+                     <select value={selectedVillage} onChange={e=>setSelectedVillage(e.target.value)} disabled={!selectedCommune} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-[16px] font-bold outline-none m-0 cursor-pointer disabled:opacity-50 text-slate-800 focus:border-[#38BDF8]">
+                         <option value="">ជ្រើសរើសភូមិ</option>
+                         {villageList.map(v => <option key={v} value={v}>{v}</option>)}
+                     </select>
+                  </div>
+              </div>
+           )}
+
            <div className="flex-1 overflow-y-auto p-4 hide-scrollbar bg-white animate-in fade-in duration-300">
               <div className="text-slate-400 text-[10px] font-bold mb-3 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
-              {filteredContacts.length === 0 ? <p className="text-center py-10 text-[11px] text-slate-400 font-bold">គ្មានទំនាក់ទំនង</p> : 
-                filteredContacts.map((contact, i) => contact && (
+              {filteredContacts.map((contact, i) => contact && (
                   <div 
                      key={contact.id || i} 
                      onClick={() => setActiveChatUser(contact)}
@@ -2098,7 +1980,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                           <div>
                               <h3 className="font-black text-[14px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
                               <p className="text-[10px] text-white font-bold bg-[#0F2B5C] px-2 py-0.5 rounded-lg border border-[#0F2B5C] w-fit mt-1.5 line-clamp-1 shadow-sm">
-                                 {contact.isFriend ? 'មិត្តភក្តិសន្ទនាផ្ទាល់' : 'ទំនាក់ទំនងទូទៅ'}
+                                 {selectedCommune ? `${selectedCommune} • ${selectedVillage || 'គ្រប់ភូមិ'}` : 'ទំនាក់ទំនងទូទៅ'}
                               </p>
                           </div>
                       </div>
@@ -2106,47 +1988,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                   </div>
               ))}
            </div>
-
-           {/* Add Friend Modal layout */}
-           {showAddFriendModal && (
-              <div className="fixed inset-0 z-[150] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-                 <div className="bg-white w-full max-w-sm rounded-[24px] p-6 shadow-2xl border border-slate-100 flex flex-col h-[70vh] animate-in zoom-in-95">
-                    <div className="flex justify-between items-center mb-4 shrink-0">
-                       <h3 className="font-black text-[15px] text-[#0F2B5C]">ស្វែងរកមិត្តភក្តិ (Add Friend)</h3>
-                       <button onClick={() => setShowAddFriendModal(false)} className="p-1.5 bg-slate-100 rounded-full text-slate-500"><X className="w-4 h-4"/></button>
-                    </div>
-
-                    <div className="relative mb-3 shrink-0">
-                       <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                       <input 
-                          type="text"
-                          placeholder="ស្វែងរកតាមឈ្មោះ Username..."
-                          value={friendSearchQuery}
-                          onChange={e => setFriendSearchQuery(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-[13px] font-bold outline-none"
-                       />
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-3 hide-scrollbar pr-1">
-                       {usersList
-                          .filter(u => u && u.id !== user?.uid && safeStr(u.username).toLowerCase().includes(friendSearchQuery.toLowerCase()))
-                          .map(u => (
-                             <div key={u.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-100 transition-all">
-                                <div className="flex items-center gap-2.5">
-                                   <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 bg-white object-cover" alt="uav" />
-                                   <div>
-                                      <p className="font-black text-[13px] text-slate-800">{safeStr(u.username)}</p>
-                                      <span className="text-[10px] text-slate-400 font-bold block">User ID: {u.id.substring(0,8)}</span>
-                                   </div>
-                                </div>
-                                <button onClick={() => handleSelectFriend(u)} className="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-[10.5px] font-black shadow-sm transition-colors">Add</button>
-                             </div>
-                          ))
-                       }
-                    </div>
-                 </div>
-              </div>
-           )}
         </div>
      );
   }
@@ -2155,7 +1996,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const filteredChats = (chats || []).filter(c => {
       if (!c) return false;
       if (isAdmin) return c.target === activeChatUser?.id;
-      return (c.userId === senderUid && c.target === activeChatUser?.id) || (c.userId === activeChatUser?.id && c.target === senderUid);
+      return c.userId === senderUid && c.target === activeChatUser?.id;
   });
 
   return (
@@ -2237,7 +2078,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         ) : (
           filteredChats.map(msg => {
             if (!msg) return null;
-            const isMe = msg.userId === senderUid;
+            const isMe = isAdmin ? msg.target === activeChatUser?.id : msg.userId === senderUid;
             
             let msgContent;
             if (msg.msgType === 'location') {
@@ -2396,12 +2237,6 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   const [attempts, setAttempts] = useState(Number(localStorage.getItem('admin_attempts')) || 0);
 
   useEffect(() => {
-     if (profile?.username) {
-        setLocalName(profile.username);
-     }
-  }, [profile]);
-
-  useEffect(() => {
      if (lockoutTime > 0) {
         const interval = setInterval(() => {
            if (Date.now() > lockoutTime) {
@@ -2433,7 +2268,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
           setAttempts(0);
           localStorage.removeItem('admin_attempts');
           
-          setCurrentView('admin');
+          setCurrentView('admin'); // Instantly transition viewport without home reroutes
           setIsLoginLoading(false);
           return;
         } catch (firebaseAuthError) {}
@@ -2487,13 +2322,13 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
       if(!localName.trim() || localName.trim() === 'ភ្ញៀវ') return showToast('ឈ្មោះមិនអាចទទេ ឬដាក់ថាភ្ញៀវទេ', 'error');
       
       const targetUid = user ? user.uid : 'guest';
-      localStorage.setItem(`tp_username_${targetUid}`, localName.trim());
+      localStorage.setItem(`tp_username_${targetUid}`, localName);
       if (db && user) {
          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
-            username: localName.trim()
+            username: localName
          }).catch(()=>{});
       } else {
-         localStorage.setItem('tp_guest_username', localName.trim());
+         localStorage.setItem('tp_guest_username', localName);
       }
       setIsEditingName(false);
       showToast('រក្សាទុកជោគជ័យ');
@@ -2509,8 +2344,10 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
              avatar: b64
           }).catch(()=>{});
+          setProfile(p => ({ ...p, avatar: b64 }));
           showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
        } else {
+          setProfile(p => ({ ...p, avatar: b64 }));
           showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
        }
     };
@@ -2518,7 +2355,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4 pt-2 flex-1 w-full font-khmer animate-in fade-in">
+    <div className="max-w-xl mx-auto space-y-4 pt-2 flex-1 w-full font-khmer animate-in fade-in pb-12">
       <div className="flex items-center gap-2 mb-4 px-1 border-l-[5px] border-[#0F2B5C] pl-3">
          <h1 className="text-[18px] font-black text-[#0F2B5C]">គណនី</h1>
       </div>
@@ -2594,13 +2431,65 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   );
 };
 
+const ConversationMonitorModal = ({ isOpen, userObj, chats = [], onClose }) => {
+  if (!isOpen || !userObj) return null;
+
+  const relevantChats = chats.filter(c => c && (c.userId === userObj.id || c.target === userObj.id));
+
+  return (
+    <div className="fixed inset-0 z-[400] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 font-khmer">
+       <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-lg border border-slate-200 flex flex-col h-[80vh] overflow-hidden animate-in zoom-in-95">
+          <div className="bg-rose-50 px-5 py-4 border-b border-rose-100 flex justify-between items-center shrink-0">
+             <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-rose-500 animate-pulse" />
+                <div>
+                   <h3 className="font-black text-[13px] text-rose-800">ប្រព័ន្ធត្រួតពិនិត្យការសន្ទនា (Read-Only)</h3>
+                   <p className="text-[10px] text-rose-600 font-bold mt-0.5">គណនី៖ {safeStr(userObj.username)}</p>
+                </div>
+             </div>
+             <button onClick={onClose} className="p-1.5 bg-white text-rose-500 border border-rose-200 hover:bg-rose-100 rounded-full transition-all">
+                <X className="w-4.5 h-4.5" />
+             </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-3 hide-scrollbar">
+             {relevantChats.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 font-medium text-[12px] text-center">
+                   <MessageCircle className="w-10 h-10 mb-2 opacity-30" />
+                   មិនទាន់មានប្រវត្តិឆាតទេ
+                </div>
+             ) : (
+                relevantChats.map(msg => {
+                   if (!msg) return null;
+                   const isMe = msg.userId === userObj.id;
+                   return (
+                      <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'}`}>
+                         <div className={`max-w-[80%] rounded-2xl p-3 shadow-sm text-[13px] leading-relaxed font-medium ${isMe ? 'bg-white border border-slate-200 text-slate-800' : 'bg-[#0F2B5C] text-white'}`}>
+                            <div className="font-black text-[10px] mb-1 opacity-70">
+                               {isMe ? safeStr(userObj.username) : 'ស្ថាប័ន / ដៃគូរសន្ទនា'}
+                            </div>
+                            <div>
+                               {msg.msgType === 'location' ? '📍 បានចែករំលែកទីតាំង GPS' : msg.msgType === 'audio' ? '🎙️ សារសំឡេង (Voice Note)' : safeStr(msg.text)}
+                            </div>
+                            <div className="text-[9px] mt-1 text-right opacity-60">
+                               {new Date(msg.timestamp).toLocaleString()}
+                            </div>
+                         </div>
+                      </div>
+                   );
+                })
+             )}
+          </div>
+       </div>
+    </div>
+  );
+};
+
 const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
-  
   const [trollSearchText, setTrollSearchText] = useState('');
-  const [selectedTrollUser, setSelectedTrollUser] = useState(null);
-  const [chatTab, setChatTab] = useState('police');
+  const [viewUserChat, setViewUserChat] = useState(null);
 
   const [confirmAction, setConfirmAction] = useState(null);
   const openConfirm = (title, message, action, requirePassword = false) => setConfirmAction({ title, message, action, requirePassword });
@@ -2696,7 +2585,62 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      setCurrentView('home');
      showToast('បានចាកចេញពី Admin');
   };
-  
+
+  const handleDeleteAllUsers = () => {
+     openConfirm(
+       "បញ្ជាក់ការលុបអ្នកប្រើប្រាស់ទាំងអស់",
+       "តើអ្នកពិតជាចង់សម្អាតគណនីអ្នកប្រើប្រាស់ និងប្រវត្តិសន្ទនាទាំងអស់មែនទេ? សកម្មភាពនេះតម្រូវឲ្យមានការផ្ទៀងផ្ទាត់លេខសម្ងាត់ជាន់ខ្ពស់។",
+       async () => {
+          showToast('កំពុងដំណើរការ...', 'info');
+          try {
+             if (db) {
+                const ip = await getClientIP();
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'cyber_logs'), {
+                   type: 'Wipe Out: All Users Subscriptions Deleted',
+                   username: 'Admin Principal',
+                   ip: ip,
+                   device: getDeviceInfo(),
+                   timestamp: Date.now()
+                });
+
+                // Clear user lists
+                for (let usr of usersList) {
+                   if (usr && usr.id) {
+                      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', usr.id));
+                   }
+                }
+                
+                // Sweep conversation database
+                for (let msg of chats) {
+                   if (msg && msg.id) {
+                      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id));
+                   }
+                }
+                showToast('លុបគណនីអ្នកប្រើប្រាស់ និងប្រវត្តិសន្ទនាទាំងអស់ជោគជ័យ ✅');
+             }
+          } catch(e) {
+             showToast('មានបញ្ហាក្នុងការលុប', 'error');
+          }
+       },
+       true
+     );
+  };
+
+  const handleToggleFakeReporter = async (userObj) => {
+     const isCurrentlyFake = !!userObj.isFakeReporter;
+     try {
+        if (db) {
+           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), {
+              isFakeReporter: !isCurrentlyFake,
+              fakeReporterAt: !isCurrentlyFake ? Date.now() : null
+           });
+           showToast(!isCurrentlyFake ? 'បានសម្គាល់ជា Fake Reporter 🔴' : 'បានដកការព្រមានជា Fake Reporter');
+        }
+     } catch(e) {
+        showToast('មានកំហុសបច្ចេកទេស', 'error');
+     }
+  };
+
   const handleEditSave = async (e) => { 
       e.preventDefault(); 
       try {
@@ -2719,7 +2663,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       setEditingLoc(null); 
   };
 
-  /* Tracking & Punishment Options (Warn, Ban Device, Force Logout) */
   const handleWarnUser = (userObj) => {
       openConfirm("ព្រមាន (Warning)", `តើអ្នកចង់ព្រមានដល់ ${userObj.username}? វានឹងកត់ត្រាកំហុសរបស់គាត់។`, async () => {
          if (db) {
@@ -2733,7 +2676,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             }).catch(()=>{});
          }
          showToast(`បានព្រមាន ${userObj.username} ជោគជ័យ`);
-         setSelectedTrollUser(null);
       });
   };
 
@@ -2741,7 +2683,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       openConfirm("ដក Device (Ban)", `តើអ្នកពិតជាចង់ផ្តាច់ និងដកសិទ្ធិប្រើប្រាស់ពី ${userObj.username} ជារៀងរហូតមែនទេ? (គណនីនឹងត្រូវ Block)`, async () => {
          if (db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), { isBanned: true }).catch(()=>{});
          showToast(`បានដក Device របស់ ${userObj.username} រួចរាល់!`, 'error');
-         setSelectedTrollUser(null);
       });
   };
 
@@ -2751,31 +2692,11 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), { forceLogout: true }).catch(()=>{});
          }
          showToast(`បានទាត់ ${userObj.username} ចេញពីទូរស័ព្ទដៃរួចរាល់`);
-         setSelectedTrollUser(null);
       });
   };
 
-  /* Fixed bulk purge of Users with masked Password validation */
-  const handleClearAllTrolls = () => {
-      openConfirm("លុបទិន្នន័យអ្នកប្រើប្រាស់ទាំងអស់", "តើអ្នកពិតជាចង់លុបគណនីអ្នកប្រើប្រាស់ទាំងអស់ចេញពី Firebase ទាំងស្រុងមែនទេ? សកម្មភាពនេះត្រូវការវាយកូដសម្ងាត់បញ្ជាក់!", async () => {
-         showToast('កំពុងដំណើរការលុប...', 'info');
-         if (db) {
-            for(const userObj of usersList) {
-               await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
-            }
-            chats.forEach(async msg => {
-               if (msg) {
-                  await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id)).catch(()=>{});
-               }
-            });
-         }
-         showToast(`បានលុបគណនីអ្នកប្រើប្រាស់ទាំងអស់ជោគជ័យ`);
-         setSelectedTrollUser(null);
-      }, true); // requiresPassword is true (will require 'ictmit' in password box)
-  };
-
   const handleDeleteTrollUser = (userObj) => {
-      openConfirm("លុបគណនី (Delete User)", `តើអ្នកពិតជាចង់លុបគណនី និងរាល់ប្រវត្តិឆាតរបស់ ${userObj.username} ទាំងស្រុងមែនទេ? សកម្មភាពនេះត្រូវការបញ្ជាក់លេខសម្ងាត់!`, async () => {
+      openConfirm("លុបគណនី (Delete User)", `តើអ្នកពិតជាចង់លុបគណនី និងរាល់ប្រវត្តិឆាតរបស់ ${userObj.username} ទាំងស្រុងមែនទេ?`, async () => {
          if (db) {
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
             chats.forEach(async msg => {
@@ -2785,8 +2706,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             });
          }
          showToast(`បានលុបគណនី ${userObj.username} ជោគជ័យ`);
-         setSelectedTrollUser(null);
-      }, true); // requiresPassword is true
+      }, true);
   };
 
   const handleApproveAppeal = async (appealItem) => {
@@ -2870,17 +2790,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      });
   };
 
-  const handleChatTargetAvatarUpload = (e) => {
-     const file = e.target.files[0];
-     if(!file) return;
-     const reader = new FileReader();
-     reader.onload = () => {
-         setNewChatAvatar(reader.result);
-         showToast('បញ្ចូលរូបភាពទំនាក់ទំនងជោគជ័យ');
-     };
-     reader.readAsDataURL(file);
-  };
-
   const handleAddChatTarget = async (e) => {
      e.preventDefault();
      if(!newChatLabel.trim()) return;
@@ -2912,13 +2821,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      });
   };
 
-  const toggleCosmicTheme = async () => {
-      const targetState = !cosmicTheme;
-      setCosmicTheme(targetState);
-      if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { cosmicTheme: targetState }, { merge: true }).catch(()=>{});
-      showToast(`បានកំណត់ Theme ថ្មីស្ថាពរ`);
-  };
-
   const filteredUsersList = useMemo(() => {
      return (usersList || []).filter(u => {
         if(!u) return false;
@@ -2928,10 +2830,11 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   }, [usersList, trollSearchText]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-4 pb-10 flex-1 font-khmer">
+    <div className="w-full max-w-5xl mx-auto space-y-4 pb-12 flex-1 font-khmer">
       <ConfirmModal isOpen={!!confirmAction} title={confirmAction?.title} message={confirmAction?.message} onConfirm={handleConfirm} onCancel={() => setConfirmAction(null)} requiresPassword={confirmAction?.requirePassword} />
+      <ConversationMonitorModal isOpen={!!viewUserChat} userObj={viewUserChat} chats={chats} onClose={() => setViewUserChat(null)} />
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#0F2B5C] text-white p-5 md:p-6 rounded-[24px] shadow-sm border border-slate-700 shrink-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#0F2B5C] text-white p-5 md:p-6 rounded-[24px] shadow-lg border border-slate-700 shrink-0">
         <div>
            <div className="flex items-center gap-3">
               <button onClick={() => setCurrentView('home')} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition border border-white/20"><ArrowLeft className="w-4 h-4 text-white" /></button>
@@ -2946,7 +2849,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
         {[
           {id: 'data', label: 'ទិន្នន័យ & ទីតាំង'},
           {id: 'chat_manage', label: 'គ្រប់គ្រងទំនាក់ទំនង'},
-          {id: 'chat_monitor', label: 'គ្រប់គ្រងបទល្មើស (Trolls)'},
+          {id: 'chat_monitor', label: 'គ្រប់គ្រងបទល្មើស & Users'},
           {id: 'appeals', label: 'សំណើសម្រុះសម្រួល'},
           {id: 'approvals', label: 'អនុម័តសំណើរ'},
           {id: 'security', label: 'កំណត់ត្រាសុវត្ថិភាព'},
@@ -2966,7 +2869,12 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                         <p className="text-[11px] text-slate-500 mt-1">នៅពេលបើក វានឹងបង្ហាញផ្កាយ និងកាឡាក់ស៊ីមានចលនា Background ខ្មៅនៅលើទំព័រ Gateway ភ្លាមៗ</p>
                      </div>
                      <label className="relative flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only toggle-checkbox" checked={cosmicTheme} onChange={toggleCosmicTheme} />
+                        <input type="checkbox" className="sr-only toggle-checkbox" checked={cosmicTheme} onChange={()=> {
+                            const updated = !cosmicTheme;
+                            setCosmicTheme(updated);
+                            if(db) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { cosmicTheme: updated }, { merge: true });
+                            showToast('បានកែប្រែ Theme រួចរាល់');
+                        }} />
                         <div className={`w-14 h-8 rounded-full transition-colors duration-300 toggle-label ${cosmicTheme ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                         <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform duration-300 ${cosmicTheme ? 'translate-x-6' : 'translate-x-0'}`}></div>
                      </label>
@@ -3008,11 +2916,11 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
              <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 animate-in fade-in duration-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-l-4 border-rose-500 pl-2.5">
                    <div>
-                      <h3 className="font-black text-[14px] text-[#0F2B5C]">ការតាមដាន និងគ្រប់គ្រងបទល្មើស (Moderation)</h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5 font-medium">លុប ឬស្វែងរកគណនីដែលល្មើសវិន័យនៅក្នុងប្រព័ន្ធ</p>
+                      <h3 className="font-black text-[14px] text-[#0F2B5C]">គ្រប់គ្រង និងស្វែងរកគណនី (User Management)</h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5 font-medium">តាមដានសកម្មភាព ពិនិត្យសារឆាត ឬលុបគណនីអ្នកប្រើប្រាស់</p>
                    </div>
                    
-                   <div className="flex items-center gap-2.5 shrink-0">
+                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <div className="relative">
                          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                          <input 
@@ -3024,9 +2932,8 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                          />
                       </div>
                       
-                      {/* Name of the button updated to "លុប User ទាំងអស់" */}
-                      <button onClick={handleClearAllTrolls} className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg text-[10.5px] font-black transition-colors border border-rose-200 shrink-0">
-                         លុប User ទាំងអស់
+                      <button onClick={handleDeleteAllUsers} className="bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-1.5 rounded-lg text-[10.5px] font-black transition-colors shadow-sm shrink-0">
+                         លុបគណនីទាំងអស់ (Delete All Users)
                       </button>
                    </div>
                 </div>
@@ -3036,29 +2943,35 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                      filteredUsersList.sort((a,b)=>(b.lastActive||0)-(a.lastActive||0)).map(u => {
                         if (!u) return null;
                         const isOnline = (Date.now() - (u.lastActive||0)) < 120000;
-                        if (u.isBanned) return null; 
-
                         return (
-                           <div key={u.id} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 transition-all shadow-sm">
-                              <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedTrollUser(u)}>
-                                 <div className="relative">
-                                    <img src={u.avatar} className="w-10 h-10 rounded-full object-cover border border-slate-200 bg-white" alt="av" />
+                           <div key={u.id} className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 transition-all shadow-sm">
+                              <div className="flex items-center gap-3">
+                                 <div className="relative shrink-0">
+                                    <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full object-cover border border-slate-200 bg-white" alt="av" />
                                     <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                                  </div>
                                  <div>
-                                    <h4 className="font-bold text-[13px] text-[#0F2B5C] flex items-center gap-1.5">
-                                       {safeStr(u.username) || 'អ្នកប្រើប្រាស់មិនស្គាល់ឈ្មោះ'}
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                       <h4 className="font-bold text-[13px] text-[#0F2B5C]">{safeStr(u.username)}</h4>
                                        {u.warnings > 0 && <span className="bg-amber-100 text-amber-600 text-[9px] px-2 py-0.5 rounded-md font-black border border-amber-200">Warnings: {u.warnings}</span>}
-                                    </h4>
-                                    <p className={`text-[10px] font-bold mt-0.5 ${isOnline ? 'text-emerald-500' : 'text-slate-500'}`}>{isOnline ? 'Online' : 'Offline'}</p>
+                                       {u.isBanned && <span className="bg-rose-100 text-rose-600 text-[9px] px-2 py-0.5 rounded-md font-black border border-rose-200">Blocked</span>}
+                                       {u.isFakeReporter && <span className="bg-rose-600 text-white text-[9px] px-2.5 py-0.5 rounded-full font-black border border-rose-700 flex items-center gap-1">🔴 Fake Reporter</span>}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 font-bold mt-1 tracking-wider">UID: {u.id?.substring(0, 8)} • Last active: {u.lastActive ? new Date(u.lastActive).toLocaleTimeString() : 'Unknown'}</p>
                                  </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                 <button onClick={() => handleDeleteTrollUser(u)} className="p-2 bg-rose-50 text-rose-500 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors">
-                                     <Trash2 className="w-4 h-4" />
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                 <button onClick={() => setViewUserChat(u)} className="p-2 bg-slate-100 text-slate-600 border border-slate-200 hover:bg-[#0F2B5C] hover:text-white rounded-xl transition-all shadow-sm" title="ពិនិត្យប្រវត្តិឆាត">
+                                     <MessageCircle className="w-4 h-4" />
                                  </button>
-                                 <button onClick={() => setSelectedTrollUser(u)} className="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm text-rose-500 hover:bg-slate-50 transition-colors">
-                                    <MessageCircle className="w-4 h-4" />
+                                 <button onClick={() => handleToggleFakeReporter(u)} className={`px-2.5 py-2 border rounded-xl font-black text-[10px] shadow-sm transition-all ${u.isFakeReporter ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100'}`}>
+                                     {u.isFakeReporter ? 'ដកការព្រមាន' : 'Mark Fake'}
+                                 </button>
+                                 <button onClick={() => handleBanUser(u)} className="p-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors" title="បិទគណនី">
+                                     <Ban className="w-4 h-4" />
+                                 </button>
+                                 <button onClick={() => handleDeleteTrollUser(u)} className="p-2 bg-slate-200 text-slate-600 rounded-xl hover:bg-rose-600 hover:text-white transition-colors" title="លុបគណនី">
+                                     <Trash2 className="w-4 h-4" />
                                  </button>
                               </div>
                            </div>
@@ -3066,74 +2979,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                      })
                    }
                 </div>
-
-                {selectedTrollUser && (
-                   <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col h-[75vh] animate-in zoom-in-95">
-                         
-                         {/* Header Modal */}
-                         <div className="bg-gray-800 text-white p-4 flex justify-between items-center shrink-0">
-                            <h3 className="font-bold flex items-center gap-2">
-                               <Search className="w-5 h-5" /> តាមដាន: {selectedTrollUser.username}
-                            </h3>
-                            <button onClick={() => setSelectedTrollUser(null)} className="hover:bg-white/20 p-1 rounded-full transition">
-                               <X className="w-6 h-6" />
-                            </button>
-                         </div>
-                         
-                         {/* ជម្រើសទាំង ៣ ខាងលើ (Tabs) */}
-                         <div className="flex border-b bg-gray-50 text-[13px] font-bold text-gray-500 shrink-0 font-khmer">
-                            <button 
-                               onClick={() => setChatTab('police')} 
-                               className={`flex-1 p-3 text-center transition ${chatTab === 'police' ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'hover:bg-gray-100'}`}
-                            >ប៉ូលីស</button>
-                            <button 
-                               onClick={() => setChatTab('hospital')} 
-                               className={`flex-1 p-3 text-center transition ${chatTab === 'hospital' ? 'bg-white border-b-2 border-green-600 text-green-600' : 'hover:bg-gray-100'}`}
-                            >ពេទ្យ</button>
-                            <button 
-                               onClick={() => setChatTab('fire')} 
-                               className={`flex-1 p-3 text-center transition ${chatTab === 'fire' ? 'bg-white border-b-2 border-red-600 text-red-600' : 'hover:bg-gray-100'}`}
-                            >អគ្គីភ័យ</button>
-                         </div>
-
-                         {/* កន្លែងបង្ហាញសារ (Chat Area) */}
-                         <div className="p-4 flex-1 overflow-y-auto bg-gray-100 space-y-4 font-khmer">
-                            <div className="text-center text-gray-400 text-xs my-2 font-semibold">កំណត់ត្រាប្រព័ន្ធសម្ងាត់</div>
-                            
-                            <div className="bg-white p-3 rounded-xl rounded-tl-none border border-gray-200 shadow-sm w-4/5">
-                               <p className="font-bold text-gray-700 text-xs mb-1">ស្ថាប័ន {chatTab === 'police' ? 'ប៉ូលីស' : chatTab === 'hospital' ? 'មន្ទីរពេទ្យ' : 'ពន្លត់អគ្គីភ័យ'}</p>
-                               <p className="text-gray-800 text-sm">តើមានការអ្វីឲ្យយើងជួយ?</p>
-                            </div>
-
-                            <div className="bg-blue-500 text-white p-3 rounded-xl rounded-tr-none shadow-sm w-4/5 ml-auto">
-                               <p className="font-bold text-blue-100 text-xs mb-1">{selectedTrollUser.username}</p>
-                               <p className="text-[13px]">
-                                  សុំជំនួយបន្ទាន់នៅទីតាំងនេះ! 
-                                  {chatTab === 'police' ? ' (រាយការណ៍មានចោរកម្ម)' : chatTab === 'hospital' ? ' (មានអ្នករបួសធ្ងន់)' : ' (មានភ្លើងឆេះផ្ទះ)'}
-                               </p>
-                               {(selectedTrollUser.warnings > 0 || selectedTrollUser.isBanned) && (
-                                  <p className="text-[11px] text-red-200 mt-2 italic">* ព័ត៌មាននេះត្រូវបានសម្គាល់ថាក្លែងក្លាយ (Fake)</p>
-                               )}
-                            </div>
-                         </div>
-
-                         {/* ផ្ទាំងដាក់ពិន័យនៅខាងក្រោម */}
-                         <div className="p-3 bg-white border-t border-gray-200 space-y-2 shrink-0 font-khmer">
-                            <button onClick={() => handleWarnUser(selectedTrollUser)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-[12px] rounded-xl shadow-sm active:scale-95 transition-all">
-                               <AlertOctagon className="w-4 h-4"/> ១. ព្រមាន (Warn)
-                            </button>
-                            <button onClick={() => handleBanUser(selectedTrollUser)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-[12px] rounded-xl shadow-sm active:scale-95 transition-all">
-                               <Ban className="w-4 h-4"/> ២. Block ឧបករណ៍ (Ban Device)
-                            </button>
-                            <button onClick={() => handleForceLogoutUser(selectedTrollUser)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-black text-[12px] rounded-xl shadow-sm active:scale-95 transition-all">
-                               <LogOut className="w-4 h-4"/> ៣. ដក Web App ចេញពីទូរស័ព្ទ
-                            </button>
-                         </div>
-
-                      </div>
-                   </div>
-                )}
              </div>
           )}
 
@@ -3199,14 +3044,8 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                          <input type="text" value={newChatRole} onChange={e=>setNewChatRole(e.target.value)} required placeholder="ឧ: រដ្ឋបាល..." className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[16px] font-bold text-slate-800" />
                       </div>
                       <div>
-                         <label className="text-[11px] font-bold text-slate-500 block mb-1">រូបតំណាង (Upload Picture)</label>
-                         <div className="flex items-center gap-2">
-                            <label className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-[12px] font-bold cursor-pointer hover:bg-slate-50">
-                               ជ្រើសរើសរូបភាព
-                               <input type="file" accept="image/*" className="hidden" onChange={handleChatTargetAvatarUpload} />
-                            </label>
-                            {newChatAvatar && <img src={newChatAvatar} className="w-9 h-9 rounded-full object-cover border" alt="preview" />}
-                         </div>
+                         <label className="text-[11px] font-bold text-slate-500 block mb-1">រូបតំណាង (Avatar URL)</label>
+                         <input type="text" value={newChatAvatar} onChange={e=>setNewChatAvatar(e.target.value)} placeholder="https://..." className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-[16px] font-bold text-slate-800" />
                       </div>
                    </div>
                    <button type="submit" className="bg-[#0F2B5C] text-white px-5 py-2 rounded-xl text-[11.5px] font-black shadow-md mt-1">
@@ -3358,9 +3197,10 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                      if (!l) return null;
                      return (
                      <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] relative shadow-sm animate-in slide-in-from-bottom-2">
-                        <p className="font-black text-rose-600 mb-1 flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5"/> Failed Login Attempt</p>
-                        <p className="text-[#0F2B5C] font-bold mb-1">User: {l.username}</p>
+                        <p className="font-black text-rose-600 mb-1 flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5"/> Security Action Triggered</p>
+                        <p className="text-[#0F2B5C] font-bold mb-1">User/Admin: {l.username}</p>
                         <p className="text-slate-500 mb-1">{l.device} • IP: {l.ip}</p>
+                        <p className="text-slate-500 mb-1 font-bold">Action type: {l.type}</p>
                         <p className="text-slate-400 text-[9.5px] font-medium">{new Date(l.timestamp).toLocaleString()}</p>
                         <button onClick={()=>clearLog(l.id)} className="absolute top-3.5 right-3.5 text-slate-400 hover:text-rose-500 p-1 rounded-full hover:bg-rose-50 transition-colors"><X className="w-4 h-4"/></button>
                      </div>
@@ -3388,9 +3228,9 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
       </div>
       
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
-         <div className="w-full h-24 bg-slate-50 flex items-center justify-center border-b border-slate-100 shrink-0 relative overflow-hidden">
-            {location.image ? (
-               <img src={location.image} alt={displayTitle} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+         <div className="w-full h-24 bg-slate-50 flex items-center justify-center border-b border-slate-100 shrink-0 relative">
+            {location.photo ? (
+               <img src={location.photo} className="w-full h-full object-cover" alt="Loc" />
             ) : (
                <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                    {getCategoryIcon(location.category)}
@@ -3437,21 +3277,21 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
   return (
     <div className="fixed inset-0 z-[150] bg-slate-900/70 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 pointer-events-auto font-khmer">
        <div className="bg-white w-full max-w-lg rounded-t-3xl md:rounded-[32px] overflow-hidden shadow-2xl flex flex-col h-[75dvh] md:h-auto md:max-h-[85vh] border border-slate-200 animate-in slide-in-from-bottom duration-300">
-          <div className="relative w-full py-8 bg-slate-50 border-b border-slate-100 flex flex-col items-center justify-center shrink-0 overflow-hidden">
-             {location.image ? (
-                <div className="absolute inset-0 w-full h-full opacity-35 filter blur-md">
-                   <img src={location.image} alt="blurred background" className="w-full h-full object-cover" />
+          <div className="relative w-full py-8 bg-slate-50 border-b border-slate-100 flex flex-col items-center justify-center shrink-0">
+             {location.photo ? (
+                <div className="w-32 h-20 rounded-xl overflow-hidden mb-2 border shadow-sm">
+                   <img src={location.photo} className="w-full h-full object-cover" alt="Sub" />
                 </div>
-             ) : null}
-             
-             <div className="p-5 bg-white border border-slate-200 rounded-3xl shadow-sm mb-3 z-10">
-                {getCategoryIcon(location.category)}
-             </div>
-             <div className="text-center px-4 z-10">
+             ) : (
+                <div className="p-5 bg-white border border-slate-200 rounded-3xl shadow-sm mb-3">
+                   {getCategoryIcon(location.category)}
+                </div>
+             )}
+             <div className="text-center px-4">
                 <span className="bg-[#0F2B5C] text-white text-[10px] font-black px-2.5 py-1 rounded-xl shadow-sm uppercase tracking-wider">{safeStr(location.category)}</span>
                 <h2 className="text-[#0F2B5C] font-black text-[16px] mt-2 leading-tight">{displayTitle}</h2>
              </div>
-             <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
+             <div className="absolute top-3 right-3 flex items-center gap-2">
                 <button onClick={() => toggleFavorite(location.id)} className={`p-2.5 rounded-full shadow-sm active:scale-95 transition ${isFav ? 'bg-rose-500 text-white' : 'bg-white text-slate-500'}`}>
                    <Heart className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`}/>
                 </button>
@@ -3460,13 +3300,6 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
           </div>
           <div className="p-4 overflow-y-auto flex-1 space-y-4 hide-scrollbar">
              
-             {/* Show Image beautifully if uploaded inside detail view */}
-             {location.image && (
-                <div className="w-full aspect-[16/10] rounded-2xl overflow-hidden border border-slate-200 shadow-sm shrink-0">
-                   <img src={location.image} className="w-full h-full object-cover" alt="Location snapshot" />
-                </div>
-             )}
-
              <div className="bg-slate-50 p-3.5 rounded-[20px] border border-slate-100 space-y-3">
                 <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block">បញ្ជីខ្សែទូរស័ព្ទទាក់ទង / Contact Lines ({contactLines.length})</span>
                 <div className="space-y-2.5">
