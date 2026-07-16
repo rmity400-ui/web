@@ -5,12 +5,11 @@ import {
   Send, LogOut, Settings, 
   LayoutGrid, ShieldAlert, TrendingUp, Phone, CheckCircle, ArrowLeft, 
   Globe, ArrowRight, Loader2, MapPin, Mic, Camera, X, Play, AlertOctagon, 
-  Ban, CheckCheck, Hexagon, GraduationCap, Pause, Download, Copy, Check, Radio, Eye
+  Ban, CheckCheck, Hexagon, GraduationCap, Pause, Download, Copy, Check, Radio, Eye, HelpCircle
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, addDoc, increment } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 import { 
   LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -130,12 +129,11 @@ const firebaseConfig = {
   appId: "1:1036691345731:web:df8121852c6137e3b35ff6"
 };
 
-let app, auth, db, storage;
+let app, auth, db;
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
-  storage = getStorage(app);
 } catch (configError) {}
 
 const appId = 'ramit-7e364';
@@ -239,7 +237,7 @@ const PasswordPromptModal = ({ isOpen, title, description, onConfirm, onCancel }
 
   return (
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm px-4 animate-in fade-in duration-200 pointer-events-auto font-khmer">
-      <div className="bg-white rounded-[20px] shadow-2xl p-6 w-full max-w-sm border border-slate-100 text-center">
+      <div className="bg-white rounded-[20px] shadow-2xl p-6 w-full max-w-sm border border-slate-100 text-center animate-in zoom-in-95">
         <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
           <ShieldAlert className="w-7 h-7" />
         </div>
@@ -355,12 +353,36 @@ const StarryGalaxyCanvas = () => {
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
 };
 
-const LocationRouteMap = ({ senderCoords, receiverCoords, distance }) => {
+const LocationRouteMap = ({ senderCoords, receiverCoords }) => {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const [localReceiver, setLocalReceiver] = useState(receiverCoords);
+  const [computedDist, setComputedDist] = useState(0);
 
   useEffect(() => {
-    if (!senderCoords || !mapContainerRef.current) return;
+    if (receiverCoords) {
+      setLocalReceiver(receiverCoords);
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocalReceiver({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          setLocalReceiver({ lat: 13.3622, lng: 103.8590 });
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+  }, [receiverCoords]);
+
+  useEffect(() => {
+    if (!senderCoords || !localReceiver) return;
+    const dist = calculateDistance(senderCoords.lat, senderCoords.lng, localReceiver.lat, localReceiver.lng);
+    setComputedDist(dist);
+  }, [senderCoords, localReceiver]);
+
+  useEffect(() => {
+    if (!senderCoords || !localReceiver || !mapContainerRef.current) return;
 
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -379,43 +401,41 @@ const LocationRouteMap = ({ senderCoords, receiverCoords, distance }) => {
         mapInstanceRef.current.remove();
       }
 
-      const activeReceiver = receiverCoords || { lat: senderCoords.lat + 0.005, lng: senderCoords.lng + 0.005 };
-
       const map = L.map(mapContainerRef.current, {
         zoomControl: false,
         attributionControl: false
-      }).setView([senderCoords.lat, senderCoords.lng], 14);
+      }).setView([senderCoords.lat, senderCoords.lng], 12);
       mapInstanceRef.current = map;
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
       const senderIcon = L.divIcon({
-        html: `<div class="w-7 h-7 bg-[#0F2B5C] rounded-full border-2 border-white flex items-center justify-center text-white shadow-md"><span class="text-[10px] font-black">A</span></div>`,
+        html: `<div class="w-8 h-8 bg-rose-600 rounded-full border-2 border-white flex items-center justify-center text-white shadow-lg animate-bounce"><span class="text-[10px] font-black">A</span></div>`,
         className: '',
-        iconSize: [28, 28]
+        iconSize: [32, 32]
       });
 
       const receiverIcon = L.divIcon({
-        html: `<div class="w-7 h-7 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-white shadow-md"><span class="text-[10px] font-black">B</span></div>`,
+        html: `<div class="w-8 h-8 bg-[#0F2B5C] rounded-full border-2 border-white flex items-center justify-center text-white shadow-lg"><span class="text-[10px] font-black">B</span></div>`,
         className: '',
-        iconSize: [28, 28]
+        iconSize: [32, 32]
       });
 
       L.marker([senderCoords.lat, senderCoords.lng], { icon: senderIcon }).addTo(map);
-      L.marker([activeReceiver.lat, activeReceiver.lng], { icon: receiverIcon }).addTo(map);
+      L.marker([localReceiver.lat, localReceiver.lng], { icon: receiverIcon }).addTo(map);
 
       const polyline = L.polyline([
         [senderCoords.lat, senderCoords.lng],
-        [activeReceiver.lat, activeReceiver.lng]
+        [localReceiver.lat, localReceiver.lng]
       ], {
         color: '#10B981',
-        weight: 3.5,
-        dashArray: '8, 8',
+        weight: 4,
+        dashArray: '6, 8',
         lineCap: 'round',
         lineJoin: 'round'
       }).addTo(map);
 
-      map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+      map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
     };
 
     return () => {
@@ -424,15 +444,15 @@ const LocationRouteMap = ({ senderCoords, receiverCoords, distance }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [senderCoords, receiverCoords]);
+  }, [senderCoords, localReceiver]);
 
   return (
     <div className="w-full space-y-2 font-khmer">
-      <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 px-3.5 py-2 rounded-xl text-[11px] text-emerald-800 font-bold">
-         <span>📍 គណនាចម្ងាយសរុប (A → B)</span>
-         <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-lg font-black">{distance || 0} KM</span>
+      <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 px-3.5 py-2.5 rounded-xl text-[12px] text-emerald-800 font-bold">
+         <span className="flex items-center gap-1">📍 គណនាចម្ងាយសរុប (A → B)</span>
+         <span className="bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-black">{computedDist || 0} KM</span>
       </div>
-      <div ref={mapContainerRef} className="w-full h-40 rounded-xl overflow-hidden border border-slate-200 shadow-sm z-0 relative" />
+      <div ref={mapContainerRef} className="w-full h-44 rounded-xl overflow-hidden border border-slate-200 shadow-inner z-0 relative" />
     </div>
   );
 };
@@ -500,6 +520,7 @@ export default function App() {
   const [usersList, setUsersList] = useState([]);  
   const [chats, setChats] = useState([]);          
   const [chatTargets, setChatTargets] = useState([]);
+  const [myContacts, setMyContacts] = useState([]); 
   const [cyberLogs, setCyberLogs] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [favorites, setFavorites] = useState({});
@@ -513,6 +534,7 @@ export default function App() {
   const [gpsCoords, setGpsCoords] = useState(null);
   
   const previousChatCount = useRef(0);
+  const [activeChatUser, setActiveChatUser] = useState(null);
 
   const [appealText, setAppealText] = useState('');
   const [appealPhoto, setAppealPhoto] = useState(null);
@@ -709,10 +731,14 @@ export default function App() {
       }
     }, () => {});
 
+    const unsubMyContacts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'contacts'), snap => {
+       setMyContacts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+
     return () => { 
         clearInterval(presenceInterval); 
         unsubProfile(); unsubAllUsers(); unsubLocations(); unsubChats(); 
-        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTheme(); unsubTargets(); unsubAppeals();
+        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTheme(); unsubTargets(); unsubMyContacts(); unsubAppeals();
     };
   }, [user]);
 
@@ -956,7 +982,7 @@ export default function App() {
             <div className="absolute top-0 right-0 w-48 h-48 bg-[#38BDF8]/5 rounded-full blur-3xl pointer-events-none"></div>
             
             <h2 className="text-white text-2xl font-black mb-4 font-khmer leading-tight z-10">
-                សូមស្វាគមន៍មកកាន់<br/><span className="text-[#38BDF8]">TP CAMBODIA</span>
+                សូមស្វាគមន៍មកកាន់ TP CAMBODIA
             </h2>
             <p className="text-sky-100/80 text-[13px] leading-relaxed max-w-sm mb-8 font-khmer px-2 z-10 font-medium">
                 ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ។
@@ -1032,7 +1058,7 @@ export default function App() {
            {currentView === 'home' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} setCurrentView={setCurrentView} /></div>}
            {currentView === 'data' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} captureGps={handleGPS} /></div>}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} storage={storage} usersList={usersList} /></div>}
+           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} /></div>}
            {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
@@ -1044,7 +1070,10 @@ export default function App() {
         </div>
       </main>
 
-      <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} />
+      {/* Hide bottom menu when actively chatting to prevent viewport overlapping and cutoff issues (Fixes photo_6253720894538715129_y.jpg) */}
+      {!(currentView === 'chat' && activeChatUser) && (
+        <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} />
+      )}
 
       {selectedLocation && (
         <LocationDetailModal 
@@ -1144,7 +1173,7 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                       sessionStorage.removeItem('tp_is_guest');
                       setCurrentPage('gateway');
                    }} 
-                   className="flex items-center justify-center p-1.5 text-[#0F2B5C] bg-slate-50 border border-slate-200 rounded-lg"
+                   className="flex items-center justify-center p-1.5 text-[#0F2B5C] bg-slate-50 border border-slate-200 rounded-lg animate-pulse"
                  >
                     <ArrowLeft className="w-4.5 h-4.5" />
                  </button>
@@ -1152,7 +1181,7 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                  <div className="relative">
                      <button className="p-2 bg-slate-50 rounded-full active:scale-95 transition shadow-sm border border-slate-200" onClick={() => setNotificationsOpen(!notificationsOpen)}>
                         <Bell className="w-4.5 h-4.5 text-[#0F2B5C]" />
-                        {notifications && notifications.length > 0 && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-rose-500 rounded-full"></span>}
+                        {notifications && notifications.length > 0 && <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full animate-bounce"></span>}
                      </button>
                      {notificationsOpen && (
                         <div className="absolute right-0 mt-2 w-[280px] bg-white shadow-2xl rounded-2xl border border-slate-200 overflow-hidden z-50 text-slate-800 animate-in fade-in zoom-in-95 pointer-events-auto">
@@ -1427,7 +1456,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
   if ((!profile?.username || profile?.username === 'ភ្ញៀវ') && !isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] text-center">
+      <div className="flex flex-col items-center justify-center h-[50vh] text-center font-khmer">
          <div className="w-12 h-12 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-3"><User className="w-6 h-6" /></div>
          <h2 className="text-[14px] font-black mb-1.5 text-[#0F2B5C]">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
          <p className="text-slate-500 mb-4 text-[12px] max-w-sm font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះរបស់អ្នកសិន។ ភ្ញៀវមិនអាចបញ្ជូលទិន្នន័យបានទេ។</p>
@@ -1440,7 +1469,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   const selectedCommuneVillages = form.commune && dbRegions && dbRegions["រតនមណ្ឌល"] && dbRegions["រតនមណ្ឌល"][form.commune] ? dbRegions["រតនមណ្ឌល"][form.commune] : [];
 
   return (
-    <div className="space-y-3 mt-1 flex-1 font-khmer">
+    <div className="space-y-3 mt-1 flex-1 font-khmer font-medium">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
          <h1 className="text-[14.5px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ទិន្នន័យ</h1>
          <button onClick={handleOpenAdd} className="btn-gradient px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[12px] w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> បន្ថែមទិន្នន័យ</button>
@@ -1471,17 +1500,18 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
         )}
       </div>
 
+      {/* Structured flex layout to guarantee submit button is visible on all viewport heights (Fixes photo_6253720894538715529_y.jpg) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 md:px-4 pointer-events-auto">
           <div className="relative w-full max-w-lg bg-white rounded-t-[20px] md:rounded-[20px] overflow-hidden shadow-2xl flex flex-col max-h-[90dvh] border border-slate-200 animate-in slide-in-from-bottom duration-300">
             
-            <form onSubmit={handleAddSubmit} className="flex flex-col max-h-[90dvh] w-full">
+            <form onSubmit={handleAddSubmit} className="flex flex-col max-h-[90dvh] w-full overflow-hidden">
               <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-                <h2 className="text-[13.5px] font-black text-[#0F2B5C]">បន្ថែមទិន្នន័យ: {activeTab}</h2>
+                <h2 className="text-[14px] font-black text-[#0F2B5C]">បន្ថែមទិន្នន័យ: {activeTab}</h2>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500"><X className="w-4.5 h-4.5"/></button>
               </div>
               
-              <div className="p-4 overflow-y-auto flex-1 hide-scrollbar bg-white space-y-4 pb-8">
+              <div className="p-4 overflow-y-auto flex-1 bg-white space-y-4 pb-20">
                 <div>
                    <label className="text-[11px] font-bold text-slate-700 block mb-1 uppercase tracking-wider">ចំណងជើង / ឈ្មោះទីតាំង *</label>
                    <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" placeholder="ឈ្មោះទីតាំង..." />
@@ -1612,7 +1642,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                      ) : (
                         <div className="flex flex-col items-center justify-center text-slate-400 z-10">
                            <ImageSvgIcon className="mb-1" />
-                           <span className="text-[11px] font-bold text-slate-500">ចុចដើម្បី Upload</span>
+                           <span className="text-[11px] font-bold text-slate-500">ចុចដើម្បី Upload រូបភាព</span>
                         </div>
                      )}
                      <input 
@@ -1636,8 +1666,9 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                 </div>
               </div>
 
-              <div className="p-3 border-t border-slate-100 shrink-0 pb-safe bg-slate-50 sticky bottom-0 z-10">
-                 <button type="submit" disabled={loading} className="w-full py-3 rounded-xl font-black btn-gradient disabled:opacity-50 text-[13px] flex justify-center items-center gap-1.5 shadow-md">
+              {/* Submitting button structured as a safe-area responsive sticky footer (Solves photo_6253720894538715529_y.jpg) */}
+              <div className="p-3 border-t border-slate-100 shrink-0 pb-safe bg-slate-50 sticky bottom-0 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+                 <button type="submit" disabled={loading} className="w-full py-3.5 rounded-xl font-black btn-gradient disabled:opacity-50 text-[13.5px] flex justify-center items-center gap-1.5 shadow-md">
                      {loading ? <><Loader2 className="w-4 h-4 animate-spin"/> កំពុងផ្ញើរ...</> : isAdmin ? '✓ បញ្ចូលទិន្នន័យ (Auto Approve)' : '📤 ផ្ញើរសំណើរទៅកាន់ Admin'}
                  </button>
               </div>
@@ -1868,10 +1899,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
   );
 };
 
-const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], dbRegions, gpsStatus, captureGps, gpsCoords, storage, usersList = [] }) => {
-  const [activeChatUser, setActiveChatUser] = useState(null); 
-  const messagesEndRef = useRef(null);
-
+const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser }) => {
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
@@ -1892,8 +1920,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingStreamRef = useRef(null);
-  const pointerStartRef = useRef({ x: 0, y: 0 });
-  const [cancelSlideOffset, setCancelSlideOffset] = useState(0);
   const [pulseWaves, setPulseWaves] = useState(Array(15).fill(4));
   const pulseIntervalRef = useRef(null);
 
@@ -1901,7 +1927,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [editingMsg, setEditingMsg] = useState(null);
   const [editInput, setEditInput] = useState('');
   const [fullscreenImage, setFullscreenImage] = useState(null);
-  const pressTimerRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
@@ -1955,12 +1980,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   };
 
   const startRecordingService = async (e) => {
-    if (e) {
-      if (e.cancelable && e.type !== 'mousedown') e.preventDefault();
-      const clientX = e.clientX || (e.touches && e.touches[0]?.clientX) || 0;
-      const clientY = e.clientY || (e.touches && e.touches[0]?.clientY) || 0;
-      pointerStartRef.current = { x: clientX, y: clientY };
-    }
+    if (e && e.cancelable) e.preventDefault();
 
     if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
        showToast('សូមកំណត់ឈ្មោះគណនីសិន', 'error');
@@ -1968,7 +1988,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
        return;
     }
 
-    setCancelSlideOffset(0);
     setRecordingState('recording');
     setRecordDuration(0);
     audioChunksRef.current = [];
@@ -2003,11 +2022,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       recorder.onstop = async () => {
         clearInterval(recordTimerRef.current);
         clearInterval(pulseIntervalRef.current);
-
-        if (recordingState === 'cancelling' || cancelSlideOffset > 60) {
-          cleanRecordingStreams();
-          return;
-        }
 
         const collectedDuration = recordDuration;
         if (collectedDuration < 1) {
@@ -2057,7 +2071,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
   const cleanRecordingStreams = () => {
     setRecordingState('idle');
-    setCancelSlideOffset(0);
     clearInterval(recordTimerRef.current);
     clearInterval(pulseIntervalRef.current);
     if (recordingStreamRef.current) {
@@ -2067,27 +2080,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     mediaRecorderRef.current = null;
   };
 
-  const handlePointerMove = (e) => {
-    if (recordingState !== 'recording') return;
-    const currentX = e.clientX || (e.touches && e.touches[0]?.clientX) || 0;
-    const deltaX = pointerStartRef.current.x - currentX;
-    
-    if (deltaX > 0) {
-      setCancelSlideOffset(deltaX);
-      if (deltaX > 80) {
-        setRecordingState('cancelling');
-        stopAndCleanRecorder(true);
-      }
-    }
-  };
-
-  const handlePointerUp = () => {
-    if (recordingState !== 'recording') return;
-    stopAndCleanRecorder(false);
-  };
-
-  const stopAndCleanRecorder = (shouldAbort = false) => {
-    if (shouldAbort) setRecordingState('cancelling');
+  const stopAndCleanRecorder = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     } else {
@@ -2138,18 +2131,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      reader.readAsDataURL(file);
   };
 
-  const handlePressStart = (msg) => {
-    pressTimerRef.current = setTimeout(() => {
-      if (isAdmin || msg.userId === user?.uid) {
-         setSelectedActionMsg(msg);
-      }
-    }, 450); 
-  };
-
-  const handlePressEnd = () => {
-    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
-  };
-
   const deleteMessage = async (msgId) => {
       setSelectedActionMsg(null);
       if (db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msgId)).catch(()=>{});
@@ -2173,6 +2154,23 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      setEditInput('');
   };
 
+  const handleConnectPrivateUser = async (targetUser) => {
+     if (!db || !user) return;
+     try {
+       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'contacts', targetUser.id), {
+          id: targetUser.id,
+          label: targetUser.username,
+          avatar: targetUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+          timestamp: Date.now()
+       });
+       showToast(`បានភ្ជាប់ទំនាក់ទំនងជាមួយ ${targetUser.username} ជោគជ័យ!`);
+       setShowUserSearch(false);
+       setActiveChatUser({ id: targetUser.id, label: targetUser.username, avatar: targetUser.avatar });
+     } catch (err) {
+       showToast('មានបញ្ហាក្នុងការភ្ជាប់ទំនាក់ទំនង', 'error');
+     }
+  };
+
   if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center flex-1 font-khmer">
@@ -2189,7 +2187,14 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      const communeList = selectedDistrict && dbRegions?.[selectedDistrict] ? Object.keys(dbRegions[selectedDistrict]) : [];
      const villageList = selectedDistrict && selectedCommune && dbRegions?.[selectedDistrict]?.[selectedCommune] ? dbRegions[selectedDistrict][selectedCommune] : [];
 
-     const filteredContacts = (chatTargets || []).filter(t => {
+     const mergedContacts = (() => {
+         const map = new Map();
+         chatTargets.forEach(t => map.set(t.id, { ...t, isPrivate: false }));
+         myContacts.forEach(c => map.set(c.id, { ...c, isPrivate: true, role: 'មិត្តភក្តិ', district: 'ឯកជន' }));
+         return Array.from(map.values());
+     })();
+
+     const filteredContacts = mergedContacts.filter(t => {
          if (!t) return false;
          if (t.isDefault) return true;
          if (localFilterActive) {
@@ -2198,7 +2203,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
             if (selectedVillage && t.village && t.village !== selectedVillage) return false;
             return true;
          }
-         return t.district === 'រតនមណ្ឌល';
+         return true;
      });
 
      const registeredUsersToShow = (usersList || []).filter(u => u && u.username && u.username !== 'ភ្ញៀវ' && u.id !== user?.uid);
@@ -2208,7 +2213,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
            <div className="p-3.5 border-b border-slate-100 bg-slate-50 shrink-0 flex justify-between items-center">
                <div>
                   <h1 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#38BDF8]"/> ទំនាក់ទំនងឆាត</h1>
-                  <p className="text-[11px] text-slate-500 font-bold mt-1 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬទីតាំងដែលអ្នកចង់ទាក់ទង។</p>
+                  <p className="text-[11px] text-slate-500 font-bold mt-1 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬមិត្តភក្តិដែលអ្នកចង់ឆាតឯកជនជាមួយ។</p>
                </div>
                
                <div className="flex gap-1.5">
@@ -2216,7 +2221,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                       onClick={() => { setShowUserSearch(!showUserSearch); setLocalFilterActive(false); }} 
                       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black transition-all ${showUserSearch ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white' : 'bg-white border-slate-200 text-slate-600'}`}
                    >
-                      <Search className="w-3 h-3" /> Add មិត្ត
+                      <Plus className="w-3.5 h-3.5" /> Add មិត្ត
                    </button>
                    <button 
                       onClick={() => { setLocalFilterActive(!localFilterActive); setShowUserSearch(false); }} 
@@ -2239,19 +2244,33 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                           className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-8 pr-3 text-[13px] font-bold outline-none"
                       />
                   </div>
-                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto hide-scrollbar pb-1">
+                  <div className="space-y-1.5 max-h-[180px] overflow-y-auto hide-scrollbar pb-1">
                       {registeredUsersToShow.filter(u => u.username?.toLowerCase().includes(userSearchTerm.toLowerCase())).length === 0 ? (
-                          <p className="text-center text-[10px] text-slate-400 font-bold py-1">គ្មានគណនីដែលត្រូវស្វែងរកទេ</p>
+                          <p className="text-center text-[10px] text-slate-400 font-bold py-2">គ្មានគណនីដែលត្រូវស្វែងរកទេ</p>
                       ) : (
-                          registeredUsersToShow.filter(u => u.username?.toLowerCase().includes(userSearchTerm.toLowerCase())).map(u => (
-                              <div key={u.id} onClick={() => { setActiveChatUser({ id: u.id, label: u.username, avatar: u.avatar }); setShowUserSearch(false); }} className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 cursor-pointer">
-                                  <div className="flex items-center gap-2">
-                                      <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-7 h-7 rounded-full border border-slate-200 object-cover" alt="av" />
-                                      <span className="font-bold text-[12px] text-[#0F2B5C]">{safeStr(u.username)}</span>
-                                  </div>
-                                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">ឆាត</span>
-                              </div>
-                          ))
+                          registeredUsersToShow.filter(u => u.username?.toLowerCase().includes(userSearchTerm.toLowerCase())).map(u => {
+                              const isOnline = (Date.now() - (u.lastActive || 0)) < 120000;
+                              return (
+                                <div key={u.id} className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative">
+                                           <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover" alt="av" />
+                                           <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                                        </div>
+                                        <div>
+                                           <span className="font-bold text-[12px] text-[#0F2B5C] block">{safeStr(u.username)}</span>
+                                           <span className="text-[9px] font-bold text-slate-400">{isOnline ? 'Online 🟢' : 'មិន Online ⚪'}</span>
+                                        </div>
+                                    </div>
+                                    <button 
+                                       onClick={() => handleConnectPrivateUser(u)} 
+                                       className="text-[10px] font-black bg-emerald-500 text-white px-3 py-1.5 rounded-lg active:scale-95 transition-all shadow-sm"
+                                    >
+                                       ភ្ជាប់ទំនាក់ទំនង
+                                    </button>
+                                </div>
+                              );
+                          })
                       )}
                   </div>
               </div>
@@ -2286,24 +2305,35 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
            <div className="flex-1 overflow-y-auto p-3 hide-scrollbar bg-white">
               <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
-              {filteredContacts.map((contact, i) => contact && (
-                  <div 
-                     key={contact.id || i} 
-                     onClick={() => setActiveChatUser(contact)}
-                     className="flex items-center justify-between p-3 hover:bg-slate-50 bg-white rounded-xl cursor-pointer transition-all active:scale-[0.99] border border-slate-200 mb-2 shadow-sm relative overflow-hidden group"
-                  >
-                      <div className="flex items-center gap-2.5">
-                          <img src={contact.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
-                          <div>
-                              <h3 className="font-black text-[13px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
-                              <p className="text-[10px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded border border-[#0F2B5C] w-fit mt-1 line-clamp-1 shadow-sm">
-                                 {selectedCommune ? `${selectedCommune} • ${selectedVillage || 'គ្រប់ភូមិ'}` : 'ទំនាក់ទំនងទូទៅ'}
-                              </p>
-                          </div>
-                      </div>
-                      <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors"><ArrowRight className="w-3.5 h-3.5"/></div>
-                  </div>
-              ))}
+              {filteredContacts.map((contact, i) => {
+                  if (!contact) return null;
+                  const isOnline = (usersList || []).some(u => u.id === contact.id && (Date.now() - (u.lastActive || 0)) < 120000);
+                  
+                  return (
+                    <div 
+                       key={contact.id || i} 
+                       onClick={() => setActiveChatUser(contact)}
+                       className="flex items-center justify-between p-3 hover:bg-slate-50 bg-white rounded-xl cursor-pointer transition-all active:scale-[0.99] border border-slate-200 mb-2 shadow-sm relative overflow-hidden group"
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <div className="relative shrink-0">
+                               <img src={contact.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
+                               <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                            </div>
+                            <div>
+                                <h3 className="font-black text-[13px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
+                                <div className="flex gap-1.5 items-center mt-1">
+                                  <span className="text-[9px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded shadow-sm">
+                                     {contact.isPrivate ? 'មិត្តឯកជន' : 'ស្ថាប័ន'}
+                                  </span>
+                                  <span className="text-[9.5px] text-slate-400 font-bold">{isOnline ? 'Online' : 'offline'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors"><ArrowRight className="w-3.5 h-3.5"/></div>
+                    </div>
+                  );
+              })}
            </div>
         </div>
      );
@@ -2317,12 +2347,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
   return (
     <div 
-      className="flex flex-col flex-1 h-full min-h-0 bg-[#f1f5f9] md:bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden relative w-full font-khmer animate-in slide-in-from-right-5 duration-300 pb-[92px] md:pb-0"
-      onMouseMove={handlePointerMove}
-      onTouchMove={handlePointerMove}
-      onMouseUp={handlePointerUp}
-      onTouchEnd={handlePointerUp}
-      onMouseLeave={handlePointerUp}
+      className="flex flex-col flex-1 h-full min-h-0 bg-[#f1f5f9] md:bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden relative w-full font-khmer animate-in slide-in-from-right-5 duration-300 pb-0"
+      onClick={()=>setShowAttachMenu(false)}
     >
       <ImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
 
@@ -2378,7 +2404,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full border border-slate-200"><ArrowLeft className="w-4.5 h-4.5 text-slate-600"/></button>
         <div className="relative">
            <img src={activeChatUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
-           <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white bg-emerald-500"></div>
+           <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white bg-emerald-500 animate-pulse"></div>
         </div>
         <div className="min-w-0 flex-1">
             <h2 className="font-black text-[13.5px] text-slate-800 truncate">{safeStr(activeChatUser.label)}</h2>
@@ -2386,7 +2412,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3.5 telegram-bg hide-scrollbar scroll-smooth" onClick={()=>setShowAttachMenu(false)}>
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3.5 telegram-bg hide-scrollbar scroll-smooth">
         {filteredChats.length === 0 ? (
           <div className="flex justify-center mt-4">
              <div className="text-center text-slate-500 py-2 px-4 text-[11px] font-bold bg-white/80 rounded-xl border border-slate-200 shadow-sm">
@@ -2400,11 +2426,10 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
             
             let msgContent;
             if (msg.msgType === 'location') {
-               const calculatedDistanceVal = gpsCoords && msg.senderCoords ? calculateDistance(gpsCoords.lat, gpsCoords.lng, msg.senderCoords.lat, msg.senderCoords.lng) : 0;
                msgContent = (
-                  <div className="flex flex-col gap-2 p-0.5 text-slate-800">
-                     <LocationRouteMap senderCoords={msg.senderCoords} receiverCoords={gpsCoords} distance={calculatedDistanceVal} />
-                     <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="w-full text-center py-2 bg-emerald-600 text-white text-[11px] font-bold rounded-lg block">🗺️ បើកផែនទី Google Maps</a>
+                  <div className="flex flex-col gap-2 p-0.5 text-slate-800 min-w-[200px]">
+                     <LocationRouteMap senderCoords={msg.senderCoords} receiverCoords={gpsCoords} />
+                     <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="w-full text-center py-2 bg-emerald-600 text-white text-[11px] font-bold rounded-lg block active:scale-95 transition-transform">🗺️ បើកផែនទី Google Maps</a>
                   </div>
                );
             } else if (msg.msgType === 'image') {
@@ -2448,12 +2473,12 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                               ? 'bg-[#0F2B5C] border-[#0F2B5C] rounded-br-sm text-white' 
                               : 'bg-white text-slate-800 rounded-bl-sm border-slate-200'
                           }`}
-                         onContextMenu={(e) => { e.preventDefault(); handlePressStart(msg); }}
-                         onMouseDown={() => handlePressStart(msg)}
-                         onMouseUp={handlePressEnd}
-                         onMouseLeave={handlePressEnd}
-                         onTouchStart={() => handlePressStart(msg)}
-                         onTouchEnd={handlePressEnd}
+                         onDoubleClick={(e) => {
+                            e.preventDefault();
+                            if (isAdmin || msg.userId === user?.uid) {
+                               setSelectedActionMsg(msg);
+                            }
+                         }}
                       >
                          {msgContent}
                          <div className={`flex items-center justify-end gap-1 mt-1 opacity-80 text-[9px] font-bold self-end ${isMe ? 'text-sky-200' : 'text-slate-400'}`}>
@@ -2470,7 +2495,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         )}
       </div>
 
-      <div className="p-2.5 bg-white border-t border-slate-200 shrink-0 z-30 shadow-md pb-[max(env(safe-area-inset-bottom),8px)] relative w-full">
+      <div className="p-2.5 bg-white border-t border-slate-200 shrink-0 z-30 shadow-md pb-[max(env(safe-area-inset-bottom),8px)] relative w-full" onClick={e=>e.stopPropagation()}>
         {showAttachMenu && (
            <div className="absolute bottom-[65px] left-3 bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex flex-col w-40 animate-in slide-in-from-bottom-2">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
@@ -2498,13 +2523,17 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                  ))}
               </div>
 
-              <div className="text-[11px] text-rose-500 font-bold flex items-center gap-1 opacity-70">
-                 <span>{cancelSlideOffset > 40 ? 'ព្រលែងដើម្បីបោះបង់!' : 'អូសឆ្វេងបោះបង់'}</span>
-              </div>
+              <button 
+                type="button" 
+                onClick={stopAndCleanRecorder} 
+                className="bg-rose-500 text-white rounded-lg px-2 py-1 text-[11px] font-bold active:scale-95"
+              >
+                ផ្ញើ (Send)
+              </button>
            </div>
         ) : (
            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-end gap-2 w-full">
-              <button type="button" onClick={()=>setShowAttachMenu(!showAttachMenu)} className={`p-3 rounded-full transition active:scale-95 shrink-0 ${showAttachMenu ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}><Plus className="w-5 h-5"/></button>
+              <button type="button" onClick={(e)=>{ e.stopPropagation(); setShowAttachMenu(!showAttachMenu); }} className={`p-3 rounded-full transition active:scale-95 shrink-0 ${showAttachMenu ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}><Plus className="w-5 h-5"/></button>
               
               <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl flex items-center px-3">
                  <input 
@@ -2525,7 +2554,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                     type="button" 
                     onMouseDown={startRecordingService}
                     onTouchStart={startRecordingService}
-                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm"
+                    onMouseUp={stopAndCleanRecorder}
+                    onTouchEnd={stopAndCleanRecorder}
+                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm active:scale-95"
                   >
                      <Mic className="w-5 h-5" />
                   </button>
@@ -2875,7 +2906,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   };
 
   const handleForceLogoutUser = (userObj) => {
-      openConfirm("លុបគណនីចេញពីទូរស័ព្ទ (Force Wiping Device)", `សកម្មភាពនេះនឹងលុបគណនី ${userObj.username} ចេញពីទូរស័ព្ទ និងផ្តាច់ទិន្នន័យទាំងអស់ភ្លាមៗ។ ចង់បន្តទេ?`, async () => {
+      openConfirm("លុបគណនីចេញពីទូរស័ព្ទ (Force Wiping Device)", `សកម្មភាពនេះនឹងលុបគណនី ${userObj.username} 出ទូរស័ព្ទ និងផ្តាច់ទិន្នន័យទាំងអស់ភ្លាមៗ។ ចង់បន្តទេ?`, async () => {
          if (db) {
             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id), { forceLogout: true });
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
@@ -2887,7 +2918,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const handleDeleteTrollUser = (userObj) => {
       openPasswordPrompt(
          `លុបគណនី ${userObj.username}`, 
-         `តើអ្នកពិតជាចង់លុបគណនីរបស់ ${userObj.username} មែនទេ? សូមវាយលេខកូដ Admin ដើម្បីបញ្ជាក់សកម្មភាពលុបនេះ។`, 
+         `តើអ្នកពិតជាចង់លុបគណនីរបស់ {userObj.username} មែនទេ? សូមវាយលេខកូដ Admin ដើម្បីបញ្ជាក់សកម្មភាពលុបនេះ។`, 
          async () => {
             if (db) {
                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
@@ -3031,7 +3062,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   }, [usersList, userSearchQuery]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-3 pb-10 flex-1 font-khmer text-slate-800">
+    <div className="w-full max-w-5xl mx-auto space-y-3 pb-10 flex-1 font-khmer text-slate-800 animate-in fade-in">
       <ConfirmModal isOpen={!!confirmAction} title={confirmAction?.title} message={confirmAction?.message} onConfirm={handleConfirm} onCancel={() => setConfirmAction(null)} />
       <PasswordPromptModal isOpen={!!passwordAction} title={passwordAction?.title} description={passwordAction?.description} onConfirm={handlePasswordConfirm} onCancel={() => setPasswordAction(null)} />
 
@@ -3071,7 +3102,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                      </div>
                      <label className="relative flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only toggle-checkbox" checked={cosmicTheme} onChange={toggleCosmicTheme} />
-                        <div className={`w-10 h-6 rounded-full transition-colors duration-300 toggle-label ${cosmicTheme ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                        <div className={`w-10 h-6 rounded-full transition-colors duration-300 toggle-label ${cosmicTheme ? 'bg-[#10b981]' : 'bg-slate-300'}`}></div>
                         <div className={`dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 ${cosmicTheme ? 'translate-x-4' : 'translate-x-0'}`}></div>
                      </label>
                  </div>
