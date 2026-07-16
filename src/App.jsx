@@ -167,11 +167,14 @@ const injectStyles = () => {
       color: #0f172a; margin: 0; padding: 0; width: 100%; height: 100%; 
       touch-action: manipulation; 
     }
-    .font-khmer { font-family: var(--font-khmer); }
+    .font-khmer { 
+      font-family: var(--font-khmer); 
+      line-height: 1.65;
+    }
     .font-logo { font-family: 'Montserrat', sans-serif; }
     
     input, textarea, select { 
-      font-size: 15px !important; 
+      font-size: 16px !important; 
       outline: none; 
       touch-action: manipulation;
     } 
@@ -184,13 +187,13 @@ const injectStyles = () => {
 
     .btn-gradient {
        background: linear-gradient(135deg, #0F2B5C, #1e3a8a);
-       box-shadow: 0 3px 10px rgba(15, 43, 92, 0.2);
+       box-shadow: 0 4px 12px rgba(15, 43, 92, 0.22);
        color: white; border: none; transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn-gradient:active { transform: scale(0.96); box-shadow: 0 1px 6px rgba(15, 43, 92, 0.1); }
+    .btn-gradient:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(15, 43, 92, 0.12); }
     
     .premium-card {
-       background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); border: 1px solid rgba(226, 232, 240, 0.7);
+       background: white; border-radius: 14px; box-shadow: 0 3px 10px rgba(0,0,0,0.03); border: 1px solid rgba(226, 232, 240, 0.75);
     }
     
     .telegram-bg {
@@ -236,20 +239,20 @@ const PasswordPromptModal = ({ isOpen, title, description, onConfirm, onCancel }
 
   return (
     <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm px-4 animate-in fade-in duration-200 pointer-events-auto font-khmer">
-      <div className="bg-white rounded-[16px] shadow-2xl p-5 w-full max-w-sm border border-slate-100 text-center">
-        <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3 border border-rose-100">
-          <ShieldAlert className="w-6 h-6" />
+      <div className="bg-white rounded-[20px] shadow-2xl p-6 w-full max-w-sm border border-slate-100 text-center">
+        <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
+          <ShieldAlert className="w-7 h-7" />
         </div>
-        <h3 className="text-[14px] font-black text-[#0F2B5C] mb-1 uppercase">{safeStr(title)}</h3>
-        <p className="text-slate-500 text-[11px] mb-3 leading-relaxed font-medium">{safeStr(description)}</p>
+        <h3 className="text-[17px] font-black text-[#0F2B5C] mb-2 uppercase leading-normal">{safeStr(title)}</h3>
+        <p className="text-slate-500 text-[13.5px] mb-4.5 leading-relaxed font-medium">{safeStr(description)}</p>
         
         {errorMsg && (
-          <div className="mb-3 p-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[11px] font-bold text-center">
+          <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-[13px] font-bold text-center">
              ⚠️ {errorMsg}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <input 
             type="password" 
             required 
@@ -259,11 +262,11 @@ const PasswordPromptModal = ({ isOpen, title, description, onConfirm, onCancel }
               if (errorMsg) setErrorMsg('');
             }} 
             placeholder="បញ្ចូលលេខសម្ងាត់ Admin..." 
-            className="w-full bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl text-[14px] font-bold text-center outline-none focus:border-rose-500 transition-colors"
+            className="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl text-[16px] font-black text-center outline-none focus:border-rose-500 transition-colors"
           />
-          <div className="flex gap-2">
-            <button type="button" onClick={() => { onCancel(); setPassword(''); setErrorMsg(''); }} className="flex-1 py-2.5 bg-slate-100 text-slate-600 rounded-lg text-[12px] font-bold active:scale-95 transition-all">បដិសេធ</button>
-            <button type="submit" className="flex-1 py-2.5 bg-[#0F2B5C] text-white rounded-lg text-[12px] font-black active:scale-95 transition-all shadow-md">យល់ព្រម</button>
+          <div className="flex gap-2.5">
+            <button type="button" onClick={() => { onCancel(); setPassword(''); setErrorMsg(''); }} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl text-[14px] font-black active:scale-95 transition-all">បដិសេធ</button>
+            <button type="submit" className="flex-1 py-3 bg-[#0F2B5C] text-white rounded-xl text-[14px] font-black active:scale-95 transition-all shadow-md">យល់ព្រម</button>
           </div>
         </form>
       </div>
@@ -275,15 +278,15 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 animate-in fade-in duration-200 pointer-events-auto font-khmer">
-      <div className="bg-white rounded-[16px] shadow-2xl p-4 w-full max-w-sm animate-in zoom-in-95 border border-slate-100">
-        <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center mb-2 mx-auto border border-rose-100">
-          <ShieldAlert className="w-5 h-5 text-rose-500" />
+      <div className="bg-white rounded-[20px] shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 border border-slate-100">
+        <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center mb-4.5 mx-auto border border-rose-100">
+          <ShieldAlert className="w-6 h-6 text-rose-500" />
         </div>
-        <h3 className="text-[13px] font-black text-center text-slate-800 mb-1">{safeStr(title)}</h3>
-        <p className="text-[11px] text-center text-slate-500 mb-4 leading-relaxed font-medium">{safeStr(message)}</p>
-        <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 py-2 bg-slate-100 text-slate-600 rounded-lg font-bold text-[11px] active:scale-95 transition-all">បដិសេធ</button>
-          <button onClick={onConfirm} className="flex-1 py-2 rounded-lg font-bold text-[11px] bg-[#0F2B5C] text-white shadow-md active:scale-95 transition-all">ព្រម</button>
+        <h3 className="text-[16px] font-black text-center text-slate-800 mb-2 leading-normal">{safeStr(title)}</h3>
+        <p className="text-[13.5px] text-center text-slate-500 mb-6 leading-relaxed font-medium">{safeStr(message)}</p>
+        <div className="flex gap-2.5">
+          <button onClick={onCancel} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black text-[13.5px] active:scale-95 transition-all">បដិសេធ</button>
+          <button onClick={onConfirm} className="flex-1 py-3 rounded-xl font-black text-[13.5px] bg-[#0F2B5C] text-white shadow-md active:scale-95 transition-all">ព្រម</button>
         </div>
       </div>
     </div>
@@ -387,15 +390,15 @@ const LocationRouteMap = ({ senderCoords, receiverCoords, distance }) => {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
       const senderIcon = L.divIcon({
-        html: `<div class="w-6 h-6 bg-[#0F2B5C] rounded-full border-2 border-white flex items-center justify-center text-white shadow-md"><span class="text-[9px] font-black">A</span></div>`,
+        html: `<div class="w-7 h-7 bg-[#0F2B5C] rounded-full border-2 border-white flex items-center justify-center text-white shadow-md"><span class="text-[10px] font-black">A</span></div>`,
         className: '',
-        iconSize: [24, 24]
+        iconSize: [28, 28]
       });
 
       const receiverIcon = L.divIcon({
-        html: `<div class="w-6 h-6 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-white shadow-md"><span class="text-[9px] font-black">B</span></div>`,
+        html: `<div class="w-7 h-7 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-white shadow-md"><span class="text-[10px] font-black">B</span></div>`,
         className: '',
-        iconSize: [24, 24]
+        iconSize: [28, 28]
       });
 
       L.marker([senderCoords.lat, senderCoords.lng], { icon: senderIcon }).addTo(map);
@@ -406,7 +409,7 @@ const LocationRouteMap = ({ senderCoords, receiverCoords, distance }) => {
         [activeReceiver.lat, activeReceiver.lng]
       ], {
         color: '#10B981',
-        weight: 3,
+        weight: 3.5,
         dashArray: '8, 8',
         lineCap: 'round',
         lineJoin: 'round'
@@ -424,12 +427,12 @@ const LocationRouteMap = ({ senderCoords, receiverCoords, distance }) => {
   }, [senderCoords, receiverCoords]);
 
   return (
-    <div className="w-full space-y-1.5 font-khmer">
-      <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg text-[10px] text-emerald-800 font-bold">
+    <div className="w-full space-y-2 font-khmer">
+      <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 px-3.5 py-2 rounded-xl text-[11px] text-emerald-800 font-bold">
          <span>📍 គណនាចម្ងាយសរុប (A → B)</span>
-         <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded font-black">{distance || 0} KM</span>
+         <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-lg font-black">{distance || 0} KM</span>
       </div>
-      <div ref={mapContainerRef} className="w-full h-36 rounded-xl overflow-hidden border border-slate-200 shadow-sm z-0 relative" />
+      <div ref={mapContainerRef} className="w-full h-40 rounded-xl overflow-hidden border border-slate-200 shadow-sm z-0 relative" />
     </div>
   );
 };
@@ -438,36 +441,36 @@ const CallPickerModal = ({ isOpen, title, contacts, onClose }) => {
   if (!isOpen || !contacts || contacts.length === 0) return null;
   return (
     <div className="fixed inset-0 z-[2000] flex items-end justify-center bg-slate-900/60 backdrop-blur-sm px-0 pointer-events-auto font-khmer">
-      <div className="bg-white rounded-t-[20px] shadow-2xl p-4 w-full max-w-md animate-in slide-in-from-bottom duration-300 border-t border-slate-200">
-        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3"></div>
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-t-[24px] shadow-2xl p-5 w-full max-w-md animate-in slide-in-from-bottom duration-300 border-t border-slate-200">
+        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4"></div>
+        <div className="flex justify-between items-center mb-5">
           <div>
-            <h3 className="text-[13px] font-black text-slate-800 leading-tight">ជ្រើសរើសលេខទូរស័ព្ទ</h3>
-            <p className="text-[11px] text-slate-400 font-bold mt-0.5">{safeStr(title)}</p>
+            <h3 className="text-[14px] font-black text-slate-800 leading-tight">ជ្រើសរើសលេខទូរស័ព្ទ</h3>
+            <p className="text-[12px] text-slate-400 font-bold mt-1">{safeStr(title)}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-full">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="p-2 bg-slate-50 border border-slate-200 text-slate-500 rounded-full">
+            <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="space-y-2 max-h-[40vh] overflow-y-auto hide-scrollbar pb-safe">
+        <div className="space-y-2.5 max-h-[40vh] overflow-y-auto hide-scrollbar pb-safe">
           {contacts.map((contact, idx) => (
             <a 
               key={idx} 
               href={`tel:${contact.phone}`} 
               onClick={onClose}
-              className="flex items-center justify-between p-3 hover:bg-emerald-50 border border-slate-100 bg-slate-50/50 rounded-xl cursor-pointer transition-all active:scale-95 group"
+              className="flex items-center justify-between p-3.5 hover:bg-emerald-50 border border-slate-100 bg-slate-50/50 rounded-xl cursor-pointer transition-all active:scale-95 group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <Phone className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <Phone className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-black text-[12px] text-[#0F2B5C]">{safeStr(contact.name)}</h4>
-                  <p className="text-[11px] text-slate-500 font-bold tracking-wider mt-0.5">{safeStr(contact.phone)}</p>
+                  <h4 className="font-black text-[13px] text-[#0F2B5C]">{safeStr(contact.name)}</h4>
+                  <p className="text-[12px] text-slate-500 font-bold tracking-wider mt-0.5">{safeStr(contact.phone)}</p>
                 </div>
               </div>
-              <div className="bg-emerald-500 text-white font-black text-[10px] px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1">
-                Call <ArrowRight className="w-3 h-3"/>
+              <div className="bg-emerald-500 text-white font-black text-[11px] px-3.5 py-2 rounded-xl shadow-sm flex items-center gap-1">
+                Call <ArrowRight className="w-3.5 h-3.5"/>
               </div>
             </a>
           ))}
@@ -884,18 +887,18 @@ export default function App() {
         <div className="fixed inset-0 z-[9999] bg-[#0F2B5C] text-white flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-500 font-khmer overflow-y-auto">
            <AlertOctagon className="w-10 h-10 mb-3 animate-pulse text-rose-500 shrink-0" />
            <h1 className="text-lg md:text-xl font-black mb-2 text-rose-400">គណនីត្រូវបានបិទ! (Device Blocked)</h1>
-           <p className="text-[11px] md:text-[13px] font-medium leading-relaxed max-w-sm text-slate-200 bg-slate-900/50 p-4 rounded-2xl border border-rose-500/30 shadow-xl mb-6">
+           <p className="text-[12px] md:text-[13.5px] font-medium leading-relaxed max-w-sm text-slate-200 bg-slate-900/50 p-4 rounded-2xl border border-rose-500/30 shadow-xl mb-6">
               ដោយសារតែទង្វើរនិងសកម្មភាពអវិជ្ជមានរបស់អ្នកដែលធ្វើឱ្យប៉ះពាល់ដល់ការងាររបស់អ្នកដទៃ ចឹងមិនអាចចូលប្រើបានទេ ប្រសិនបើអ្នកចង់ប្រើត្រូវធ្វើតាមនីតិវិធីដូចខាងក្រោម បើមានលើកទីពីរនោះប្រព័ន្ធនឹងដក web app ចេញពីទូរស័ព្ទដៃរបស់ user និងមិនអាចចូលប្រើបានជារៀងរហូត។
            </p>
 
-           <div className="w-full max-w-xs bg-white/10 p-4 rounded-2xl border border-white/10 space-y-3 mb-4">
+           <div className="w-full max-w-xs bg-white/10 p-4 rounded-2xl border border-white/10 space-y-3.5 mb-4">
                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-300 block mb-1 text-left">១. ថតរូបមុខបញ្ជាក់អត្តសញ្ញាណ *</label>
+                  <label className="text-[11px] uppercase font-bold text-slate-300 block mb-1 text-left">១. ថតរូបមុខបញ្ជាក់អត្តសញ្ញាណ *</label>
                   
                   {isCapturing && (
                     <div className="w-full aspect-[4/3] bg-black rounded-xl overflow-hidden relative mb-2">
                        <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-                       <button onClick={capturePhotoSnapshot} className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-rose-600 px-3 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 shadow-lg"><Camera className="w-3.5 h-3.5" /> ថតយក (Capture)</button>
+                       <button onClick={capturePhotoSnapshot} className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-rose-600 px-3 py-1.5 rounded-lg text-[11px] font-black flex items-center gap-1 shadow-lg"><Camera className="w-3.5 h-3.5" /> ថតយក (Capture)</button>
                        <button onClick={cancelCameraStream} className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full shadow-md"><X className="w-3.5 h-3.5"/></button>
                     </div>
                   )}
@@ -903,30 +906,30 @@ export default function App() {
                   {!isCapturing && appealPhoto && (
                      <div className="relative w-full aspect-[16/10] bg-black/20 rounded-xl overflow-hidden border border-white/10 mb-2">
                         <img src={appealPhoto} alt="Snapshot" className="w-full h-full object-cover" />
-                        <button onClick={startCamera} className="absolute bottom-2 right-2 bg-black/60 p-2 rounded-lg text-[9px] font-bold backdrop-blur-sm">ថតម្តងទៀត</button>
+                        <button onClick={startCamera} className="absolute bottom-2 right-2 bg-black/60 p-2 rounded-lg text-[10px] font-bold backdrop-blur-sm">ថតម្តងទៀត</button>
                      </div>
                   )}
 
                   {!isCapturing && !appealPhoto && (
-                     <button onClick={startCamera} className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-[11px] flex items-center justify-center gap-1 transition-all shadow-md active:scale-95">
+                     <button onClick={startCamera} className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-[12px] flex items-center justify-center gap-1 transition-all shadow-md active:scale-95">
                         <Camera className="w-3.5 h-3.5"/> ថតរូបមុខផ្ទាល់ (Open Camera)
                      </button>
                   )}
                </div>
                <div>
-                  <label className="text-[10px] uppercase font-bold text-slate-300 block mb-1 text-left">២. លិខិតបញ្ជាក់សេចក្តីសន្យា *</label>
+                  <label className="text-[11px] uppercase font-bold text-slate-300 block mb-1 text-left">២. លិខិតបញ្ជាក់សេចក្តីសន្យា *</label>
                   <textarea 
                      value={appealText}
                      onChange={e => setAppealText(e.target.value)}
                      placeholder="សរសេរការសន្យារបស់អ្នកនៅទីនេះ..."
-                     className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-400 p-2.5 rounded-xl text-[12px] h-16 resize-none font-medium focus:border-white/30 transition-all outline-none"
+                     className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-400 p-2.5 rounded-xl text-[13px] h-16 resize-none font-medium focus:border-white/30 transition-all outline-none"
                   />
                </div>
            </div>
 
            <div className="flex gap-2 w-full max-w-xs mt-1">
-              <button onClick={() => setCurrentPage('gateway')} className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2.5 rounded-lg font-bold text-[11px] transition-all active:scale-95">ត្រឡប់ក្រោយ</button>
-              <button onClick={submitAppeal} className="flex-1 bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg font-black text-[11px] shadow-lg transition-all active:scale-95 border border-rose-500">ផ្ញើសំណើ</button>
+              <button onClick={() => setCurrentPage('gateway')} className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2.5 rounded-lg font-bold text-[12px] transition-all active:scale-95">ត្រឡប់ក្រោយ</button>
+              <button onClick={submitAppeal} className="flex-1 bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg font-black text-[12px] shadow-lg transition-all active:scale-95 border border-rose-500">ផ្ញើសំណើ</button>
            </div>
         </div>
       );
@@ -941,12 +944,12 @@ export default function App() {
             <div className="relative w-24 h-24 flex items-center justify-center mb-4 hover:scale-105 transition-transform duration-500">
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-transparent stroke-[1.5px] rotate-90" />
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-[#0F2B5C] stroke-none rotate-90 scale-90" />
-                <GraduationCap className="relative z-10 w-12 h-12 text-[#38BDF8] animate-pulse" />
+                <GraduationCap className="relative z-10 w-12 h-12 text-[#38BDF8] " />
             </div>
             <h1 className={`font-logo font-black text-3xl tracking-widest ${cosmicTheme ? 'text-white' : 'text-[#0F2B5C]'} mb-1 drop-shadow-sm`}>
                 TP<span className="text-[#38BDF8]">CAMBODIA</span>
             </h1>
-            <p className={`text-[10px] ${cosmicTheme ? 'text-sky-300' : 'text-slate-400'} font-bold uppercase tracking-widest bg-white/10 px-2.5 py-0.5 rounded-full backdrop-blur-sm`}>VMC Volunteer Group</p>
+            <p className={`text-[11px] ${cosmicTheme ? 'text-sky-300' : 'text-slate-400'} font-bold uppercase tracking-widest bg-white/10 px-2.5 py-0.5 rounded-full backdrop-blur-sm`}>VMC Volunteer Group</p>
         </div>
 
         <div className="w-full md:w-1/2 md:h-full md:rounded-none md:rounded-l-[40px] bg-[#0F2B5C] rounded-t-[40px] px-6 py-10 flex flex-col justify-center items-center text-center pb-[max(env(safe-area-inset-bottom),40px)] shadow-[0_-10px_30px_rgba(15,43,92,0.15)] relative overflow-hidden z-10">
@@ -955,20 +958,20 @@ export default function App() {
             <h2 className="text-white text-2xl font-black mb-4 font-khmer leading-tight z-10">
                 សូមស្វាគមន៍មកកាន់<br/><span className="text-[#38BDF8]">TP CAMBODIA</span>
             </h2>
-            <p className="text-sky-100/80 text-[12px] leading-relaxed max-w-sm mb-8 font-khmer px-2 z-10 font-medium">
+            <p className="text-sky-100/80 text-[13px] leading-relaxed max-w-sm mb-8 font-khmer px-2 z-10 font-medium">
                 ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ។
             </p>
             
             <button 
                 onClick={() => setShowRegModal(true)} 
-                className="w-full max-w-[260px] bg-white text-[#0F2B5C] py-3 rounded-[15px] font-black text-[13px] shadow-lg active:scale-95 transition-transform mb-3 font-khmer z-10 hover:bg-slate-50 flex justify-center items-center gap-1.5"
+                className="w-full max-w-[260px] bg-white text-[#0F2B5C] py-3.5 rounded-xl font-black text-[13.5px] shadow-lg active:scale-95 transition-transform mb-3 font-khmer z-10 hover:bg-slate-50 flex justify-center items-center gap-1.5"
             >
                 ចុះឈ្មោះចូលប្រើ <ArrowRight className="w-4 h-4"/>
             </button>
 
             <button 
                 onClick={handleGuestEntry} 
-                className="w-full max-w-[260px] bg-transparent border-2 border-white/20 text-white/80 py-3 rounded-[15px] font-bold text-[12px] active:scale-95 transition-transform hover:bg-white/10 font-khmer z-10"
+                className="w-full max-w-[260px] bg-transparent border-2 border-white/20 text-white/80 py-3.5 rounded-xl font-bold text-[13px] active:scale-95 transition-transform hover:bg-white/10 font-khmer z-10"
             >
                 រំលង (ចូលជាភ្ញៀវ)
             </button>
@@ -982,7 +985,7 @@ export default function App() {
                         <User className="w-8 h-8" />
                     </div>
                     <h3 className="text-lg font-black text-[#0F2B5C] mb-1 font-khmer">ការបង្កើតគណនីថ្មី</h3>
-                    <p className="text-[11px] text-slate-500 mb-4 font-khmer font-medium">គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។</p>
+                    <p className="text-[12px] text-slate-500 mb-4 font-khmer font-medium">គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។</p>
                     
                     <form onSubmit={handleGatewayRegister} className="w-full space-y-3">
                         <input 
@@ -991,9 +994,9 @@ export default function App() {
                             value={regName} 
                             onChange={e=>setRegName(e.target.value)} 
                             placeholder="បញ្ចូលឈ្មោះគណនីឧបករណ៍នេះ..." 
-                            className="w-full bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl text-[14px] font-bold text-center outline-none focus:border-[#38BDF8] font-khmer text-slate-800"
+                            className="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl text-[14px] font-bold text-center outline-none focus:border-[#38BDF8] font-khmer text-slate-800"
                         />
-                        <button type="submit" className="w-full py-3 bg-[#0F2B5C] text-white rounded-xl text-[13px] font-black active:scale-95 transition-transform font-khmer flex items-center justify-center gap-1.5">
+                        <button type="submit" className="w-full py-3 bg-[#0F2B5C] text-white rounded-xl text-[13.5px] font-black active:scale-95 transition-transform font-khmer flex items-center justify-center gap-1.5">
                             បង្កើតគណនី <CheckCircle className="w-4.5 h-4.5"/>
                         </button>
                     </form>
@@ -1009,7 +1012,7 @@ export default function App() {
       
       {toast && (
         <div className="absolute top-safe mt-2 left-1/2 -translate-x-1/2 z-[1000] animate-in slide-in-from-top-5 fade-in duration-300 w-full max-w-[90vw] md:max-w-sm pointer-events-none">
-          <div className={`px-4 py-3 rounded-xl shadow-2xl font-bold text-[11px] flex items-center gap-2.5 backdrop-blur-xl border pointer-events-auto ${toast.type === 'error' ? 'bg-rose-600/90 text-white border-rose-500' : toast.type === 'info' ? 'bg-[#0F2B5C]/90 text-white border-slate-700' : 'bg-emerald-600/90 text-white border-emerald-500'}`}>
+          <div className={`px-4 py-3 rounded-xl shadow-2xl font-bold text-[12px] flex items-center gap-2.5 backdrop-blur-xl border pointer-events-auto ${toast.type === 'error' ? 'bg-rose-600/90 text-white border-rose-500' : toast.type === 'info' ? 'bg-[#0F2B5C]/90 text-white border-slate-700' : 'bg-emerald-600/90 text-white border-emerald-500'}`}>
             {toast.type === 'error' ? <XCircle className="w-4 h-4 shrink-0"/> : toast.type === 'info' ? <Bell className="w-4 h-4 shrink-0"/> : <CheckCircle className="w-4 h-4 shrink-0"/>} 
             <span className="flex-1 text-left leading-relaxed drop-shadow-sm">{safeStr(toast.msg)}</span>
           </div>
@@ -1026,13 +1029,13 @@ export default function App() {
         />
 
         <div className="flex-1 flex flex-col min-h-0 relative w-full max-w-7xl mx-auto overflow-hidden">
-           {currentView === 'home' && <div className="flex-1 overflow-y-auto px-3 md:px-6 pb-20 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} setCurrentView={setCurrentView} /></div>}
-           {currentView === 'data' && <div className="flex-1 overflow-y-auto px-3 md:px-6 pb-20 hide-scrollbar pt-2"><DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} captureGps={handleGPS} /></div>}
-           {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0 pb-[75px] md:pb-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} storage={storage} usersList={usersList} /></div>}
-           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} /></div>}
+           {currentView === 'home' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} setCurrentView={setCurrentView} /></div>}
+           {currentView === 'data' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><DataView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} captureGps={handleGPS} /></div>}
+           {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
+           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} storage={storage} usersList={usersList} /></div>}
+           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} /></div>}
            {currentView === 'admin' && isAdmin && (
-              <div className="flex-1 overflow-y-auto px-3 md:px-6 pb-20 hide-scrollbar pt-2">
+              <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
                 <AdminDashboard 
                   locations={locations} setLocations={setLocations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} dbRegions={dbRegions} setDbRegions={setDbRegions} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} setIsAdmin={setIsAdmin} chatTargets={chatTargets} setChatTargets={setChatTargets} appeals={appeals} setAppeals={setAppeals} cosmicTheme={cosmicTheme} setCosmicTheme={setCosmicTheme}
                 />
@@ -1081,8 +1084,8 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo }) => {
         <div className="text-[10px] font-bold text-slate-400 mb-2 px-3 uppercase tracking-wider">ម៉ឺនុយទំព័រ</div>
         {navItems.map(item => (
           <button key={item.id} onClick={() => setCurrentView(item.id)} className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-200 ${currentView === item.id ? 'bg-[#0F2B5C] text-white font-bold shadow-md' : 'text-slate-500 hover:bg-slate-50 font-medium hover:text-[#0F2B5C]'}`}>
-            <item.icon className="w-4.5 h-4.5" />
-            <div className="text-[12.5px]">{item.label}</div>
+            <item.icon className="w-5 h-5" />
+            <div className="text-[13.5px]">{item.label}</div>
           </button>
         ))}
       </div>
@@ -1100,8 +1103,8 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 shadow-md bg-white border-t border-slate-100 pb-[max(env(safe-area-inset-bottom),8px)] pt-1.5">
-      <div className="flex justify-around items-center h-[46px] px-2 relative">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 shadow-md bg-white border-t border-slate-100 pb-[max(env(safe-area-inset-bottom),10px)] pt-2">
+      <div className="flex justify-around items-center h-[56px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
@@ -1111,10 +1114,10 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
              className="relative flex-1 flex flex-col items-center justify-center h-full transition-all active:scale-90"
            >
              <div className={`flex flex-col items-center justify-center transition-all ${isActive ? 'text-[#0F2B5C]' : 'text-[#94A3B8]'}`}>
-                <div className={`p-1 rounded-lg ${isActive ? 'bg-[#0F2B5C]/5' : ''}`}>
-                   <item.icon className="w-4.5 h-4.5" />
+                <div className={`p-1.5 rounded-xl ${isActive ? 'bg-[#0F2B5C]/5' : ''}`}>
+                   <item.icon className="w-[22px] h-[22px]" />
                 </div>
-                <span className={`text-[8.5px] mt-0.5 font-bold`}>{item.label}</span>
+                <span className={`text-[10px] mt-1 font-bold`}>{item.label}</span>
              </div>
            </button>
          )
@@ -1132,7 +1135,7 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center overflow-hidden p-0.5 border border-slate-100">
                     <img src={appLogo} className="w-full h-full object-cover rounded-full" alt="Logo" />
                  </div>
-                 <h1 className="font-logo font-extrabold text-[14px] leading-tight text-[#0F2B5C] tracking-wide uppercase">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
+                 <h1 className="font-logo font-extrabold text-[15.5px] leading-tight text-[#0F2B5C] tracking-wide uppercase">TP<span className="text-[#38BDF8]">CAMBODIA</span></h1>
               </div>
 
               <div className="flex items-center gap-2">
@@ -1143,12 +1146,12 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                    }} 
                    className="flex items-center justify-center p-1.5 text-[#0F2B5C] bg-slate-50 border border-slate-200 rounded-lg"
                  >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-4.5 h-4.5" />
                  </button>
 
                  <div className="relative">
                      <button className="p-2 bg-slate-50 rounded-full active:scale-95 transition shadow-sm border border-slate-200" onClick={() => setNotificationsOpen(!notificationsOpen)}>
-                        <Bell className="w-4 h-4 text-[#0F2B5C]" />
+                        <Bell className="w-4.5 h-4.5 text-[#0F2B5C]" />
                         {notifications && notifications.length > 0 && <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-rose-500 rounded-full"></span>}
                      </button>
                      {notificationsOpen && (
@@ -1158,14 +1161,14 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                             <button onClick={() => setNotificationsOpen(false)} className="p-1 hover:bg-slate-200 rounded-full"><X className="w-3.5 h-3.5 text-slate-500" /></button>
                           </div>
                           <div className="max-h-[50vh] overflow-y-auto">
-                            {!notifications || notifications.length === 0 ? <p className="p-5 text-center text-[10px] text-slate-400 font-bold">គ្មានសារថ្មីទេ</p> : 
+                            {!notifications || notifications.length === 0 ? <p className="p-5 text-center text-[11px] text-slate-400 font-bold">គ្មានសារថ្មីទេ</p> : 
                               notifications.map(n => (
                                 <div key={n.id} className="p-3 border-b border-slate-50 flex justify-between items-start gap-2 hover:bg-slate-50">
                                   <div className="flex-1">
-                                    <p className={`text-[11px] font-black flex items-center gap-1 ${n.type === 'error' ? 'text-rose-500' : 'text-[#0F2B5C]'}`}>
+                                    <p className={`text-[12px] font-black flex items-center gap-1 ${n.type === 'error' ? 'text-rose-500' : 'text-[#0F2B5C]'}`}>
                                         <Bell className="w-3.5 h-3.5"/> {safeStr(n.title)}
                                     </p>
-                                    <p className="text-[10px] text-slate-500 mt-1 font-medium leading-relaxed">{safeStr(n.msg)}</p>
+                                    <p className="text-[11px] text-slate-500 mt-1 font-medium leading-relaxed">{safeStr(n.msg)}</p>
                                   </div>
                                   <button onClick={async () => { if(db) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_notifications', n.id)).catch(()=>{}); } }} className="text-slate-400 hover:text-rose-500 shrink-0 p-1 rounded-full"><X className="w-3 h-3"/></button>
                                 </div>
@@ -1185,12 +1188,12 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                      document.activeElement?.blur(); 
                   }} className="relative w-full">
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                       <Search className="w-4 h-4" />
+                       <Search className="w-4.5 h-4.5" />
                     </div>
                     <input 
                       type="search" 
                       placeholder="ស្វែងរកទីតាំង ឬសេវាកម្ម..." 
-                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-xl py-2 pl-9 pr-3 outline-none text-[13px] font-bold border border-slate-200 focus:border-[#38BDF8] focus:bg-white transition-all shadow-inner" 
+                      className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 rounded-xl py-2.5 pl-10 pr-4 outline-none text-[14px] font-bold border border-slate-200 focus:border-[#38BDF8] focus:bg-white transition-all shadow-inner" 
                       value={searchQuery} 
                       onChange={(e) => setSearchQuery(e.target.value)} 
                     />
@@ -1224,11 +1227,11 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
              <h1 className="text-[14px] md:text-lg font-black text-white leading-tight mb-1 font-khmer">
                  ទិន្នន័យសំខាន់ៗ នៅទីនេះ!
              </h1>
-             <p className="text-[11px] text-sky-200 mb-3 font-bold">
+             <p className="text-[12px] text-sky-200 mb-3 font-bold">
                  រហ័ស ងាយស្រួល និងជឿជាក់បាន ១០០%
              </p>
-             <button onClick={()=>setCurrentView('data')} className="bg-[#38BDF8] text-[#0F2B5C] px-3 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 hover:bg-sky-400">
-                 ស្វែងយល់ <ArrowRight className="w-3 h-3"/>
+             <button onClick={()=>setCurrentView('data')} className="bg-[#38BDF8] text-[#0F2B5C] px-3 py-1.5 rounded-lg text-[11px] font-black flex items-center gap-1 hover:bg-sky-400">
+                 ស្វែងយល់ <ArrowRight className="w-3.5 h-3.5"/>
              </button>
          </div>
          <div className="w-[70px] h-[70px] shrink-0 z-10 overflow-hidden rounded-full bg-white border-2 border-[#38BDF8] flex items-center justify-center p-0.5">
@@ -1238,27 +1241,27 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
       <div>
          <div className="flex justify-between items-center mb-2.5 px-1 border-l-4 border-[#0F2B5C] pl-2">
-            <h2 className="font-black text-[12.5px] text-slate-800 leading-none">ជម្រើសទីតាំង</h2>
+            <h2 className="font-black text-[13px] text-slate-800 leading-none">ជម្រើសទីតាំង</h2>
          </div>
          <div className="grid grid-cols-2 gap-3">
             <button onClick={() => setActiveHomeFilter(activeHomeFilter==='រតនមណ្ឌល'?'All':'រតនមណ្ឌល')} className={`premium-card p-2.5 flex flex-col justify-center items-center transition-all ${activeHomeFilter==='រតនមណ្ឌល' ? 'border-[#0F2B5C] bg-[#0F2B5C] text-white' : 'text-[#0F2B5C] bg-white'}`}>
                <div className={`p-2 rounded-lg mb-1.5 ${activeHomeFilter==='រតនមណ្ឌល' ? 'bg-white/20 text-white' : 'bg-slate-50 text-[#0F2B5C]'}`}><MapSvgIcon /></div>
-               <span className="font-black text-[11px]">រតនមណ្ឌល</span>
+               <span className="font-black text-[12px]">រតនមណ្ឌល</span>
             </button>
             <button onClick={() => setActiveHomeFilter(activeHomeFilter==='ផ្សេងៗ'?'All':'ផ្សេងៗ')} className={`premium-card p-2.5 flex flex-col justify-center items-center transition-all ${activeHomeFilter==='ផ្សេងៗ' ? 'border-[#38BDF8] bg-[#38BDF8] text-[#0F2B5C]' : 'text-[#38BDF8] bg-white'}`}>
-               <div className={`p-2 rounded-lg mb-1.5 ${activeHomeFilter==='ផ្សេងៗ' ? 'bg-white/40' : 'bg-slate-50'}`}><Globe className="w-4.5 h-4.5" /></div>
-               <span className="font-black text-[11px]">ស្រុកផ្សេងៗ</span>
+               <div className={`p-2 rounded-lg mb-1.5 ${activeHomeFilter==='ផ្សេងៗ' ? 'bg-white/40' : 'bg-slate-50'}`}><Globe className="w-5 h-5" /></div>
+               <span className="font-black text-[12px]">ស្រុកផ្សេងៗ</span>
             </button>
          </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2.5 px-1 border-l-4 border-[#38BDF8] pl-2">
-          <h2 className="text-[12.5px] font-black text-slate-800 leading-none">ទិន្នន័យដែលបានបញ្ចូល</h2>
-          <button onClick={() => setCurrentView('data')} className="text-[10px] font-bold text-slate-600 flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">មើលទាំងអស់ <ArrowRight className="w-3 h-3"/></button>
+          <h2 className="text-[13px] font-black text-slate-800 leading-none">ទិន្នន័យដែលបានបញ្ចូល</h2>
+          <button onClick={() => setCurrentView('data')} className="text-[11px] font-bold text-slate-600 flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">មើលទាំងអស់ <ArrowRight className="w-3.5 h-3.5"/></button>
         </div>
         {filtered.length === 0 ? (
-           <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200 font-bold text-[11px] text-slate-400 shadow-sm flex flex-col items-center">
+           <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200 font-bold text-[12px] text-slate-400 shadow-sm flex flex-col items-center">
              <MapPin className="w-8 h-8 mb-2 text-slate-300"/>
              គ្មានទិន្នន័យ
            </div>
@@ -1309,8 +1312,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     if (activeFilter === 'ឃុំ' && l.category !== 'ឃុំ') matchesLevel = false;
     if (activeFilter === 'ភូមិ' && l.category !== 'ភូមិ') matchesLevel = false;
     if (activeFilter === 'ប៉ូលីស' && l.category !== 'ប៉ូលិស') matchesLevel = false;
-    if (activeFilter === 'ពេទ្យ' && l.category !== 'មន្ទីរពេទ្យ') matchesLevel = false;
-    if (activeFilter === 'ពេទ្យ' && l.category !== 'ពេទ្យ') matchesLevel = false;
+    if (activeFilter === 'ពេទ្យ' && l.category !== 'មន្ទីរពេទ្យ' && l.category !== 'ពេទ្យ') matchesLevel = false;
     if (activeFilter === 'សាលារៀន' && l.category !== 'សាលារៀន') matchesLevel = false;
     return matchesSearch && matchesLevel;
   });
@@ -1427,9 +1429,9 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] text-center">
          <div className="w-12 h-12 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-3"><User className="w-6 h-6" /></div>
-         <h2 className="text-[13px] font-black mb-1.5 text-[#0F2B5C]">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 mb-4 text-[11px] max-w-sm font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះរបស់អ្នកសិន។ ភ្ញៀវមិនអាចបញ្ជូលទិន្នន័យបានទេ។</p>
-         <button onClick={() => setCurrentView('account')} className="btn-gradient px-4 py-2 rounded-lg font-bold text-[11px]">កំណត់ឈ្មោះឥឡូវនេះ</button>
+         <h2 className="text-[14px] font-black mb-1.5 text-[#0F2B5C]">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
+         <p className="text-slate-500 mb-4 text-[12px] max-w-sm font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះរបស់អ្នកសិន។ ភ្ញៀវមិនអាចបញ្ជូលទិន្នន័យបានទេ។</p>
+         <button onClick={() => setCurrentView('account')} className="btn-gradient px-4 py-2 rounded-lg font-bold text-[12px]">កំណត់ឈ្មោះឥឡូវនេះ</button>
       </div>
     );
   }
@@ -1440,19 +1442,19 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   return (
     <div className="space-y-3 mt-1 flex-1 font-khmer">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-         <h1 className="text-[14px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ទិន្នន័យ</h1>
-         <button onClick={handleOpenAdd} className="btn-gradient px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[11px] w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> បន្ថែមទិន្នន័យ</button>
+         <h1 className="text-[14.5px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ទិន្នន័យ</h1>
+         <button onClick={handleOpenAdd} className="btn-gradient px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[12px] w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> បន្ថែមទិន្នន័យ</button>
       </div>
 
       <div className="flex bg-white border border-slate-200 p-1 rounded-xl shadow-sm">
          {['រតនមណ្ឌល', 'ស្រុកផ្សេងៗ'].map(tab => (
-             <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-1.5 rounded-lg text-[12px] font-black transition-all ${activeTab === tab ? 'bg-slate-100 text-[#0F2B5C] shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>{tab}</button>
+             <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-1.5 rounded-lg text-[13px] font-black transition-all ${activeTab === tab ? 'bg-slate-100 text-[#0F2B5C] shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>{tab}</button>
          ))}
       </div>
 
       <div className="flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1">
         {['ទាំងអស់', 'ឃុំ', 'ភូមិ', 'ប៉ូលីស', 'ពេទ្យ', 'សាលារៀន'].map(cat => (
-          <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all whitespace-nowrap border shadow-sm ${activeFilter === cat ? 'bg-[#0F2B5C] text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'}`}>{cat}</button>
+          <button key={cat} onClick={() => setActiveFilter(cat)} className={`px-3.5 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap border shadow-sm ${activeFilter === cat ? 'bg-[#0F2B5C] text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'}`}>{cat}</button>
         ))}
       </div>
       
@@ -1460,7 +1462,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
         {filtered.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-10 bg-white rounded-xl border border-dashed border-slate-200 shadow-sm">
              <MapPin className="w-8 h-8 text-slate-300 mb-2" />
-             <p className="font-bold text-[11px] text-slate-500">គ្មានទិន្នន័យ</p>
+             <p className="font-bold text-[12px] text-slate-500">គ្មានទិន្នន័យ</p>
           </div>
         ) : (
           filtered.map(loc => loc && (
@@ -1475,19 +1477,19 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
             
             <form onSubmit={handleAddSubmit} className="flex flex-col max-h-[90dvh] w-full">
               <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-                <h2 className="text-[12.5px] font-black text-[#0F2B5C]">បន្ថែមទិន្នន័យ: {activeTab}</h2>
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500"><X className="w-4 h-4"/></button>
+                <h2 className="text-[13.5px] font-black text-[#0F2B5C]">បន្ថែមទិន្នន័យ: {activeTab}</h2>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500"><X className="w-4.5 h-4.5"/></button>
               </div>
               
               <div className="p-4 overflow-y-auto flex-1 hide-scrollbar bg-white space-y-4 pb-8">
                 <div>
-                   <label className="text-[10px] font-bold text-slate-700 block mb-1 uppercase tracking-wider">ចំណងជើង / ឈ្មោះទីតាំង *</label>
-                   <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[14px] outline-none font-bold text-slate-800" placeholder="ឈ្មោះទីតាំង..." />
+                   <label className="text-[11px] font-bold text-slate-700 block mb-1 uppercase tracking-wider">ចំណងជើង / ឈ្មោះទីតាំង *</label>
+                   <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" placeholder="ឈ្មោះទីតាំង..." />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">ប្រភេទ Category *</label>
-                  <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[14px] outline-none font-bold text-slate-800">
+                  <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">ប្រភេទ Category *</label>
+                  <select value={form.category} onChange={e=>setForm({...form, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800">
                     <option value="ឃុំ">ឃុំ</option>
                     <option value="ភូមិ">ភូមិ</option>
                     <option value="ប៉ូលិស">ប៉ូលិស</option>
@@ -1497,21 +1499,21 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                   </select>
                 </div>
 
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 shadow-inner">
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3 shadow-inner">
                   <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                    <span className="text-[10px] font-black text-slate-600 block uppercase">ព័ត៌មានទំនាក់ទំនង (Contacts) *</span>
+                    <span className="text-[11px] font-black text-slate-600 block uppercase">ព័ត៌មានទំនាក់ទំនង (Contacts) *</span>
                     <button 
                       type="button"
                       onClick={() => setForm({...form, contacts: [...form.contacts, { name: '', phone: '' }]})}
-                      className="text-[9px] font-black text-[#0F2B5C] bg-white border border-slate-200 px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm"
+                      className="text-[10px] font-black text-[#0F2B5C] bg-white border border-slate-200 px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-sm"
                     >
-                      <Plus className="w-3 h-3"/> បន្ថែមខ្សែទូរស័ព្ទ
+                      <Plus className="w-3.5 h-3.5"/> បន្ថែមខ្សែទូរស័ព្ទ
                     </button>
                   </div>
 
                   <div className="space-y-2">
                     {form.contacts.map((contact, idx) => (
-                      <div key={idx} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative space-y-2">
+                      <div key={idx} className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm relative space-y-2">
                         {form.contacts.length > 1 && (
                           <button 
                             type="button" 
@@ -1526,7 +1528,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                           </button>
                         )}
                         <div>
-                          <label className="text-[9px] font-black text-slate-500 block mb-0.5">ឈ្មោះ ឬ តួនាទី {idx + 1} *</label>
+                          <label className="text-[10px] font-black text-slate-500 block mb-0.5">ឈ្មោះ ឬ តួនាទី {idx + 1} *</label>
                           <input 
                             type="text" 
                             required 
@@ -1536,12 +1538,12 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                               updated[idx].name = e.target.value;
                               setForm({...form, contacts: updated});
                             }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-[13px] font-bold" 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[13.5px] font-bold" 
                             placeholder="ឧ: លោក មេភូមិ..." 
                           />
                         </div>
                         <div>
-                          <label className="text-[9px] font-black text-slate-500 block mb-0.5">លេខទូរស័ព្ទ {idx + 1} *</label>
+                          <label className="text-[10px] font-black text-slate-500 block mb-0.5">លេខទូរស័ព្ទ {idx + 1} *</label>
                           <input 
                             type="tel" 
                             required 
@@ -1551,7 +1553,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                               updated[idx].phone = e.target.value;
                               setForm({...form, contacts: updated});
                             }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-[13px] font-bold" 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[13.5px] font-bold" 
                             placeholder="ឧ: 012 345 678..." 
                           />
                         </div>
@@ -1560,20 +1562,20 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 shadow-inner space-y-2">
-                    <label className="text-[10px] font-bold text-slate-600 block mb-1.5 border-b border-slate-200 pb-1.5 uppercase">កំណត់ទីតាំង</label>
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 shadow-inner space-y-2">
+                    <label className="text-[11px] font-bold text-slate-600 block mb-1.5 border-b border-slate-200 pb-1.5 uppercase">កំណត់ទីតាំង</label>
                     {activeTab === 'រតនមណ្ឌល' ? (
                         <div className="grid grid-cols-2 gap-2">
                             <div>
-                                <label className="text-[9px] font-bold text-slate-500 block mb-0.5">ឃុំ</label>
-                                <select required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value, village: ''})} className="w-full bg-white rounded-lg p-2 text-[14px] outline-none font-bold border border-slate-200">
+                                <label className="text-[10px] font-bold text-slate-500 block mb-0.5">ឃុំ</label>
+                                <select required value={form.commune} onChange={e=>setForm({...form, commune: e.target.value, village: ''})} className="w-full bg-white rounded-xl p-2 text-[14.5px] outline-none font-bold border border-slate-200">
                                     <option value="">ជ្រើសរើស</option>
                                     {ratanakCommunes.map(c=><option key={c} value={c}>{c}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="text-[9px] font-bold text-slate-500 block mb-0.5">ភូមិ</label>
-                                <select required disabled={!form.commune} value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white rounded-lg p-2 text-[14px] outline-none font-bold border border-slate-200 disabled:opacity-50">
+                                <label className="text-[10px] font-bold text-slate-500 block mb-0.5">ភូមិ</label>
+                                <select required disabled={!form.commune} value={form.village} onChange={e=>setForm({...form, village: e.target.value})} className="w-full bg-white rounded-xl p-2 text-[14.5px] outline-none font-bold border border-slate-200 disabled:opacity-50">
                                     <option value="">ជ្រើសរើស</option>
                                     {selectedCommuneVillages.map(v=><option key={v} value={v}>{v}</option>)}
                                 </select>
@@ -1581,36 +1583,36 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 gap-2">
-                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-[12px] outline-none font-bold" placeholder="ខេត្ត..."/>
-                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-[12px] outline-none font-bold" placeholder="ស្រុក..."/>
+                            <input type="text" required value={form.province} onChange={e=>setForm({...form, province: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-[13px] outline-none font-bold" placeholder="ខេត្ត..."/>
+                            <input type="text" required value={form.district} onChange={e=>setForm({...form, district: e.target.value})} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-[13px] outline-none font-bold" placeholder="ស្រុក..."/>
                         </div>
                     )}
                 </div>
 
                 <div>
-                    <label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase">ទីតាំង (GPS)</label>
-                    <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/20' : 'bg-slate-100 text-slate-600 border-slate-300'} border-2 py-3 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 truncate px-2`}>
-                       {isFetchingGps ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <MapPin className="w-3.5 h-3.5 shrink-0"/>}
+                    <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">ទីតាំង (GPS)</label>
+                    <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/20' : 'bg-slate-100 text-slate-600 border-slate-300'} border-2 py-3 rounded-xl font-bold text-[12px] flex items-center justify-center gap-1.5 truncate px-2`}>
+                       {isFetchingGps ? <Loader2 className="w-4 h-4 animate-spin"/> : <MapPin className="w-4 h-4 shrink-0"/>}
                        {isFetchingGps ? 'កំពុងចាប់ទីតាំង...' : form.coords ? '✓ ចាប់បានទីតាំងជោគជ័យ' : 'ចុចដើម្បីទាញយក GPS'}
                     </button>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase">រូបភាព (Upload Picture) *</label>
-                  <label className="relative flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 overflow-hidden">
+                  <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">រូបភាព (Upload Picture) *</label>
+                  <label className="relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 overflow-hidden">
                      {form.image ? (
                         <React.Fragment>
                            <img src={form.image} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                              <span className="text-slate-800 font-bold bg-white/95 px-2.5 py-1 rounded-lg text-[10px] flex gap-1 items-center pointer-events-auto">
-                                 <Edit3 className="w-3 h-3"/> ប្តូររូបភាព
+                              <span className="text-slate-800 font-bold bg-white/95 px-2.5 py-1.5 rounded-xl text-[11px] flex gap-1 items-center pointer-events-auto">
+                                 <Edit3 className="w-3.5 h-3.5"/> ប្តូររូបភាព
                               </span>
                            </div>
                         </React.Fragment>
                      ) : (
                         <div className="flex flex-col items-center justify-center text-slate-400 z-10">
                            <ImageSvgIcon className="mb-1" />
-                           <span className="text-[10px] font-bold text-slate-500">ចុចដើម្បី Upload</span>
+                           <span className="text-[11px] font-bold text-slate-500">ចុចដើម្បី Upload</span>
                         </div>
                      )}
                      <input 
@@ -1629,15 +1631,14 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                 </div>
                 
                 <div>
-                   <label className="text-[10px] font-bold text-slate-500 block mb-1 uppercase">ការពណ៌នា</label>
-                   <textarea value={form.desc} onChange={e=>setForm({...form, desc: e.target.value})} placeholder="សរសេរការពណ៌នាខ្លីៗ..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[14px] outline-none h-20 resize-none font-medium text-slate-800"></textarea>
+                   <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">ការពណ៌នា</label>
+                   <textarea value={form.desc} onChange={e=>setForm({...form, desc: e.target.value})} placeholder="សរសេរការពណ៌នាខ្លីៗ..." className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[14.5px] outline-none h-20 resize-none font-medium text-slate-800"></textarea>
                 </div>
               </div>
 
-              {/* FOOTER - Perfectly nested inside FORM to always render and align correctly on mobile */}
               <div className="p-3 border-t border-slate-100 shrink-0 pb-safe bg-slate-50 sticky bottom-0 z-10">
-                 <button type="submit" disabled={loading} className="w-full py-3 rounded-xl font-black btn-gradient disabled:opacity-50 text-[12px] flex justify-center items-center gap-1.5 shadow-md">
-                     {loading ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> កំពុងផ្ញើរ...</> : isAdmin ? '✓ បញ្ចូលទិន្នន័យ (Auto Approve)' : '📤 ផ្ញើរសំណើរទៅកាន់ Admin'}
+                 <button type="submit" disabled={loading} className="w-full py-3 rounded-xl font-black btn-gradient disabled:opacity-50 text-[13px] flex justify-center items-center gap-1.5 shadow-md">
+                     {loading ? <><Loader2 className="w-4 h-4 animate-spin"/> កំពុងផ្ញើរ...</> : isAdmin ? '✓ បញ្ចូលទិន្នន័យ (Auto Approve)' : '📤 ផ្ញើរសំណើរទៅកាន់ Admin'}
                  </button>
               </div>
             </form>
@@ -1689,17 +1690,17 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
       
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
          {stats.map((s, i) => (
-           <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden flex flex-col justify-between min-h-[75px]">
-              <p className="text-[9px] md:text-[10px] font-bold text-slate-500 leading-normal mb-1">{s.label}</p>
+           <div key={i} className="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden flex flex-col justify-between min-h-[75px]">
+              <p className="text-[10px] md:text-[11px] font-bold text-slate-500 leading-normal mb-1">{s.label}</p>
               <h3 className="text-xl md:text-2xl font-black mt-auto">{s.count}</h3>
-              <p className="text-[8px] text-slate-400 mt-0.5">{s.desc}</p>
+              <p className="text-[9px] text-slate-400 mt-0.5">{s.desc}</p>
            </div>
          ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-1 flex-1">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-           <h3 className="text-[11px] md:text-[12px] font-bold text-slate-800 mb-3 border-l-2 border-[#38BDF8] pl-2">កំណើនអ្នកប្រើប្រាស់ប្រចាំឆ្នាំ</h3>
+           <h3 className="text-[11.5px] md:text-[12px] font-bold text-slate-800 mb-3 border-l-2 border-[#38BDF8] pl-2">កំណើនអ្នកប្រើប្រាស់ប្រចាំឆ្នាំ</h3>
            <div className="flex-1 min-h-[160px] w-full">
                <ResponsiveContainer width="100%" height="100%">
                  <BarChart data={monthlyData}>
@@ -1714,7 +1715,7 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-           <h3 className="text-[11px] md:text-[12px] font-bold text-slate-800 mb-3 border-l-2 border-[#0F2B5C] pl-2">ស្ថិតិទីតាំងដែលបានបញ្ចូល</h3>
+           <h3 className="text-[11.5px] md:text-[12px] font-bold text-slate-800 mb-3 border-l-2 border-[#0F2B5C] pl-2">ស្ថិតិទីតាំងដែលបានបញ្ចូល</h3>
            <div className="flex-1 min-h-[160px] w-full">
                <ResponsiveContainer width="100%" height="100%">
                  <LineChart data={monthlyData}>
@@ -2176,9 +2177,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     return (
       <div className="flex flex-col items-center justify-center h-full text-center flex-1 font-khmer">
          <div className="w-12 h-12 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-3"><MessageCircle className="w-6 h-6" /></div>
-         <h2 className="text-[13px] font-black mb-1.5 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 text-[11px] mb-4 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
-         <button onClick={() => setCurrentView('account')} className="btn-gradient px-4 py-2 rounded-lg font-bold text-[11px]">កំណត់ឈ្មោះឥឡូវនេះ</button>
+         <h2 className="text-[14px] font-black mb-1.5 text-slate-800">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
+         <p className="text-slate-500 text-[12px] mb-4 max-w-xs font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះ មុននឹងប្រើប្រាស់សេវាកម្មរាយការណ៍។</p>
+         <button onClick={() => setCurrentView('account')} className="btn-gradient px-4 py-2 rounded-lg font-bold text-[12px]">កំណត់ឈ្មោះឥឡូវនេះ</button>
       </div>
     );
   }
@@ -2203,23 +2204,23 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      const registeredUsersToShow = (usersList || []).filter(u => u && u.username && u.username !== 'ភ្ញៀវ' && u.id !== user?.uid);
 
      return (
-        <div className="flex flex-col h-full bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden w-full flex-1 font-khmer animate-in fade-in duration-300 pb-[75px] md:pb-0">
+        <div className="flex flex-col h-full bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden w-full flex-1 font-khmer animate-in fade-in duration-300 pb-[85px] md:pb-0">
            <div className="p-3.5 border-b border-slate-100 bg-slate-50 shrink-0 flex justify-between items-center">
                <div>
-                  <h1 className="text-[12.5px] font-black text-[#0F2B5C] flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#38BDF8]"/> ទំនាក់ទំនងឆាត</h1>
-                  <p className="text-[9.5px] text-slate-500 font-bold mt-1 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬទីតាំងដែលអ្នកចង់ទាក់ទង។</p>
+                  <h1 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#38BDF8]"/> ទំនាក់ទំនងឆាត</h1>
+                  <p className="text-[11px] text-slate-500 font-bold mt-1 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬទីតាំងដែលអ្នកចង់ទាក់ទង។</p>
                </div>
                
                <div className="flex gap-1.5">
                    <button 
                       onClick={() => { setShowUserSearch(!showUserSearch); setLocalFilterActive(false); }} 
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[9.5px] font-black transition-all ${showUserSearch ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black transition-all ${showUserSearch ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white' : 'bg-white border-slate-200 text-slate-600'}`}
                    >
                       <Search className="w-3 h-3" /> Add មិត្ត
                    </button>
                    <button 
                       onClick={() => { setLocalFilterActive(!localFilterActive); setShowUserSearch(false); }} 
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[9.5px] font-black transition-all ${localFilterActive ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black transition-all ${localFilterActive ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white' : 'bg-white border-slate-200 text-slate-600'}`}
                    >
                       <Radio className="w-3 h-3" /> ក្នុងមូលដ្ឋាន
                    </button>
@@ -2235,20 +2236,20 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                           placeholder="ស្វែងរកឈ្មោះសមាជិក..." 
                           value={userSearchTerm}
                           onChange={e => setUserSearchTerm(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-8 pr-3 text-[12px] font-bold outline-none"
+                          className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-8 pr-3 text-[13px] font-bold outline-none"
                       />
                   </div>
                   <div className="space-y-1.5 max-h-[140px] overflow-y-auto hide-scrollbar pb-1">
                       {registeredUsersToShow.filter(u => u.username?.toLowerCase().includes(userSearchTerm.toLowerCase())).length === 0 ? (
-                          <p className="text-center text-[9px] text-slate-400 font-bold py-1">គ្មានគណនីដែលត្រូវស្វែងរកទេ</p>
+                          <p className="text-center text-[10px] text-slate-400 font-bold py-1">គ្មានគណនីដែលត្រូវស្វែងរកទេ</p>
                       ) : (
                           registeredUsersToShow.filter(u => u.username?.toLowerCase().includes(userSearchTerm.toLowerCase())).map(u => (
                               <div key={u.id} onClick={() => { setActiveChatUser({ id: u.id, label: u.username, avatar: u.avatar }); setShowUserSearch(false); }} className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 cursor-pointer">
                                   <div className="flex items-center gap-2">
                                       <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-7 h-7 rounded-full border border-slate-200 object-cover" alt="av" />
-                                      <span className="font-bold text-[11px] text-[#0F2B5C]">{safeStr(u.username)}</span>
+                                      <span className="font-bold text-[12px] text-[#0F2B5C]">{safeStr(u.username)}</span>
                                   </div>
-                                  <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">ឆាត</span>
+                                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-lg">ឆាត</span>
                               </div>
                           ))
                       )}
@@ -2259,31 +2260,32 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
            {localFilterActive && (
               <div className="bg-slate-50 p-3 border-b border-slate-200 grid grid-cols-3 gap-2 shrink-0 animate-in slide-in-from-top-2">
                   <div>
-                     <label className="text-[9px] font-bold text-slate-500 block mb-0.5">ស្រុក</label>
-                     <select value={selectedDistrict} onChange={e=>{ setSelectedDistrict(e.target.value); setSelectedCommune(''); setSelectedVillage(''); }} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-bold outline-none">
+                     <label className="text-[10px] font-bold text-slate-500 block mb-0.5">ស្រុក</label>
+                     <select value={selectedDistrict} onChange={e=>{ setSelectedDistrict(e.target.value); setSelectedCommune(''); setSelectedVillage(''); }} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold outline-none">
                          <option value="">ទាំងអស់</option>
                          {availableDistricts.map(d => <option key={d} value={d}>{d}</option>)}
                      </select>
                   </div>
                   <div>
-                     <label className="text-[9px] font-bold text-slate-500 block mb-0.5">ឃុំ</label>
-                     <select value={selectedCommune} onChange={e=>{ setSelectedCommune(e.target.value); setSelectedVillage(''); }} disabled={!selectedDistrict} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-bold outline-none disabled:opacity-50">
+                     <label className="text-[10px] font-bold text-slate-500 block mb-0.5">ឃុំ</label>
+                     <select value={selectedCommune} onChange={e=>{ setSelectedCommune(e.target.value); setSelectedVillage(''); }} disabled={!selectedDistrict} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold outline-none disabled:opacity-50">
                          <option value="">ទាំងអស់</option>
                          {communeList.map(c => <option key={c} value={c}>{c}</option>)}
                      </select>
                   </div>
                   <div>
-                     <label className="text-[9px] font-bold text-slate-500 block mb-0.5">ភូមិ</label>
-                     <select value={selectedVillage} onChange={e=>setSelectedVillage(e.target.value)} disabled={!selectedCommune} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-bold outline-none disabled:opacity-50">
+                     <label className="text-[10px] font-bold text-slate-500 block mb-0.5">ភូមិ</label>
+                     <select value={selectedVillage} onChange={e=>setSelectedVillage(e.target.value)} disabled={!selectedCommune} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold outline-none disabled:opacity-50">
                          <option value="">ទាំងអស់</option>
-                         {villageList.map(v => <option key={v} value={v}>{v}</option>)}
+                         {villageList.map(v => <option key={v} value={v}>{v}</option>
+                         )}
                      </select>
                   </div>
               </div>
            )}
 
            <div className="flex-1 overflow-y-auto p-3 hide-scrollbar bg-white">
-              <div className="text-slate-400 text-[9px] font-bold mb-2 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
+              <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
               {filteredContacts.map((contact, i) => contact && (
                   <div 
                      key={contact.id || i} 
@@ -2293,8 +2295,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                       <div className="flex items-center gap-2.5">
                           <img src={contact.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
                           <div>
-                              <h3 className="font-black text-[12.5px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
-                              <p className="text-[9px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded border border-[#0F2B5C] w-fit mt-1 line-clamp-1 shadow-sm">
+                              <h3 className="font-black text-[13px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
+                              <p className="text-[10px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded border border-[#0F2B5C] w-fit mt-1 line-clamp-1 shadow-sm">
                                  {selectedCommune ? `${selectedCommune} • ${selectedVillage || 'គ្រប់ភូមិ'}` : 'ទំនាក់ទំនងទូទៅ'}
                               </p>
                           </div>
@@ -2315,7 +2317,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
   return (
     <div 
-      className="flex flex-col flex-1 h-full min-h-0 bg-[#f1f5f9] md:bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden relative w-full font-khmer animate-in slide-in-from-right-5 duration-300 pb-[75px] md:pb-0"
+      className="flex flex-col flex-1 h-full min-h-0 bg-[#f1f5f9] md:bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden relative w-full font-khmer animate-in slide-in-from-right-5 duration-300 pb-[92px] md:pb-0"
       onMouseMove={handlePointerMove}
       onTouchMove={handlePointerMove}
       onMouseUp={handlePointerUp}
@@ -2333,19 +2335,19 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                      navigator.clipboard.writeText(selectedActionMsg.text);
                      setSelectedActionMsg(null);
                      showToast('បានចម្លង (Copied)');
-                 }} className="w-full text-left px-4 py-3 flex items-center gap-2.5 hover:bg-slate-50 border-b border-slate-100 text-[12px] font-bold text-slate-700 transition-colors">
+                 }} className="w-full text-left px-4 py-3 flex items-center gap-2.5 hover:bg-slate-50 border-b border-slate-100 text-[13px] font-bold text-slate-700 transition-colors">
                     <Copy className="w-4 h-4 text-slate-500" /> ចម្លងអត្ថបទ
                  </button>
-                 <button onClick={() => startEditMessage(selectedActionMsg)} className="w-full text-left px-4 py-3 flex items-center gap-2.5 hover:bg-slate-50 border-b border-slate-100 text-[12px] font-bold text-slate-700 transition-colors">
+                 <button onClick={() => startEditMessage(selectedActionMsg)} className="w-full text-left px-4 py-3 flex items-center gap-2.5 hover:bg-slate-50 border-b border-slate-100 text-[13px] font-bold text-slate-700 transition-colors">
                     <Edit3 className="w-4 h-4 text-sky-500" /> កែប្រែ (Edit)
                  </button>
                  </>
                )}
-               <button onClick={() => deleteMessage(selectedActionMsg.id)} className="w-full text-left px-4 py-3 flex items-center gap-2.5 hover:bg-rose-50 text-[12px] font-bold text-rose-600 transition-colors">
+               <button onClick={() => deleteMessage(selectedActionMsg.id)} className="w-full text-left px-4 py-3 flex items-center gap-2.5 hover:bg-rose-50 text-[13px] font-bold text-rose-600 transition-colors">
                   <Trash2 className="w-4 h-4" /> លុបចោល (Delete)
                </button>
                <div className="bg-slate-50 p-1.5 flex justify-center border-t border-slate-100">
-                  <button onClick={() => setSelectedActionMsg(null)} className="w-full py-2 text-[11px] font-bold text-slate-500 rounded-lg hover:bg-slate-200">បិទ</button>
+                  <button onClick={() => setSelectedActionMsg(null)} className="w-full py-2 text-[12px] font-bold text-slate-500 rounded-lg hover:bg-slate-200">បិទ</button>
                </div>
             </div>
          </div>
@@ -2354,7 +2356,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       {editingMsg && (
          <div className="absolute bottom-[70px] left-0 right-0 z-40 bg-white p-3 border-t border-slate-200 shadow-md rounded-t-2xl">
             <div className="flex justify-between items-center mb-2">
-               <span className="text-[11px] font-black text-sky-500 flex items-center gap-1 bg-sky-50 px-2 py-0.5 rounded"><Edit3 className="w-3 h-3"/> កំពុងកែប្រែសារ</span>
+               <span className="text-[12px] font-black text-sky-500 flex items-center gap-1 bg-sky-50 px-2 py-0.5 rounded"><Edit3 className="w-3 h-3"/> កំពុងកែប្រែសារ</span>
                <button onClick={() => {setEditingMsg(null); setEditInput('');}} className="p-1 bg-slate-100 rounded-full"><X className="w-3.5 h-3.5"/></button>
             </div>
             <div className="flex gap-2">
@@ -2362,10 +2364,10 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                   type="text" 
                   value={editInput} 
                   onChange={e => setEditInput(e.target.value)} 
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[14px] font-medium"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[15px] font-medium"
                   autoFocus
                />
-               <button onClick={saveEditedMessage} className="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-3 py-2 text-[12px] font-black flex items-center gap-1">
+               <button onClick={saveEditedMessage} className="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-3 py-2 text-[13px] font-black flex items-center gap-1">
                   <Check className="w-3.5 h-3.5"/> Save
                </button>
             </div>
@@ -2373,21 +2375,21 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       )}
 
       <div className="p-2.5 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center gap-2.5 shrink-0 z-30 shadow-sm pt-safe">
-        <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full border border-slate-200"><ArrowLeft className="w-4 h-4 text-slate-600"/></button>
+        <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full border border-slate-200"><ArrowLeft className="w-4.5 h-4.5 text-slate-600"/></button>
         <div className="relative">
            <img src={activeChatUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
            <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white bg-emerald-500"></div>
         </div>
         <div className="min-w-0 flex-1">
-            <h2 className="font-black text-[12.5px] text-slate-800 truncate">{safeStr(activeChatUser.label)}</h2>
-            <p className="text-[9px] font-bold text-emerald-500 mt-0.5">Online • ឆ្លើយតបរហ័ស</p>
+            <h2 className="font-black text-[13.5px] text-slate-800 truncate">{safeStr(activeChatUser.label)}</h2>
+            <p className="text-[10px] font-bold text-emerald-500 mt-0.5">Online • ឆ្លើយតបរហ័ស</p>
         </div>
       </div>
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3.5 telegram-bg hide-scrollbar scroll-smooth" onClick={()=>setShowAttachMenu(false)}>
         {filteredChats.length === 0 ? (
           <div className="flex justify-center mt-4">
-             <div className="text-center text-slate-500 py-2 px-4 text-[10px] font-bold bg-white/80 rounded-xl border border-slate-200 shadow-sm">
+             <div className="text-center text-slate-500 py-2 px-4 text-[11px] font-bold bg-white/80 rounded-xl border border-slate-200 shadow-sm">
                ចាប់ផ្តើមការសន្ទនា...
              </div>
           </div>
@@ -2402,7 +2404,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                msgContent = (
                   <div className="flex flex-col gap-2 p-0.5 text-slate-800">
                      <LocationRouteMap senderCoords={msg.senderCoords} receiverCoords={gpsCoords} distance={calculatedDistanceVal} />
-                     <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="w-full text-center py-2 bg-emerald-600 text-white text-[10px] font-bold rounded-lg block">🗺️ បើកផែនទី Google Maps</a>
+                     <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="w-full text-center py-2 bg-emerald-600 text-white text-[11px] font-bold rounded-lg block">🗺️ បើកផែនទី Google Maps</a>
                   </div>
                );
             } else if (msg.msgType === 'image') {
@@ -2426,7 +2428,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                   />
                );
             } else {
-               msgContent = <div className={`break-words text-[13px] leading-relaxed font-medium ${isMe ? 'text-white' : 'text-slate-800'}`}>{safeStr(msg.text)}</div>;
+               msgContent = <div className={`break-words text-[14px] leading-relaxed font-medium ${isMe ? 'text-white' : 'text-slate-800'}`}>{safeStr(msg.text)}</div>;
             }
 
             return (
@@ -2435,13 +2437,13 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                  className={`flex ${isMe ? 'justify-end' : 'justify-start'} relative animate-in fade-in`}
               >
                 <div className={`flex max-w-[85%] flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
-                  {!isMe && <span className="text-[9px] font-black text-slate-500 ml-1.5 flex items-center bg-white/50 px-1.5 py-0.5 rounded-full">
+                  {!isMe && <span className="text-[10px] font-black text-slate-500 ml-1.5 flex items-center bg-white/50 px-1.5 py-0.5 rounded-full">
                       {safeStr(msg.userName)}
                   </span>}
                   
                   <div className="flex items-end gap-1 relative">
                       <div 
-                         className={`px-3 py-2.5 rounded-xl text-[13px] shadow-sm border relative cursor-pointer select-none ${
+                         className={`px-3 py-2.5 rounded-xl text-[14px] shadow-sm border relative cursor-pointer select-none ${
                             isMe 
                               ? 'bg-[#0F2B5C] border-[#0F2B5C] rounded-br-sm text-white' 
                               : 'bg-white text-slate-800 rounded-bl-sm border-slate-200'
@@ -2454,7 +2456,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                          onTouchEnd={handlePressEnd}
                       >
                          {msgContent}
-                         <div className={`flex items-center justify-end gap-1 mt-1 opacity-80 text-[8.5px] font-bold self-end ${isMe ? 'text-sky-200' : 'text-slate-400'}`}>
+                         <div className={`flex items-center justify-end gap-1 mt-1 opacity-80 text-[9px] font-bold self-end ${isMe ? 'text-sky-200' : 'text-slate-400'}`}>
                             {msg.edited && <span className="italic mr-1">edited</span>}
                             <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             {isMe && <CheckCheck className="w-2.5 h-2.5 ml-0.5 text-sky-300" />}
@@ -2472,8 +2474,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         {showAttachMenu && (
            <div className="absolute bottom-[65px] left-3 bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex flex-col w-40 animate-in slide-in-from-bottom-2">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-              <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg text-[11px] font-bold text-[#0F2B5C] text-left"><ImageSvgIcon className="text-[#38BDF8]"/> ផ្ញើររូបភាព</button>
-              <button type="button" onClick={handleSendLocation} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg text-[11px] font-bold text-[#0F2B5C] text-left border-t border-slate-100"><MapPin className="w-4 h-4 text-rose-500"/> ផ្ញើទីតាំង (GPS)</button>
+              <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg text-[12px] font-bold text-[#0F2B5C] text-left"><ImageSvgIcon className="text-[#38BDF8]"/> ផ្ញើររូបភាព</button>
+              <button type="button" onClick={handleSendLocation} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg text-[12px] font-bold text-[#0F2B5C] text-left border-t border-slate-100"><MapPin className="w-4 h-4 text-rose-500"/> ផ្ញើទីតាំង (GPS)</button>
            </div>
         )}
 
@@ -2481,7 +2483,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
            <div className="w-full flex items-center justify-between bg-rose-50 border border-rose-200 rounded-xl py-2 px-3">
               <div className="flex items-center gap-2">
                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></div>
-                 <span className="text-[12px] font-black text-rose-600">
+                 <span className="text-[13px] font-black text-rose-600">
                    {`0:${recordDuration.toString().padStart(2, '0')}`}
                  </span>
               </div>
@@ -2496,13 +2498,13 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                  ))}
               </div>
 
-              <div className="text-[10px] text-rose-500 font-bold flex items-center gap-1 opacity-70">
+              <div className="text-[11px] text-rose-500 font-bold flex items-center gap-1 opacity-70">
                  <span>{cancelSlideOffset > 40 ? 'ព្រលែងដើម្បីបោះបង់!' : 'អូសឆ្វេងបោះបង់'}</span>
               </div>
            </div>
         ) : (
            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-end gap-2 w-full">
-              <button type="button" onClick={()=>setShowAttachMenu(!showAttachMenu)} className={`p-2.5 rounded-full transition active:scale-95 shrink-0 ${showAttachMenu ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}><Plus className="w-5 h-5"/></button>
+              <button type="button" onClick={()=>setShowAttachMenu(!showAttachMenu)} className={`p-3 rounded-full transition active:scale-95 shrink-0 ${showAttachMenu ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-slate-500 bg-slate-50 border border-slate-200 hover:bg-slate-100'}`}><Plus className="w-5 h-5"/></button>
               
               <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl flex items-center px-3">
                  <input 
@@ -2510,22 +2512,22 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                    value={msgText} 
                    onChange={(e) => setMsgText(e.target.value)} 
                    placeholder="សរសេរសារ..." 
-                   className="w-full bg-transparent py-2.5 text-[15px] font-medium outline-none text-slate-800" 
+                   className="w-full bg-transparent py-2.5 text-[16px] font-medium outline-none text-slate-800" 
                  />
               </div>
               
               {msgText.trim() ? (
-                  <button type="submit" className="w-9 h-9 rounded-full btn-gradient flex items-center justify-center shrink-0 shadow-md">
-                     <Send className="w-4 h-4 ml-0.5 text-white" />
+                  <button type="submit" className="w-11 h-11 rounded-full btn-gradient flex items-center justify-center shrink-0 shadow-md">
+                     <Send className="w-4.5 h-4.5 ml-0.5 text-white" />
                   </button>
               ) : (
                   <button 
                     type="button" 
                     onMouseDown={startRecordingService}
                     onTouchStart={startRecordingService}
-                    className="w-9 h-9 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm"
+                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm"
                   >
-                     <Mic className="w-4.5 h-4.5" />
+                     <Mic className="w-5 h-5" />
                   </button>
               )}
            </form>
@@ -2640,7 +2642,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   return (
     <div className="max-w-xl mx-auto space-y-3 pt-1 flex-1 w-full font-khmer animate-in fade-in">
       <div className="flex items-center gap-1 px-1 border-l-4 border-[#0F2B5C] pl-2 mb-3">
-         <h1 className="text-[14px] font-black text-[#0F2B5C]">គណនី</h1>
+         <h1 className="text-[14.5px] font-black text-[#0F2B5C]">គណនី</h1>
       </div>
 
       <div className="bg-white p-4 rounded-xl flex flex-col items-center shadow-sm border border-slate-200 relative overflow-hidden">
@@ -2653,15 +2655,15 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
              </label>
         </div>
         <div className="w-full relative z-10">
-           <label className="text-[10px] font-bold text-slate-400 mb-1.5 block text-center uppercase tracking-widest">ឈ្មោះអ្នកប្រើប្រាស់ឧបករណ៍នេះ</label>
+           <label className="text-[11px] font-bold text-slate-400 mb-1.5 block text-center uppercase tracking-widest">ឈ្មោះអ្នកប្រើប្រាស់ឧបករណ៍នេះ</label>
            {isEditingName ? (
                <div className="flex flex-col gap-2">
                    <input type="text" value={localName} onChange={e => setLocalName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-[14px] font-bold outline-none text-center" placeholder="កំណត់ឈ្មោះរបស់អ្នក..."/>
-                   <button onClick={handleSaveName} className="btn-gradient py-2.5 rounded-xl text-[12px] font-black shadow-sm">រក្សាទុក</button>
+                   <button onClick={handleSaveName} className="btn-gradient py-2.5 rounded-xl text-[13px] font-black shadow-sm">រក្សាទុក</button>
                </div>
            ) : (
                <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl">
-                   <span className="text-[14px] font-black text-[#0F2B5C]">{safeStr(profile?.username)}</span>
+                   <span className="text-[14.5px] font-black text-[#0F2B5C]">{safeStr(profile?.username)}</span>
                    <button onClick={() => setIsEditingName(true)} className="text-slate-600 bg-white border border-slate-200 font-bold px-3 py-1.5 rounded-lg text-[11px] flex items-center gap-1 shadow-sm"><Edit3 className="w-3.5 h-3.5"/> កែប្រែ</button>
                </div>
            )}
@@ -2669,12 +2671,12 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
       </div>
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
-         <h2 className="text-[12.5px] font-black flex items-center gap-1.5 text-[#0F2B5C] border-b border-slate-100 pb-2">
-            <Settings className="w-4 h-4 text-slate-400"/> ការកំណត់
+         <h2 className="text-[13px] font-black flex items-center gap-1.5 text-[#0F2B5C] border-b border-slate-100 pb-2">
+            <Settings className="w-4.5 h-4.5 text-slate-400"/> ការកំណត់
          </h2>
          
          <div className="pt-1">
-            <button onClick={() => setShowAdminLogin(true)} className="w-full bg-[#0F2B5C] hover:bg-[#081a3b] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-[12.5px] transition active:scale-95 shadow-md border border-[#0F2B5C]">
+            <button onClick={() => setShowAdminLogin(true)} className="w-full bg-[#0F2B5C] hover:bg-[#081a3b] text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 text-[13px] transition active:scale-95 shadow-md border border-[#0F2B5C]">
                <ShieldAlert className="w-4.5 h-4.5 text-[#38BDF8] animate-pulse"/> Admin Portal របស់ប្រព័ន្ធ
             </button>
          </div>
@@ -2688,7 +2690,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
               </div>
               
               <h3 className="text-[14px] font-black mb-1 text-[#0F2B5C] uppercase">បញ្ជាក់សិទ្ធិជាអភិបាល</h3>
-              <p className="text-[11px] text-slate-400 mb-4 font-medium">សូមបញ្ចូលលេខសម្ងាត់សម្រាប់ Admin</p>
+              <p className="text-[11.5px] text-slate-400 mb-4 font-medium">សូមបញ្ចូលលេខសម្ងាត់សម្រាប់ Admin</p>
               
               <div className="mb-4 relative">
                  <input 
@@ -3054,7 +3056,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           {id: 'security', label: 'កំណត់ត្រាសុវត្ថិភាព'},
           {id: 'settings', label: 'Theme'}
         ].map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-3 py-1.5 rounded-lg text-[10px] font-black whitespace-nowrap transition-colors shadow-sm ${activeTab === t.id ? 'bg-[#0F2B5C] text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-3 py-1.5 rounded-lg text-[11px] font-black whitespace-nowrap transition-colors shadow-sm ${activeTab === t.id ? 'bg-[#0F2B5C] text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>{t.label}</button>
         ))}
       </div>
 
@@ -3523,26 +3525,26 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
          <div className="w-full aspect-[16/10] bg-slate-100 overflow-hidden relative shrink-0 border-b border-slate-100">
             <img src={location.image} className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" alt="img" />
-            <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-md py-0.5 px-1.5 rounded border border-slate-200 shadow-sm text-[8px] font-black text-[#0F2B5C] uppercase tracking-wider">{safeStr(location.category)}</div>
+            <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-md py-0.5 px-1.5 rounded border border-slate-200 shadow-sm text-[9px] font-black text-[#0F2B5C] uppercase tracking-wider">{safeStr(location.category)}</div>
          </div>
          <div className="p-2.5 flex flex-col justify-between flex-1">
             <div>
-               <h3 className="font-black text-[11.5px] text-[#0F2B5C] leading-tight line-clamp-1 mb-0.5">{displayTitle}</h3>
-               <p className="text-[9px] text-slate-500 font-bold mb-1.5 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-slate-400"/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
+               <h3 className="font-black text-[13px] text-[#0F2B5C] leading-tight line-clamp-1 mb-0.5">{displayTitle}</h3>
+               <p className="text-[10px] text-slate-500 font-bold mb-1.5 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-slate-400"/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
                
                <div className="mb-2 space-y-0.5">
                  {contactLines.slice(0, 1).map((c, i) => (
-                    <div key={i} className="text-[9.5px] font-black text-slate-600 truncate bg-slate-50 p-1 rounded border border-slate-100">
+                    <div key={i} className="text-[11px] font-black text-slate-600 truncate bg-slate-50 p-1 rounded border border-slate-100">
                        👤 {safeStr(c.name)}: <span className="text-slate-500 font-bold">{safeStr(c.phone)}</span>
                     </div>
                  ))}
                </div>
 
-               <p className="text-[10px] text-slate-500 leading-normal line-clamp-2 mb-1.5 font-medium">{safeStr(location.desc)}</p>
+               <p className="text-[11.5px] text-slate-500 leading-normal line-clamp-2 mb-1.5 font-medium">{safeStr(location.desc)}</p>
             </div>
             <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-auto">
-               <span className="text-[9px] font-bold text-[#38BDF8] flex items-center gap-0.5 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100"><Heart className="w-2.5 h-2.5 fill-current"/> {location.likes || 0}</span>
-               <span className="text-[9px] font-bold text-slate-500 flex items-center gap-0.5">មើលបន្ថែម <ArrowRight className="w-2.5 h-2.5"/></span>
+               <span className="text-[10px] font-bold text-[#38BDF8] flex items-center gap-0.5 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100"><Heart className="w-2.5 h-2.5 fill-current"/> {location.likes || 0}</span>
+               <span className="text-[10px] font-bold text-slate-500 flex items-center gap-0.5">មើលបន្ថែម <ArrowRight className="w-2.5 h-2.5"/></span>
             </div>
          </div>
       </div>
@@ -3563,8 +3565,8 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              <img src={location.image} className="w-full h-full object-cover object-center" alt="loc"/>
              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 flex items-end justify-between">
                 <div>
-                   <span className="bg-[#38BDF8] text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm border border-sky-400 uppercase tracking-wider">{safeStr(location.category)}</span>
-                   <h2 className="text-white font-black text-[13px] mt-1 leading-tight">{displayTitle}</h2>
+                   <span className="bg-[#38BDF8] text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-sky-400 uppercase tracking-wider">{safeStr(location.category)}</span>
+                   <h2 className="text-white font-black text-[14.5px] mt-1 leading-tight">{displayTitle}</h2>
                 </div>
                 <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-rose-500 text-white' : 'bg-white text-slate-500'}`}>
                    <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`}/>
@@ -3575,13 +3577,13 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
           <div className="p-3.5 overflow-y-auto flex-1 space-y-3 hide-scrollbar">
              
              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-2">
-                <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest block">បញ្ជីខ្សែទូរស័ព្ទទាក់ទង ({contactLines.length})</span>
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block">បញ្ជីខ្សែទូរស័ព្ទទាក់ទង ({contactLines.length})</span>
                 <div className="space-y-1.5">
                    {contactLines.map((c, i) => (
-                      <div key={i} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                      <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
                          <div>
-                            <span className="text-[11.5px] font-black text-[#0F2B5C] block">{safeStr(c.name)}</span>
-                            <span className="text-[10.5px] text-slate-500 font-bold tracking-wider">{safeStr(c.phone)}</span>
+                            <span className="text-[13px] font-black text-[#0F2B5C] block">{safeStr(c.name)}</span>
+                            <span className="text-[11.5px] text-slate-500 font-bold tracking-wider">{safeStr(c.phone)}</span>
                          </div>
                          <a 
                            href={`tel:${c.phone}`}
@@ -3595,18 +3597,18 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              </div>
 
              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
-                <span className="text-[8.5px] text-slate-400 font-bold uppercase block">អាសយដ្ឋាន</span>
-                <p className="font-bold text-[11.5px] text-slate-800 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-rose-500"/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
+                <span className="text-[9px] text-slate-400 font-bold uppercase block">អាសយដ្ឋាន</span>
+                <p className="font-bold text-[13px] text-slate-800 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-rose-500"/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
                 {calculatedDistanceVal > 0 && (
-                   <span className="inline-block bg-emerald-50 text-emerald-600 text-[9.5px] font-black border border-emerald-100 px-2 py-0.5 rounded mt-1">
+                   <span className="inline-block bg-emerald-50 text-emerald-600 text-[10px] font-black border border-emerald-100 px-2 py-0.5 rounded mt-1">
                       📍 ចម្ងាយពីអ្នក: {calculatedDistanceVal} KM
                    </span>
                 )}
              </div>
 
              <div className="space-y-1">
-                <span className="text-[8.5px] text-slate-400 font-bold uppercase block">ព័ត៌មានលម្អិត</span>
-                <p className="text-[11.5px] text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{safeStr(location.desc || 'គ្មានការពណ៌នាព័ត៌មានបន្ថែមទេ។')}</p>
+                <span className="text-[9px] text-slate-400 font-bold uppercase block">ព័ត៌មានលម្អិត</span>
+                <p className="text-[13px] text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{safeStr(location.desc || 'គ្មានការពណ៌នាព័ត៌មានបន្ថែមទេ។')}</p>
              </div>
           </div>
           
@@ -3614,7 +3616,7 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              <button 
                 type="button"
                 onClick={() => onCallTrigger(location)} 
-                className="flex-1 py-2.5 rounded-lg font-black text-[11px] flex items-center justify-center gap-1 bg-emerald-500 border border-emerald-600 text-white shadow-sm"
+                className="flex-1 py-3 rounded-lg font-black text-[13px] flex items-center justify-center gap-1 bg-emerald-500 border border-emerald-600 text-white shadow-sm"
              >
                 <Phone className="w-3.5 h-3.5" />
                 <span>ទូរស័ព្ទ (Call Contact)</span>
@@ -3624,7 +3626,7 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
                 href={location.mapUrl || (location.coords ? `https://www.google.com/maps?q=${location.coords.lat},${location.coords.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayTitle)}`)} 
                 target="_blank" 
                 rel="noreferrer"
-                className="flex-1 py-2.5 bg-[#0F2B5C] text-white border border-[#0F2B5C] rounded-lg font-black text-[11px] flex items-center justify-center gap-1 shadow-sm"
+                className="flex-1 py-3 bg-[#0F2B5C] text-white border border-[#0F2B5C] rounded-lg font-black text-[13px] flex items-center justify-center gap-1 shadow-sm"
               >
                 <MapSvgIcon className="text-[#38BDF8]"/>
                 <span>ផែនទី (Location)</span>
