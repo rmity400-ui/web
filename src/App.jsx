@@ -157,7 +157,7 @@ const injectStyles = () => {
     :root { 
       --font-khmer: 'Noto Sans Khmer', sans-serif; 
       --theme-dark-blue: #0F2B5C; 
-      --theme-blue: #0ea5e9;
+      --theme-blue: #0ea5e9; 
     }
     * { 
       -webkit-tap-highlight-color: transparent; 
@@ -1287,6 +1287,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     contacts: [{ name: '', phone: '' }]
   });
   const [loading, setLoading] = useState(false);
+  const [isFetchingGps, setIsFetchingGps] = useState(false);
 
   const filtered = (locations || []).filter(l => {
     if (!l) return false;
@@ -1330,7 +1331,7 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   };
 
   const setGPSForForm = () => {
-      setGpsStatus('loading');
+      setIsFetchingGps(true);
       if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
               (pos) => {
@@ -1340,17 +1341,17 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                      coords: coords,
                      mapUrl: `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
                   });
-                  setGpsStatus('green');
+                  setIsFetchingGps(false);
                   showToast('ចាប់កូអរដោនេ GPS និងបញ្ចូលជោគជ័យ', 'success');
               },
               () => {
-                  setGpsStatus('red');
+                  setIsFetchingGps(false);
                   showToast('សូមបើក Location ឧបករណ៍របស់អ្នក', 'error');
               },
               { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
           );
       } else {
-          setGpsStatus('red');
+          setIsFetchingGps(false);
           showToast('ឧបករណ៍របស់អ្នកមិនគាំទ្រ GPS ទេ', 'error');
       }
   };
@@ -1581,8 +1582,8 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                 <div>
                     <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase">ទីតាំង (GPS)</label>
                     <button type="button" onClick={setGPSForForm} className={`w-full ${form.coords ? 'bg-[#0F2B5C]/10 text-[#0F2B5C] border-[#0F2B5C]/30' : 'bg-slate-100 text-slate-600 border-slate-300'} border-2 py-4 rounded-2xl font-bold text-[12px] flex items-center justify-center gap-2 active:scale-95 transition-all truncate px-2`}>
-                       <MapPin className="w-4 h-4 shrink-0"/>
-                       {form.coords ? '✓ ចាប់បានទីតាំងជោគជ័យ' : 'ចុចដើម្បីទាញយក GPS'}
+                       {isFetchingGps ? <Loader2 className="w-4 h-4 animate-spin"/> : <MapPin className="w-4 h-4 shrink-0"/>}
+                       {isFetchingGps ? 'កំពុងចាប់ទីតាំង...' : form.coords ? '✓ ចាប់បានទីតាំងជោគជ័យ' : 'ចុចដើម្បីទាញយក GPS'}
                     </button>
                 </div>
 
