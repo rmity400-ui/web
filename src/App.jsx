@@ -1500,18 +1500,17 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
         )}
       </div>
 
-      {/* Structured flex layout to guarantee submit button is visible on all viewport heights (Fixes photo_6253720894538715529_y.jpg) */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 md:px-4 pointer-events-auto">
-          <div className="relative w-full max-w-lg bg-white rounded-t-[20px] md:rounded-[20px] overflow-hidden shadow-2xl flex flex-col max-h-[90dvh] border border-slate-200 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-[2100] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-sm px-0 md:px-4 pointer-events-auto">
+          <div className="relative w-full max-w-lg bg-white rounded-t-[20px] md:rounded-[20px] overflow-hidden shadow-2xl flex flex-col h-[82vh] md:h-auto md:max-h-[85vh] border border-slate-200 animate-in slide-in-from-bottom duration-300">
             
-            <form onSubmit={handleAddSubmit} className="flex flex-col max-h-[90dvh] w-full overflow-hidden">
+            <form onSubmit={handleAddSubmit} className="flex flex-col h-full w-full overflow-hidden">
               <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                 <h2 className="text-[14px] font-black text-[#0F2B5C]">បន្ថែមទិន្នន័យ: {activeTab}</h2>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500"><X className="w-4.5 h-4.5"/></button>
               </div>
               
-              <div className="p-4 overflow-y-auto flex-1 bg-white space-y-4 pb-20">
+              <div className="p-4 overflow-y-auto flex-1 bg-white space-y-4 pb-12">
                 <div>
                    <label className="text-[11px] font-bold text-slate-700 block mb-1 uppercase tracking-wider">ចំណងជើង / ឈ្មោះទីតាំង *</label>
                    <input type="text" required value={form.title} onChange={e=>setForm({...form, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" placeholder="ឈ្មោះទីតាំង..." />
