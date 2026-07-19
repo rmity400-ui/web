@@ -11,7 +11,6 @@ import { initializeApp } from 'firebase/app';
 import { 
   getAuth, 
   signInAnonymously, 
-  signInWithEmailAndPassword,
   onAuthStateChanged, 
   signOut 
 } from 'firebase/auth';
@@ -106,80 +105,86 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return parseFloat((R * c).toFixed(2));
 };
 
-// SHA-256 Password hashing mechanism using browser standard Web Crypto API
-const hashPasswordPureJS = (ascii) => {
-  function rightRotate(value, amount) {
-    return (value >>> amount) | (value << (32 - amount));
+// SHA-256 Password hashing mechanism
+const hashPasswordPureJS = (s) => {
+  const rotateRight = (n, x) => (x >>> n) | (x << (32 - n));
+  const words = [];
+  const strLen = s.length;
+  for (let i = 0; i < strLen * 8; i += 8) {
+    words[i >> 5] |= (s.charCodeAt(i / 8) & 255) << (24 - i % 32);
   }
-  var mathPow = Math.pow;
-  var maxWord = mathPow(2, 32);
-  var i, j;
-  var result = '';
-  var words = [];
-  var asciiLength = ascii.length;
-  var hash = [];
-  var k = [];
-  var primeCounter = 0;
-  var isComposite = {};
-  for (var candidate = 2; primeCounter < 64; candidate++) {
-    if (!isComposite[candidate]) {
-      for (i = 0; i < 313; i += candidate) {
-        isComposite[i] = 1;
-      }
-      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
-      k[primeCounter] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-      primeCounter++;
+  words[strLen >> 2] |= 128 << (24 - (strLen % 4) * 8);
+  const blocks = ((strLen + 8) >> 6) + 1;
+  const wordsLen = blocks * 16;
+  while (words.length < wordsLen) words.push(0);
+  words[wordsLen - 1] = strLen * 8;
+
+  const K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+  let H = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+  ];
+
+  for (let i = 0; i < words.length; i += 16) {
+    const w = new Array(64);
+    for (let t = 0; t < 16; t++) w[t] = words[i + t];
+    for (let t = 16; t < 64; t++) {
+      const s0 = rotateRight(7, w[t - 15]) ^ rotateRight(18, w[t - 15]) ^ (w[t - 15] >>> 3);
+      const s1 = rotateRight(17, w[t - 2]) ^ rotateRight(19, w[t - 2]) ^ (w[t - 2] >>> 10);
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
     }
-  }
-  ascii += '\x80';
-  while (ascii.length % 64 - 56) ascii += '\x00';
-  for (i = 0; i < ascii.length; i++) {
-    var charCode = ascii.charCodeAt(i);
-    if (charCode >> 8) return '';
-    words[i >> 2] |= charCode << ((3 - i) % 4 * 8);
-  }
-  words[words.length] = ((asciiLength * 8) / maxWord) | 0;
-  words[words.length] = (asciiLength * 8);
-  for (j = 0; j < words.length; ) {
-    var w = words.slice(j, j += 16);
-    var oldHash = hash.slice(0);
-    hash = hash.slice(0, 8);
-    for (i = 0; i < 64; i++) {
-      var w16 = w[i - 16], w15 = w[i - 15], w2 = w[i - 2], w7 = w[i - 7];
-      var s0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
-      var s1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
-      var register0 = w[i] = (i < 16) ? w[i] : (w16 + s0 + w7 + s1) | 0;
-      var ch = (hash[4] & hash[5]) ^ (~hash[4] & hash[6]);
-      var maj = (hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]);
-      var s0_2 = rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22);
-      var s1_2 = rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25);
-      var temp1 = hash[7] + s1_2 + ch + k[i] + register0;
-      var temp2 = s0_2 + maj;
-      hash = [(temp1 + temp2) | 0].concat(hash);
-      hash[4] = (hash[4] + temp1) | 0;
+
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let t = 0; t < 64; t++) {
+      const S1 = rotateRight(6, e) ^ rotateRight(11, e) ^ rotateRight(25, e);
+      const ch = (e & f) ^ (~e & g);
+      const temp1 = (h + S1 + ch + K[t] + w[t]) | 0;
+      const S0 = rotateRight(2, a) ^ rotateRight(13, a) ^ rotateRight(22, a);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const temp2 = (S0 + maj) | 0;
+
+      h = g;
+      g = f;
+      f = e;
+      e = (d + temp1) | 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) | 0;
     }
-    for (i = 0; i < 8; i++) {
-      hash[i] = (hash[i] + oldHash[i]) | 0;
-    }
+
+    H[0] = (H[0] + a) | 0;
+    H[1] = (H[1] + b) | 0;
+    H[2] = (H[2] + c) | 0;
+    H[3] = (H[3] + d) | 0;
+    H[4] = (H[4] + e) | 0;
+    H[5] = (H[5] + f) | 0;
+    H[6] = (H[6] + g) | 0;
+    H[7] = (H[7] + h) | 0;
   }
-  for (i = 0; i < 8; i++) {
-    for (j = 3; j + 1; j--) {
-      var b = (hash[i] >> (j * 8)) & 255;
-      result += (b < 16 ? '0' : '') + b.toString(16);
-    }
-  }
-  return result;
+
+  return H.map(h => {
+    const hex = (h >>> 0).toString(16);
+    return '00000000'.substring(hex.length) + hex;
+  }).join('');
 };
 
 const hashPassword = async (string) => {
-  // Use pure JS immediately to prevent iframe sandbox crypto blocks
   return hashPasswordPureJS(string);
 };
 
 // Secure password verification method avoiding raw plain-text storage
 const verifyAdminPassword = async (inputPwd) => {
   try {
-    const expectedHash = "d7c43339174e508fb186b595cb2e32f05fa472f8ff66e512410985cc7fb8de75"; // SHA-256 for "ictmit"
+    const expectedHash = "a99b16c162b84ac06fee88eba49fa43ab305a56ef9d71469173c1fa45555040d";
     const inputHash = await hashPassword(inputPwd);
     return expectedHash === inputHash;
   } catch(e) {
@@ -287,7 +292,7 @@ const injectStyles = () => {
     
     .telegram-bg {
        background-color: #f1f5f9;
-       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%230F2B5C' fill-opacity='0.02'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z'/%3E%3C/g%3E%3C/svg%3E");
+       background-image: url("'BG_PuReach.jpg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%230F2B5C' fill-opacity='0.02'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z'/%3E%3C/g%3E%3C/svg%3E");
     }
 
     .audio-waveform-bar {
@@ -553,8 +558,9 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false); 
   
   /* Customized logo and background states */
-  const [appLogo, setAppLogo] = useState('');
+  const [appLogo, setAppLogo] = useState('logo');
   const [customBg, setCustomBg] = useState('#f8fafc');
+  const [gatewayBg, setGatewayBg] = useState('');
   const [profile, setProfile] = useState({ username: '', avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png', isBanned: false, warnings: 0, role: 'user' });
   
   const [locations, setLocations] = useState([]);  
@@ -805,6 +811,7 @@ export default function App() {
            if (sdata.cosmicTheme !== undefined) setCosmicTheme(sdata.cosmicTheme);
            if (sdata.customBg !== undefined) setCustomBg(sdata.customBg || '#f8fafc');
            if (sdata.appLogo !== undefined) setAppLogo(sdata.appLogo || '');
+           if (sdata.gatewayBg !== undefined) setGatewayBg(sdata.gatewayBg || '');
         }
     }, () => {});
 
@@ -883,7 +890,11 @@ export default function App() {
     const finalizedUsername = regName.trim();
     if (!finalizedUsername) return showToast('សូមបញ្ជាក់ឈ្មោះគណនីរបស់អ្នក', 'error');
 
-    // Strict validation to reject gibberish/repetitive spam characters (e.g. gg ss cc)
+    // Prevent anyone from manually registering the reserved admin names
+    if (finalizedUsername.toLowerCase() === 'ramit' || finalizedUsername.toLowerCase() === 'admin') {
+        return showToast('ឈ្មោះគណនីនេះត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ!', 'error');
+    }
+
     if (finalizedUsername.length < 2 || /(.)\1{2,}/.test(finalizedUsername)) {
         return showToast('ឈ្មោះមិនត្រឹមត្រូវ! (សូមប្រើឈ្មោះពិត ត្រកូល និងនាមឲ្យបានត្រឹមត្រូវ)', 'error');
     }
@@ -950,8 +961,6 @@ export default function App() {
       canvas.width = video.videoWidth || 320;
       canvas.height = video.videoHeight || 240;
       const ctx = canvas.getContext('2d');
-      
-      // Draw standard un-mirrored alignment as requested ("ថតបែបស្តាំ កុំដាក់ឆ្វេងពេលមើលទៅវាវៀវកមុខ")
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/png');
       setAppealPhoto(dataUrl);
@@ -1021,7 +1030,6 @@ export default function App() {
         timestamp: Date.now() 
       };
       
-      // Auto assign standard province to Rattanak Mondul forms
       if (addForm.district === 'រតនមណ្ឌល' || !addForm.district) {
          submitData.province = 'បាត់ដំបង';
          submitData.district = 'រតនមណ្ឌល';
@@ -1034,7 +1042,6 @@ export default function App() {
          return;
       }
 
-      // Add to Firestore database
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_admin_data'), {
         ...submitData,
         status: isAdmin ? 'approved' : 'pending',
@@ -1151,7 +1158,10 @@ export default function App() {
       <div className="fixed inset-0 z-[100] flex flex-col md:flex-row font-khmer bg-white text-slate-800 animate-in fade-in duration-500 w-full overflow-hidden">
         {cosmicTheme && <StarryGalaxyCanvas />}
 
-        <div className="flex-1 w-full bg-transparent flex flex-col items-center justify-center pt-10 md:pt-0 z-10">
+        <div 
+          className="flex-1 w-full bg-transparent flex flex-col items-center justify-center pt-10 md:pt-0 z-10"
+          style={gatewayBg ? { backgroundImage: `url(${gatewayBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+        >
             <div className="relative w-24 h-24 flex items-center justify-center mb-4 hover:scale-105 transition-transform duration-500">
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-transparent stroke-[1.5px] rotate-90" />
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-[#0F2B5C] stroke-none rotate-90 scale-90" />
@@ -1161,10 +1171,10 @@ export default function App() {
                    <GraduationCap className="relative z-10 w-12 h-12 text-[#38BDF8]" />
                 )}
             </div>
-            <h1 className={`font-logo font-black text-2xl md:text-3xl tracking-wide text-center px-4 ${cosmicTheme ? 'text-white' : 'text-[#0F2B5C]'} mb-1 drop-shadow-sm`}>
+            <h1 className={`font-logo font-black text-2xl md:text-3xl tracking-wide text-center px-4 ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : 'text-[#0F2B5C]'} mb-1`}>
                 វិទ្យាល័យស្តៅសន្តិភាព
             </h1>
-            <p className={`text-[11px] ${cosmicTheme ? 'text-sky-300' : 'text-[#0F2B5C]'} font-bold uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm mt-1`}>
+            <p className={`text-[11px] ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] bg-white/80' : 'text-[#0F2B5C] bg-white/10'} font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-sm mt-1`}>
                 យុវជន vmc វិ.ស្តៅសន្តិភាព 2026
             </p>
         </div>
@@ -1278,11 +1288,11 @@ export default function App() {
            )}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
            {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} /></div>}
-           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} /></div>}
+           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} usersList={usersList} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
                 <AdminDashboard 
-                  locations={locations} setLocations={setLocations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} dbRegions={dbRegions} setDbRegions={setDbRegions} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} setIsAdmin={setIsAdmin} chatTargets={chatTargets} setChatTargets={setChatTargets} appeals={appeals} setAppeals={setAppeals} cosmicTheme={cosmicTheme} setCosmicTheme={setCosmicTheme} customBg={customBg} setCustomBg={setCustomBg} appLogo={appLogo} setAppLogo={setAppLogo}
+                  locations={locations} setLocations={setLocations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} dbRegions={dbRegions} setDbRegions={setDbRegions} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} setIsAdmin={setIsAdmin} chatTargets={chatTargets} setChatTargets={setChatTargets} appeals={appeals} setAppeals={setAppeals} cosmicTheme={cosmicTheme} setCosmicTheme={setCosmicTheme} customBg={customBg} setCustomBg={setCustomBg} appLogo={appLogo} setAppLogo={setAppLogo} gatewayBg={gatewayBg} setGatewayBg={setGatewayBg}
                 />
               </div>
            )}
@@ -2110,6 +2120,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const scrollContainerRef = useRef(null);
 
+  // Reference for tracking long-press intervals (Telegram style)
+  const pressTimerRef = useRef({});
+
   // Scroll to bottom of chat list
   useEffect(() => {
       if (scrollContainerRef.current) {
@@ -2120,11 +2133,35 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   // Mark unseen chat messages targeting the current user as read
   useEffect(() => {
     if (!db || !user || !activeChatUser) return;
-    const unseenMsgs = chats.filter(c => c && c.target === activeChatUser.id && c.userId !== user.uid && !c.seen);
+    const unseenMsgs = chats.filter(c => c && c.target === user.uid && c.userId === activeChatUser.id && !c.seen);
     unseenMsgs.forEach(async msg => {
        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id), { seen: true }).catch(()=>{});
     });
   }, [chats, activeChatUser, user, db]);
+
+  // Handle Long Press Start (Telegram style)
+  const handlePressStart = (msg) => {
+    if (pressTimerRef.current[msg.id]) {
+      clearTimeout(pressTimerRef.current[msg.id]);
+    }
+    
+    pressTimerRef.current[msg.id] = setTimeout(() => {
+      if (isAdmin || msg.userId === user?.uid) {
+        if (navigator.vibrate) {
+          navigator.vibrate(60);
+        }
+        setSelectedActionMsg(msg);
+      }
+    }, 550);
+  };
+
+  // Handle Long Press End/Cancel
+  const handlePressEnd = (msg) => {
+    if (pressTimerRef.current[msg.id]) {
+      clearTimeout(pressTimerRef.current[msg.id]);
+      delete pressTimerRef.current[msg.id];
+    }
+  };
 
   // Send textual messages
   const handleSend = async () => {
@@ -2141,7 +2178,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     if (containsAbuse(userMessage)) {
        showToast('ពាក្យសម្តីមិនសមរម្យត្រូវបានរកឃើញ! គណនីត្រូវបានផ្ញើជូន Admin ពិនិត្យ', 'error');
        
-       // Alert Cyber Log and Increment Warning counter
        if (db) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), { warnings: increment(1) }).catch(()=>{});
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
@@ -2282,7 +2318,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     }
   };
 
-  // Push GPS coordinates directly as a Leaflet map coordinate object inside active chats
+  // Push GPS coordinates directly inside active chats
   const handleSendLocation = () => {
       setShowAttachMenu(false);
       if (!gpsCoords) {
@@ -2351,7 +2387,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      setEditInput('');
   };
 
-  // Permanently bind contact list to device Firestore users mapping
+  // Connect contact to private friend database mapping
   const handleConnectPrivateUser = async (targetUser) => {
      if (!db || !user) return;
      try {
@@ -2508,8 +2544,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                          <label className="text-[10px] font-bold text-slate-500 block mb-0.5">ភូមិ</label>
                          <select value={selectedVillage} onChange={e=>setSelectedVillage(e.target.value)} disabled={!selectedCommune} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold outline-none disabled:opacity-50">
                              <option value="">ទាំងអស់</option>
-                             {villageList.map(v => <option key={v} value={v}>{v}</option>
-                             )}
+                             {villageList.map(v => <option key={v} value={v}>{v}</option>)}
                          </select>
                       </div>
                   </div>
@@ -2553,11 +2588,11 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      );
   }
 
-  // Active chat filter targeting selected endpoint thread
+  // Symmetric Bidirectional Chat Filter
   const filteredChats = (chats || []).filter(c => {
       if (!c) return false;
-      if (isAdmin) return c.target === activeChatUser?.id;
-      return c.userId === user?.uid && c.target === activeChatUser?.id;
+      return (c.userId === user?.uid && c.target === activeChatUser?.id) ||
+             (c.userId === activeChatUser?.id && c.target === user?.uid);
   });
 
   return (
@@ -2567,7 +2602,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     >
       <ImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
 
-      {/* Double click context control overlay */}
+      {/* Action modal for message modification */}
       {selectedActionMsg && (
          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-56 overflow-hidden border border-slate-200 select-none">
@@ -2640,7 +2675,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         ) : (
           filteredChats.map(msg => {
             if (!msg) return null;
-            const isMe = isAdmin ? msg.target === activeChatUser?.id : msg.userId === user?.uid;
+            const isMe = msg.userId === user?.uid;
             
             let msgContent;
             if (msg.msgType === 'location') {
@@ -2686,11 +2721,16 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                   
                   <div className="flex items-end gap-1 relative">
                       <div 
-                         className={`px-3 py-2.5 rounded-xl text-[14px] shadow-sm border relative cursor-pointer select-none ${
+                         className={`px-3 py-2.5 rounded-xl text-[14px] shadow-sm border relative cursor-pointer select-none transition-all ${
                             isMe 
                               ? 'bg-[#0F2B5C] border-[#0F2B5C] rounded-br-sm text-white' 
                               : 'bg-white text-slate-800 rounded-bl-sm border-slate-200'
                           }`}
+                         onTouchStart={() => handlePressStart(msg)}
+                         onTouchEnd={() => handlePressEnd(msg)}
+                         onMouseDown={() => handlePressStart(msg)}
+                         onMouseUp={() => handlePressEnd(msg)}
+                         onMouseLeave={() => handlePressEnd(msg)}
                          onDoubleClick={(e) => {
                             e.preventDefault();
                             if (isAdmin || msg.userId === user?.uid) {
@@ -2785,9 +2825,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       </div>
     </div>
   );
-};
+}
 
-const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView }) => {
+const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView, usersList = [] }) => {
   const [pwdInput, setPwdInput] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
@@ -2817,23 +2857,36 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
 
     setIsLoginLoading(true);
     try {
-      // Secure hash verification with user input
       const isMatch = await verifyAdminPassword(pwdInput.trim());
       
       if (isMatch) {
-         // Register "ramit" admin credentials inside Firebase Firestore
          if (db && user) {
-            const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid);
+            // Check if there's already an existing record for username 'ramit' in the user_data collection
+            const targetAdminUid = 'admin_ramit_fixed_uid';
+            const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetAdminUid);
+            
+            // Upsert the specific reserved single 'ramit' account
             await setDoc(profileRef, { 
                role: 'admin', 
                username: 'ramit', 
                avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
                lastActive: Date.now(),
-               timestamp: Date.now()
+               timestamp: Date.now(),
+               uid: targetAdminUid,
+               isBanned: false,
+               warnings: 0
+            }, { merge: true });
+
+            // Set current active user reference mapping to the single admin session
+            const currentProfileRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid);
+            await setDoc(currentProfileRef, {
+               role: 'admin',
+               username: 'ramit',
+               avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
             }, { merge: true });
          }
          setIsAdmin(true);
-         showToast('ចូលប្រើជា Admin ជោគជ័យ ✅');
+         showToast('ចូលប្រើជា Admin (ramit) ជោគជ័យ ✅');
          setShowAdminLogin(false);
          setPwdInput('');
          setAttempts(0);
@@ -2873,11 +2926,18 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   };
 
   const handleSaveName = async () => {
-      if(!localName.trim() || localName.trim() === 'ភ្ញៀវ') return showToast('ឈ្មោះមិនអាចទទេ ឬដាក់ថាភ្ញៀវទេ', 'error');
-      localStorage.setItem(`tp_username_${user?.uid}`, localName);
+      const trimmedName = localName.trim();
+      if(!trimmedName || trimmedName === 'ភ្ញៀវ') return showToast('ឈ្មោះមិនអាចទទេ ឬដាក់ថាភ្ញៀវទេ', 'error');
+      
+      // Stop regular users from taking the reserved name "ramit"
+      if (trimmedName.toLowerCase() === 'ramit' || trimmedName.toLowerCase() === 'admin') {
+         return showToast('ឈ្មោះគណនីនេះត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ!', 'error');
+      }
+
+      localStorage.setItem(`tp_username_${user?.uid}`, trimmedName);
       if (db && user) {
          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
-            username: localName
+            username: trimmedName
          }).catch(()=>{});
       }
       setIsEditingName(false);
@@ -2934,7 +2994,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
 
       <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
          <h2 className="text-[13px] font-black flex items-center gap-1.5 text-[#0F2B5C] border-b border-slate-100 pb-2">
-            <Settings className="w-4.5 h-4.5 text-slate-400"/> การកំណត់
+            <Settings className="w-4.5 h-4.5 text-slate-400"/> ការកំណត់
          </h2>
          
          <div className="pt-1">
@@ -2978,7 +3038,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   );
 };
 
-const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme, customBg, setCustomBg, appLogo, setAppLogo }) => {
+const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme, customBg, setCustomBg, appLogo, setAppLogo, gatewayBg, setGatewayBg }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -3089,7 +3149,8 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             showToast('កំពុងដំណើរការលុបសមាជិក...', 'info');
             if (db) {
                for (const userObj of usersList) {
-                  if (userObj.id) {
+                  // Keep the primary static Admin 'ramit' reference
+                  if (userObj.id && userObj.id !== 'admin_ramit_fixed_uid') {
                      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', userObj.id)).catch(()=>{});
                   }
                }
@@ -3396,6 +3457,44 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
 
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                      <div>
+                        <h4 className="font-bold text-[12.5px] text-slate-800">ប្ដូររូបភាពផ្ទៃក្រោយទំព័រស្វាគមន៍ (Gateway Background)</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5">រូបភាពនេះនឹងបង្ហាញនៅលើផ្ទៃខាងក្រោយផ្នែកខាងឆ្វេង (ផ្នែកសរ) នៃទំព័រស្វាគមន៍ដំបូង។</p>
+                     </div>
+                     <div className="flex items-center gap-3">
+                         <div className="w-14 h-14 rounded-lg border border-slate-300 bg-white flex items-center justify-center overflow-hidden">
+                             {gatewayBg ? <img src={gatewayBg} alt="Gateway BG" className="w-full h-full object-cover" /> : <span className="text-[9px] text-slate-400">លំនាំដើម (ស)</span>}
+                         </div>
+                         <div className="flex gap-2">
+                             <label className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-[11px] font-bold text-slate-700 rounded-xl cursor-pointer shadow-sm active:scale-95 transition-transform">
+                                 Upload រូបភាព
+                                 <input type="file" accept="image/*" onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                       const r = new FileReader();
+                                       r.onload = async () => {
+                                          const b64 = r.result;
+                                          setGatewayBg(b64);
+                                          if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { gatewayBg: b64 }, { merge: true }).catch(()=>{});
+                                          showToast('បានប្តូររូបភាព Background ទំព័រស្វាគមន៍ជោគជ័យ ✅');
+                                       };
+                                       r.readAsDataURL(e.target.files[0]);
+                                    }
+                                 }} className="hidden" />
+                             </label>
+                             {gatewayBg && (
+                                 <button onClick={async () => {
+                                    setGatewayBg('');
+                                    if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { gatewayBg: '' }, { merge: true }).catch(()=>{});
+                                    showToast('បានកំណត់ទៅលំនាំដើមវិញ');
+                                 }} className="px-3 py-2 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-[11px] font-bold shadow-sm active:scale-95">
+                                     លុបចេញ
+                                 </button>
+                             )}
+                         </div>
+                     </div>
+                 </div>
+
+                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                     <div>
                         <h4 className="font-bold text-[12.5px] text-slate-800">ប្ដូរពណ៌ផ្ទៃក្រោយទូទៅ (Custom App Background Color)</h4>
                         <p className="text-[10px] text-slate-500 mt-0.5">ជ្រើសរើសពណ៌សម្រាប់ផ្ទៃខាងក្រោយទូទៅរបស់កម្មវិធីនៅលើទូរស័ព្ទដៃ។</p>
                      </div>
@@ -3579,7 +3678,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                          <input type="text" value={newChatRole} onChange={e=>setNewChatRole(e.target.value)} required placeholder="ឧ: រដ្ឋបាល..." className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold text-slate-800" />
                       </div>
                       
-                      {/* Logo upload feature inside Admin Chat targets */}
                       <div>
                          <label className="text-[10px] font-bold text-slate-500 block mb-0.5">រូបតំណាង</label>
                          <label className="relative flex flex-col items-center justify-center w-full h-8 border border-dashed border-slate-300 bg-white rounded-lg cursor-pointer overflow-hidden shadow-sm">
@@ -3835,7 +3933,6 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
       </div>
       
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
-         {/* Standard horizontal alignment aspect ratio as requested */}
          <div className="w-full aspect-[16/10] bg-slate-100 overflow-hidden relative shrink-0 border-b border-slate-100">
             <img src={location.image} className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" alt="img" />
             <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-md py-0.5 px-1.5 rounded border border-slate-200 shadow-sm text-[9px] font-black text-[#0F2B5C] uppercase tracking-wider">{safeStr(location.category)}</div>
@@ -3874,7 +3971,6 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
   return (
     <div className="fixed inset-0 z-[150] bg-slate-900/70 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 pointer-events-auto font-khmer">
        <div className="bg-white w-full max-w-lg rounded-t-2xl md:rounded-[20px] overflow-hidden shadow-2xl flex flex-col h-[70dvh] md:h-auto md:max-h-[80vh] border border-slate-200 animate-in slide-in-from-bottom duration-300">
-          {/* Horizontal top cover image header as requested */}
           <div className="relative w-full aspect-[16/10] bg-slate-100 shrink-0">
              <img src={location.image} className="w-full h-full object-cover object-center" alt="loc"/>
              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 flex items-end justify-between">
