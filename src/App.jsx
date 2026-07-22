@@ -326,13 +326,6 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
   );
 };
 
-const createContentBlock = () => ({
-  id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `block-${Date.now()}`,
-  text: '',
-  image: '',
-  videoUrl: ''
-});
-
 // Default database settings for Region filtering
 const DEFAULT_REGIONS = {
   "រតនមណ្ឌល": {
@@ -593,10 +586,6 @@ export default function App() {
   const [appealText, setAppealText] = useState('');
   const [appealPhoto, setAppealPhoto] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [appealFeedbackOpen, setAppealFeedbackOpen] = useState(false);
-  const [appealFeedbackMessage, setAppealFeedbackMessage] = useState('');
-  const [helpMode, setHelpMode] = useState('app');
-  const [showSplash, setShowSplash] = useState(true);
   const videoRef = useRef(null);
   const streamObjectRef = useRef(null);
 
@@ -615,8 +604,7 @@ export default function App() {
     district: 'រតនមណ្ឌល', 
     commune: '', 
     village: '',
-    contacts: [{ name: '', phone: '' }],
-    contentBlocks: [createContentBlock()]
+    contacts: [{ name: '', phone: '' }]
   });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [isFormFetchingGps, setIsFormFetchingGps] = useState(false);
@@ -644,11 +632,6 @@ export default function App() {
     }
     meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover';
     injectStyles(); 
-  }, []);
-
-  useEffect(() => {
-    const splashTimer = window.setTimeout(() => setShowSplash(false), 1400);
-    return () => window.clearTimeout(splashTimer);
   }, []);
 
   useEffect(() => {
@@ -1044,12 +1027,6 @@ export default function App() {
         phone: validContacts[0].phone, 
         author: profile?.username || 'Admin', 
         authorUid: user?.uid || 'guest_uid', 
-        contentBlocks: (addForm.contentBlocks || []).filter(Boolean).map(block => ({
-          id: block.id,
-          text: safeStr(block.text),
-          image: block.image || '',
-          videoUrl: safeStr(block.videoUrl)
-        })),
         timestamp: Date.now() 
       };
       
@@ -1120,21 +1097,7 @@ export default function App() {
   const approvedLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'approved'), [locations]);
   const pendingLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'pending'), [locations]);
 
-  if (isAuthLoading || showSplash) {
-    return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[radial-gradient(circle_at_top,_#e0f2fe,_#f8fafc_70%)] px-6 text-center">
-        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-sky-100 bg-white shadow-lg">
-          {appLogo ? <img src={appLogo} alt="Logo" className="h-14 w-14 rounded-full object-cover" /> : <GraduationCap className="h-10 w-10 text-[#0F2B5C]" />}
-        </div>
-        <h1 className="mb-1 text-[18px] font-black text-[#0F2B5C]">វិទ្យាល័យស្តៅសន្តិភាព</h1>
-        <p className="mb-5 text-[12px] font-semibold text-slate-500">កំពុងផ្ទុក Web App รุ่นថ្មី...</p>
-        <div className="flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 shadow-sm">
-          <Loader2 className="h-4 w-4 animate-spin text-[#0F2B5C]" />
-          <span className="text-[12px] font-bold text-[#0F2B5C]">Loading...</span>
-        </div>
-      </div>
-    );
-  }
+  if (isAuthLoading) return <div className="flex items-center justify-center min-h-[100dvh] bg-white"><Loader2 className="w-10 h-10 text-[#0F2B5C] animate-spin"/></div>;
 
   // Strict Device Block & Account Ban Appeal interface overlay screen
   if (profile?.isBanned && !isAdmin) {
@@ -1182,46 +1145,12 @@ export default function App() {
                </div>
            </div>
 
-           <div className="w-full max-w-xs space-y-2 rounded-2xl bg-white/10 p-3">
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => setHelpMode('app')} className={`rounded-xl px-2 py-2 text-[11px] font-black transition-all ${helpMode === 'app' ? 'bg-[#38BDF8] text-[#0F2B5C]' : 'bg-white/10 text-slate-100'}`}>ប្រើ Web App</button>
-                <button onClick={() => setHelpMode('video')} className={`rounded-xl px-2 py-2 text-[11px] font-black transition-all ${helpMode === 'video' ? 'bg-[#38BDF8] text-[#0F2B5C]' : 'bg-white/10 text-slate-100'}`}>មើល Video</button>
-              </div>
-              {helpMode === 'app' ? (
-                <div className="rounded-xl border border-white/10 bg-slate-900/30 p-2.5 text-left text-[11px] text-slate-200">
-                  ប្រើប្រាស់ Web App ដើម្បីអានអក្សរ និងមើលរូបភាពដែលបានបង្ហាញក្នុងទំព័រ។
-                </div>
-              ) : (
-                <div className="rounded-xl border border-white/10 bg-slate-900/30 p-2.5 text-left text-[11px] text-slate-200">
-                  វីដេអូនឹងត្រូវបានបង្ហាញនៅក្នុងមុខងារមើល Video នៅពេលដែល Admin ធ្វើការពិនិត្យ។
-                </div>
-              )}
-           </div>
-
            <div className="flex gap-2 w-full max-w-xs mt-1">
               <button onClick={() => setCurrentPage('gateway')} className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2.5 rounded-lg font-bold text-[12px] transition-all active:scale-95">ត្រឡប់ក្រោយ</button>
               <button onClick={submitAppeal} className="flex-1 bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg font-black text-[12px] shadow-lg transition-all active:scale-95 border border-rose-500">ផ្ញើសំណើ</button>
            </div>
         </div>
       );
-  }
-
-  if (appealFeedbackOpen) {
-    return (
-      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/70 p-4">
-        <div className="w-full max-w-sm rounded-[24px] border border-slate-200 bg-white p-6 text-center shadow-2xl">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-            <CheckCircle className="h-6 w-6" />
-          </div>
-          <h2 className="text-[15px] font-black text-[#0F2B5C]">សំណើររបស់អ្នកត្រូវបានផ្ញើរួចរាល់</h2>
-          <p className="mt-2 text-[12px] font-medium leading-relaxed text-slate-600">{appealFeedbackMessage}</p>
-          <div className="mt-5 flex gap-2">
-            <button onClick={() => { setAppealFeedbackOpen(false); setCurrentPage('gateway'); }} className="flex-1 rounded-xl bg-slate-100 px-3 py-2.5 font-black text-[12px] text-slate-700">ត្រឡប់</button>
-            <button onClick={() => { setAppealFeedbackOpen(false); setAppealText(''); setAppealPhoto(null); }} className="flex-1 rounded-xl bg-[#0F2B5C] px-3 py-2.5 font-black text-[12px] text-white">កែសារដូចเดิม</button>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   if (currentPage === 'gateway') {
@@ -1407,38 +1336,6 @@ export default function App() {
                 <div>
                    <label className="text-[11px] font-bold text-slate-700 block mb-1 uppercase tracking-wider">ចំណងជើង / ឈ្មោះទីតាំង *</label>
                    <input type="text" required value={addForm.title} onChange={e=>setAddForm({...addForm, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" placeholder="ឈ្មោះទីតាំង..." />
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 shadow-inner space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-600">មាតិកាដែលអាចមើលជា Video / Text / Image</span>
-                    <button type="button" onClick={() => setAddForm(prev => ({ ...prev, contentBlocks: [...(prev.contentBlocks || []), createContentBlock()] }))} className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-black text-[#0F2B5C]">
-                      <Plus className="h-3.5 w-3.5" /> បន្ថែម
-                    </button>
-                  </div>
-                  {(addForm.contentBlocks || []).map((block, idx) => (
-                    <div key={block.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">ផ្នែក {idx + 1}</span>
-                        {(addForm.contentBlocks || []).length > 1 && (
-                          <button type="button" onClick={() => setAddForm(prev => ({ ...prev, contentBlocks: (prev.contentBlocks || []).filter(item => item.id !== block.id) }))} className="text-[10px] font-black text-rose-500">លុប</button>
-                        )}
-                      </div>
-                      <textarea value={block.text} onChange={e => setAddForm(prev => ({ ...prev, contentBlocks: (prev.contentBlocks || []).map(item => item.id === block.id ? { ...item, text: e.target.value } : item) }))} placeholder="សរសេរអត្ថបទ..." className="min-h-[70px] w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[13px] font-medium outline-none" />
-                      <label className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">រូបភាព</span>
-                        <input type="file" accept="image/*" className="text-[11px]" onChange={e => {
-                          if (e.target.files && e.target.files[0]) {
-                            const reader = new FileReader();
-                            reader.onload = () => setAddForm(prev => ({ ...prev, contentBlocks: (prev.contentBlocks || []).map(item => item.id === block.id ? { ...item, image: reader.result } : item) }));
-                            reader.readAsDataURL(e.target.files[0]);
-                          }
-                        }} />
-                        {block.image && <img src={block.image} alt="block preview" className="h-24 w-full rounded-lg object-cover" />}
-                      </label>
-                      <input type="url" value={block.videoUrl} onChange={e => setAddForm(prev => ({ ...prev, contentBlocks: (prev.contentBlocks || []).map(item => item.id === block.id ? { ...item, videoUrl: e.target.value } : item) }))} placeholder="URL YouTube (optional)" className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-[13px] font-medium outline-none" />
-                    </div>
-                  ))}
                 </div>
 
                 <div>
@@ -1769,7 +1666,6 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
            
            <div className="flex flex-col w-full">
               {currentView === 'home' && (
-                <div className="flex flex-col gap-2">
                   <form onSubmit={(e) => {
                      e.preventDefault();
                      document.activeElement?.blur(); 
@@ -1785,10 +1681,6 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                       onChange={(e) => setSearchQuery(e.target.value)} 
                     />
                   </form>
-                  <button onClick={() => setCurrentView('home')} className="flex items-center justify-center gap-1 self-start rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-black text-[#0F2B5C]">
-                    <ArrowLeft className="h-3.5 w-3.5" /> Back Home Page
-                  </button>
-                </div>
               )}
            </div>
         </div>
@@ -1824,6 +1716,7 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
       {Object.keys(favorites).length > 0 && (
         <div className="space-y-2">
           <div className="flex justify-between items-center px-1">
+             <h2 className="font-black text-[13px] text-slate-800 flex items-center gap-1"><Pin className="w-4 h-4 text-rose-500 fill-rose-500"/> ទីតាំងដែលបាន Pin ទុក</h2>
           </div>
           <div className="grid grid-cols-2 gap-3">
              {locations.filter(l => favorites[l.id]).map(loc => loc && (
@@ -2197,7 +2090,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
 const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser }) => {
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [friendRequests, setFriendRequests] = useState([]);
 
   // Filter dropdown states
   const [localFilterActive, setLocalFilterActive] = useState(false);
@@ -2498,78 +2390,19 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   // Connect contact to private friend database mapping
   const handleConnectPrivateUser = async (targetUser) => {
      if (!db || !user) return;
-     if ((myContacts || []).some(contact => contact.id === targetUser.id)) {
-       showToast('អ្នកនេះមានក្នុងបញ្ជីមិត្តរួចហើយ', 'info');
-       return;
-     }
      try {
-       const requestId = `${user.uid}_${targetUser.id}`;
-       await setDoc(doc(db, 'artifacts', appId, 'users', targetUser.id, 'friend_requests', requestId), {
-         fromUid: user.uid,
-         fromName: profile?.username || 'អ្នកប្រើប្រាស់',
-         fromAvatar: profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-         timestamp: Date.now()
+       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'contacts', targetUser.id), {
+          id: targetUser.id,
+          label: targetUser.username,
+          avatar: targetUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+          timestamp: Date.now()
        });
-       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'sent_requests', targetUser.id), {
-         toUid: targetUser.id,
-         toName: targetUser.username,
-         timestamp: Date.now()
-       });
-       showToast(`សំណើរមិត្តភក្តិបានផ្ញើទៅ ${targetUser.username}`);
+       showToast(`បានភ្ជាប់ទំនាក់ទំនងជាមួយ ${targetUser.username} ជោគជ័យ!`);
        setShowUserSearch(false);
+       setActiveChatUser({ id: targetUser.id, label: targetUser.username, avatar: targetUser.avatar });
      } catch (err) {
-       showToast('មានបញ្ហាក្នុងការផ្ញើសំណើរមិត្តភក្តិ', 'error');
+       showToast('មានបញ្ហាក្នុងការភ្ជាប់ទំនាក់ទំនង', 'error');
      }
-  };
-
-  const handleAcceptFriendRequest = async (request) => {
-    if (!db || !user) return;
-    try {
-      const requestRef = doc(db, 'artifacts', appId, 'users', user.uid, 'friend_requests', request.id);
-      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'contacts', request.fromUid), {
-        id: request.fromUid,
-        label: request.fromName || 'មិត្ត',
-        avatar: request.fromAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-        timestamp: Date.now()
-      });
-      await setDoc(doc(db, 'artifacts', appId, 'users', request.fromUid, 'contacts', user.uid), {
-        id: user.uid,
-        label: profile?.username || 'អ្នកប្រើប្រាស់',
-        avatar: profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-        timestamp: Date.now()
-      });
-      await deleteDoc(requestRef).catch(() => {});
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
-        targetId: request.fromUid,
-        title: 'បានទទួលសំណើរមិត្តភក្តិ ✅',
-        msg: `${profile?.username || 'អ្នកប្រើប្រាស់'} បានទទួលសំណើរមិត្តភក្តិរបស់អ្នក`,
-        type: 'success',
-        timestamp: Date.now()
-      }).catch(() => {});
-      showToast('បានទទួលសំណើរមិត្តភក្តិ');
-    } catch (err) {
-      showToast('មិនអាចទទួលសំណើរមិត្តភក្តិបានទេ', 'error');
-    }
-  };
-
-  const handleRejectFriendRequest = async (request) => {
-    if (!db || !user) return;
-    try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'friend_requests', request.id)).catch(() => {});
-      showToast('បានបដិសេធសំណើរមិត្តភក្តិ');
-    } catch (err) {
-      showToast('មិនអាចបដិសេធសំណើរមិត្តភក្តិបានទេ', 'error');
-    }
-  };
-
-  const handleRemoveContact = async (contactId) => {
-    if (!db || !user) return;
-    try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'contacts', contactId)).catch(() => {});
-      showToast('បានលុបមិត្តភក្តិ');
-    } catch (err) {
-      showToast('មិនអាចលុបមិត្តភក្តិបានទេ', 'error');
-    }
   };
 
   if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
@@ -2718,31 +2551,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                )}
 
                <div className="flex-1 overflow-y-auto p-3 hide-scrollbar bg-white">
-                  {friendRequests.length > 0 && (
-                    <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-2.5">
-                      <div className="mb-2 flex items-center gap-1.5 text-[11px] font-black text-amber-700">
-                        <User className="h-3.5 w-3.5" /> សំណើរមិត្តភក្តិថ្មី
-                      </div>
-                      <div className="space-y-2">
-                        {friendRequests.map((request) => (
-                          <div key={request.id} className="flex items-center justify-between rounded-lg border border-amber-100 bg-white p-2.5">
-                            <div className="flex items-center gap-2">
-                              <img src={request.fromAvatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="h-8 w-8 rounded-full border border-slate-200 object-cover" alt="avatar" />
-                              <div>
-                                <div className="text-[12px] font-black text-slate-800">{safeStr(request.fromName || 'មិត្ត')}</div>
-                                <div className="text-[9px] font-bold text-slate-400">សំណើរមិត្តភក្តិ</div>
-                              </div>
-                            </div>
-                            <div className="flex gap-1">
-                              <button onClick={() => handleAcceptFriendRequest(request)} className="rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-black text-white">ទទួល</button>
-                              <button onClick={() => handleRejectFriendRequest(request)} className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">បដិសេធ</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
                   {filteredContacts.map((contact, i) => {
                       if (!contact) return null;
@@ -2769,15 +2577,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleRemoveContact(contact.id); }}
-                                className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                              <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors"><ArrowRight className="w-3.5 h-3.5"/></div>
-                            </div>
+                            <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors"><ArrowRight className="w-3.5 h-3.5"/></div>
                         </div>
                       );
                   })}
@@ -4055,7 +3855,6 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                <div className="bg-slate-100 p-1.5 border-b border-slate-200 flex gap-1.5 shrink-0">
                   {[
                      { id: 'Admin', label: 'Admin Support' },
-                     { id: 'User', label: 'User' },
                      { id: 'Police', label: 'ប៉ុស្តិ៍ប៉ូលិស' },
                      { id: 'Commune Chief', label: 'មេឃុំ/ចៅសង្កាត់' }
                   ].map(targetTab => (
@@ -4072,7 +3871,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 telegram-bg hide-scrollbar">
                   {chats.filter(c => c && c.userId === monitoringUser.id && c.target === monitoringTarget).length === 0 ? (
                      <div className="text-center py-10 text-slate-400 font-bold text-[11px]">
-                        គ្មានកំណត់ត្រាសន្ទនាជាមួយ {monitoringTarget === 'Admin' ? 'Admin Support' : monitoringTarget === 'User' ? 'User' : monitoringTarget === 'Police' ? 'ប៉ុស្តិ៍ប៉ូលិស' : 'មេឃុំ/ចៅសង្កាត់'} ឡើយ
+                        គ្មានកំណត់ត្រាសន្ទនាជាមួយ {monitoringTarget === 'Admin' ? 'Admin Support' : monitoringTarget === 'Police' ? 'ប៉ុស្តិ៍ប៉ូលិស' : 'មេឃុំ/ចៅសង្កាត់'} ឡើយ
                      </div>
                   ) : (
                      chats.filter(c => c && c.userId === monitoringUser.id && c.target === monitoringTarget).map(msg => (
@@ -4128,8 +3927,8 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between group relative">
       <div className="absolute top-2 right-2 z-10">
-         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition active:scale-95 ${isFavorite ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white/90 border-slate-200 text-slate-400'}`}>
-            <Pin className={`w-3.5 h-3.5 ${isFavorite ? 'fill-white' : ''}`} />
+         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition active:scale-95 ${isFavorite ? 'bg-[#0F2B5C] border-[#0F2B5C] text-[#38BDF8]' : 'bg-white/90 border-slate-200 text-slate-400'}`}>
+            <Pin className={`w-3.5 h-3.5 ${isFavorite ? 'fill-[#38BDF8]' : ''}`} />
          </button>
       </div>
       
@@ -4179,8 +3978,8 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
                    <span className="bg-[#38BDF8] text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-sky-400 uppercase tracking-wider">{safeStr(location.category)}</span>
                    <h2 className="text-white font-black text-[14.5px] mt-1 leading-tight">{displayTitle}</h2>
                 </div>
-                <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-emerald-500 text-white' : 'bg-white text-slate-500'}`}>
-                   <Pin className={`w-3.5 h-3.5 ${isFav ? 'fill-white' : ''}`}/>
+                <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-[#0F2B5C] text-[#38BDF8]' : 'bg-white text-slate-500'}`}>
+                   <Pin className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`}/>
                 </button>
              </div>
              <button onClick={onClose} className="absolute top-2.5 right-2.5 p-1.5 bg-white/80 rounded-full text-slate-700 shadow-sm backdrop-blur-sm"><X className="w-3.5 h-3.5"/></button>
@@ -4221,23 +4020,6 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
                 <span className="text-[9px] text-slate-400 font-bold uppercase block">ព័ត៌មានលម្អិត</span>
                 <p className="text-[13px] text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{safeStr(location.desc || 'គ្មានការពណ៌នាព័ត៌មានបន្ថែមទេ។')}</p>
              </div>
-
-             {(location.contentBlocks || []).length > 0 && (
-               <div className="space-y-2">
-                 <span className="text-[9px] text-slate-400 font-bold uppercase block">មាតិកាថ្មី</span>
-                 {(location.contentBlocks || []).map((block, idx) => (
-                   <div key={block.id || idx} className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-                     {block.text ? <p className="mb-2 text-[12px] font-medium text-slate-700">{safeStr(block.text)}</p> : null}
-                     {block.image ? <img src={block.image} alt="content" className="mb-2 h-36 w-full rounded-lg object-cover" /> : null}
-                     {block.videoUrl ? (
-                       <div className="overflow-hidden rounded-lg border border-slate-200 bg-black">
-                         <iframe className="h-40 w-full" src={block.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/','www.youtube.com/embed/')} title="video" allowFullScreen />
-                       </div>
-                     ) : null}
-                   </div>
-                 ))}
-               </div>
-             )}
           </div>
           
           <div className="p-2.5 bg-slate-50 border-t border-slate-100 shrink-0 pb-safe flex gap-2">
