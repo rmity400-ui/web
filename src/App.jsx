@@ -5,7 +5,7 @@ import {
   Send, LogOut, Settings, Pin,
   LayoutGrid, ShieldAlert, TrendingUp, Phone, CheckCircle, ArrowLeft, 
   Globe, ArrowRight, Loader2, MapPin, Mic, Camera, X, Play, AlertOctagon, 
-  CheckCheck, Hexagon, GraduationCap, Pause, Copy, Check, Radio, Eye, Shield
+  CheckCheck, Hexagon, GraduationCap, Pause, Copy, Check, Radio, Eye, Shield, Info
 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -500,6 +500,66 @@ const LocationRouteMap = ({ senderCoords, receiverCoords }) => {
   );
 };
 
+const HowToUseModal = ({ onClose, data }) => {
+  const [activeTab, setActiveTab] = useState('guide'); 
+
+  return (
+    <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 pointer-events-auto font-khmer">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col h-[75vh] md:h-[600px] border border-slate-200 animate-in zoom-in-95">
+        <div className="p-3 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+          <h2 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1.5"><Info className="w-4 h-4 text-[#38BDF8]"/> របៀបប្រើប្រាស់ Web App</h2>
+          <button onClick={onClose} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500 transition-colors"><X className="w-4 h-4"/></button>
+        </div>
+        
+        <div className="flex bg-slate-100 p-1.5 border-b border-slate-200 shrink-0">
+           <button onClick={() => setActiveTab('guide')} className={`flex-1 py-2 rounded-lg text-[12px] font-black transition-all ${activeTab === 'guide' ? 'bg-[#0F2B5C] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>មើលការណែនាំ</button>
+           <button onClick={() => setActiveTab('video')} className={`flex-1 py-2 rounded-lg text-[12px] font-black transition-all ${activeTab === 'video' ? 'bg-[#0F2B5C] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}>មើលជា Video</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 hide-scrollbar bg-white">
+            {activeTab === 'guide' ? (
+                (!data || !data.guides || data.guides.length === 0) ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                        <Info className="w-10 h-10 text-slate-300 mb-2"/>
+                        <p className="text-[13px] font-bold text-slate-500">កំពុងអភិវឌ្ឍ</p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {data.guides.map((g, idx) => (
+                            <div key={idx} className="space-y-2">
+                                {g.title && <h3 className="font-black text-[14px] text-[#0F2B5C]">{idx + 1}. {g.title}</h3>}
+                                {g.text && <p className="text-[13px] text-slate-600 leading-relaxed whitespace-pre-wrap">{g.text}</p>}
+                                {g.image && <img src={g.image} alt="Guide" className="w-full rounded-xl border border-slate-200 shadow-sm mt-2" />}
+                            </div>
+                        ))}
+                    </div>
+                )
+            ) : (
+                (!data || !data.videoUrl) ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                        <Play className="w-10 h-10 text-slate-300 mb-2"/>
+                        <p className="text-[13px] font-bold text-slate-500">កំពុងអភិវឌ្ឍ</p>
+                    </div>
+                ) : (
+                    <div className="w-full aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-black">
+                        <iframe 
+                            width="100%" 
+                            height="100%" 
+                            src={data.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                            title="YouTube video player" 
+                            frameBorder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                            allowFullScreen>
+                        </iframe>
+                    </div>
+                )
+            )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Multi-contact Phone Dial Picker Modal
 const CallPickerModal = ({ isOpen, title, contacts, onClose }) => {
   if (!isOpen || !contacts || contacts.length === 0) return null;
@@ -551,14 +611,22 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('gateway'); 
   const [showRegModal, setShowRegModal] = useState(false);
   const [regName, setRegName] = useState('');
+  const [language, setLanguage] = useState('kh');
 
   const [currentView, setCurrentView] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); 
+  
+  // FIXED: Changed isAdmin to use sessionStorage so it only affects the local device
+  const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem('tp_admin_session') === 'true');
   
   /* Customized logo and background states */
   const [appLogo, setAppLogo] = useState('logo');
+  // FIXED: Update session when isAdmin changes
+  useEffect(() => {
+     sessionStorage.setItem('tp_admin_session', isAdmin);
+  }, [isAdmin]);
+
   const [customBg, setCustomBg] = useState('#f8fafc');
   const [gatewayBg, setGatewayBg] = useState('');
   const [profile, setProfile] = useState({ username: '', avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png', isBanned: false, warnings: 0, role: 'user' });
@@ -568,6 +636,7 @@ export default function App() {
   const [chats, setChats] = useState([]);          
   const [chatTargets, setChatTargets] = useState([]);
   const [myContacts, setMyContacts] = useState([]); 
+  const [friendRequests, setFriendRequests] = useState([]);
   const [cyberLogs, setCyberLogs] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [favorites, setFavorites] = useState({});
@@ -586,6 +655,7 @@ export default function App() {
   const [appealText, setAppealText] = useState('');
   const [appealPhoto, setAppealPhoto] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [showAppealConfirm, setShowAppealConfirm] = useState(false);
   const videoRef = useRef(null);
   const streamObjectRef = useRef(null);
 
@@ -660,6 +730,13 @@ export default function App() {
            localToken = 'dev_uuid_' + crypto.randomUUID();
            localStorage.setItem('tp_cambodia_device_id', localToken);
         }
+        
+        const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
+        const savedLocalUsername = localStorage.getItem(`tp_username_${localToken}`);
+        if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
+           setCurrentPage('app');
+        }
+
         setUser({ uid: localToken, isAnonymous: true });
         setIsAuthLoading(false);
       }
@@ -669,6 +746,12 @@ export default function App() {
     if (auth) {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => { 
           if (currentUser) {
+            const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
+            const savedLocalUsername = localStorage.getItem(`tp_username_${currentUser.uid}`);
+            if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
+               setCurrentPage('app');
+            }
+            
             setUser(currentUser);
             setIsAuthLoading(false);
           }
@@ -680,28 +763,24 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    // Direct routing check to bypass login gateway if already completed
-    const checkRouting = () => {
-       const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
-       const savedLocalUsername = localStorage.getItem(`tp_username_${user.uid}`);
-       
-       if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
-          setCurrentPage('app');
-          setCurrentView('home');
-       } else {
-          setCurrentPage('gateway');
-       }
-    };
-    checkRouting();
-
     if (!db) return;
 
-    // Presence update routine
     const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid);
-    setDoc(profileRef, { lastActive: Date.now(), status: 'online' }, { merge: true }).catch(()=>{});
-    const presenceInterval = setInterval(() => {
-      setDoc(profileRef, { lastActive: Date.now(), status: 'online' }, { merge: true }).catch(()=>{});
-    }, 30000); 
+    
+    // Presence update routine
+    const updatePresenceIfReal = () => {
+       const isG = sessionStorage.getItem('tp_is_guest') === 'true';
+       const uName = localStorage.getItem(`tp_username_${user.uid}`);
+       if (!isG && uName && uName !== 'ភ្ញៀវ') {
+          setDoc(profileRef, { lastActive: Date.now(), status: 'online' }, { merge: true }).catch(()=>{});
+       }
+       if (sessionStorage.getItem('tp_admin_session') === 'true') {
+          setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', 'admin_ramit_fixed_uid'), { lastActive: Date.now(), status: 'online' }, { merge: true }).catch(()=>{});
+       }
+    };
+    
+    updatePresenceIfReal();
+    const presenceInterval = setInterval(updatePresenceIfReal, 30000); 
 
     // Subscribe to active user profile
     const unsubProfile = onSnapshot(profileRef, (snap) => {
@@ -732,15 +811,18 @@ export default function App() {
         }
       } else {
         const savedName = localStorage.getItem(`tp_username_${user.uid}`) || '';
-        setDoc(profileRef, {
-          username: savedName,
-          avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-          uid: user.uid,
-          timestamp: Date.now(),
-          isBanned: false,
-          warnings: 0,
-          role: 'user'
-        }, { merge: true });
+        const isG = sessionStorage.getItem('tp_is_guest') === 'true';
+        if (savedName && savedName !== 'ភ្ញៀវ' && !isG) {
+          setDoc(profileRef, {
+            username: savedName,
+            avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+            uid: user.uid,
+            timestamp: Date.now(),
+            isBanned: false,
+            warnings: 0,
+            role: 'user'
+          }, { merge: true });
+        }
       }
     }, () => {});
 
@@ -761,8 +843,12 @@ export default function App() {
       setChats(msgs);
       if (previousChatCount.current > 0 && msgs.length > previousChatCount.current) {
          const lastMsg = msgs[msgs.length - 1];
+         const amIAdmin = sessionStorage.getItem('tp_admin_session') === 'true';
+         const myCheckId = amIAdmin ? 'admin_ramit_fixed_uid' : user.uid;
          // Messenger-like behavior: Play ping on incoming unread messages targeting the current user
-         if (lastMsg.userId !== user.uid) playPingSound();
+         if (lastMsg.userId !== myCheckId && (lastMsg.target === myCheckId || lastMsg.target === user.uid)) {
+             playPingSound();
+         }
       }
       previousChatCount.current = msgs.length;
     }, () => {});
@@ -824,17 +910,28 @@ export default function App() {
       }
     }, () => {});
 
-    // Get Private User Chat Contacts
-    const unsubMyContacts = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'contacts'), snap => {
-       setMyContacts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }, () => {});
-
     return () => { 
         clearInterval(presenceInterval); 
         unsubProfile(); unsubAllUsers(); unsubLocations(); unsubChats(); 
-        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTheme(); unsubTargets(); unsubMyContacts(); unsubAppeals();
+        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTheme(); unsubTargets(); unsubAppeals();
     };
   }, [user]);
+
+  // Handle Contacts and Friend Requests Separately based on isAdmin Role
+  useEffect(() => {
+    if (!user || !db) return;
+    const targetRefId = isAdmin ? 'admin_ramit_fixed_uid' : user.uid;
+    
+    const unsubMyContacts = onSnapshot(collection(db, 'artifacts', appId, 'users', targetRefId, 'contacts'), snap => {
+       setMyContacts(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+
+    const unsubFriendRequests = onSnapshot(collection(db, 'artifacts', appId, 'users', targetRefId, 'friend_requests'), snap => {
+       setFriendRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    
+    return () => { unsubMyContacts(); unsubFriendRequests(); };
+  }, [user, isAdmin, db, appId]);
 
   // Compute unread badge counts targeting user or admin
   const myNotifications = useMemo(() => {
@@ -891,8 +988,8 @@ export default function App() {
     if (!finalizedUsername) return showToast('សូមបញ្ជាក់ឈ្មោះគណនីរបស់អ្នក', 'error');
 
     // Prevent anyone from manually registering the reserved admin names
-    if (finalizedUsername.toLowerCase() === 'ramit' || finalizedUsername.toLowerCase() === 'admin') {
-        return showToast('ឈ្មោះគណនីនេះត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ!', 'error');
+    if (finalizedUsername.toLowerCase() === 'admin' || finalizedUsername.toLowerCase() === 'admin-page') {
+        return showToast('ហាមឃាត់! ឈ្មោះ ADMIN-PAGE ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
     }
 
     if (finalizedUsername.length < 2 || /(.)\1{2,}/.test(finalizedUsername)) {
@@ -961,6 +1058,11 @@ export default function App() {
       canvas.width = video.videoWidth || 320;
       canvas.height = video.videoHeight || 240;
       const ctx = canvas.getContext('2d');
+      
+      // Fix left/right mirror issue (ថតស្តាំកុំដាក់ឆ្វេង)
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/png');
       setAppealPhoto(dataUrl);
@@ -985,10 +1087,14 @@ export default function App() {
     setAppealPhoto(null);
   };
 
-  const submitAppeal = async () => {
+  const handleAppealClick = () => {
      if (!appealText.trim()) return showToast('សូមសរសេរព័រណានៃការសន្យារបស់អ្នក', 'error');
      if (!appealPhoto) return showToast('សូមថតរូបមុខដើម្បីបញ្ជាក់អត្តសញ្ញាណជាមុនសិន', 'error');
-     
+     setShowAppealConfirm(true);
+  };
+
+  const confirmAndSubmitAppeal = async () => {
+     setShowAppealConfirm(false);
      showToast('កំពុងផ្ញើសំណើរសុំបើកគណនី...', 'info');
      try {
         if (db && user) {
@@ -1000,7 +1106,7 @@ export default function App() {
               timestamp: Date.now()
            });
         }
-        showToast('បានផ្ញើសំណើរសុំបើកគណនីវិញដោយជោគជ័យ।', 'success', 5000);
+        showToast('បានផ្ញើសំណើរសុំបើកគណនីវិញដោយជោគជ័យ។', 'success', 5000);
         setAppealText('');
         setAppealPhoto(null);
      } catch (err) {
@@ -1115,7 +1221,7 @@ export default function App() {
                   
                   {isCapturing && (
                     <div className="w-full aspect-[4/3] bg-black rounded-xl overflow-hidden relative mb-2">
-                       <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                       <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" playsInline muted />
                        <button onClick={capturePhotoSnapshot} className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-rose-600 px-3 py-1.5 rounded-lg text-[11px] font-black flex items-center gap-1 shadow-lg"><Camera className="w-3.5 h-3.5" /> ថតយក (Capture)</button>
                        <button onClick={cancelCameraStream} className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full shadow-md"><X className="w-3.5 h-3.5"/></button>
                     </div>
@@ -1147,8 +1253,26 @@ export default function App() {
 
            <div className="flex gap-2 w-full max-w-xs mt-1">
               <button onClick={() => setCurrentPage('gateway')} className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2.5 rounded-lg font-bold text-[12px] transition-all active:scale-95">ត្រឡប់ក្រោយ</button>
-              <button onClick={submitAppeal} className="flex-1 bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg font-black text-[12px] shadow-lg transition-all active:scale-95 border border-rose-500">ផ្ញើសំណើ</button>
+              <button onClick={handleAppealClick} className="flex-1 bg-rose-600 hover:bg-rose-700 px-3 py-2.5 rounded-lg font-black text-[12px] shadow-lg transition-all active:scale-95 border border-rose-500">ផ្ញើសំណើ</button>
            </div>
+
+           {showAppealConfirm && (
+              <div className="fixed inset-0 z-[10000] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
+                 <div className="bg-white text-slate-800 rounded-2xl shadow-2xl w-full max-w-xs p-5 text-center animate-in zoom-in-95 border border-slate-200">
+                    <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                       <AlertOctagon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-[14px] font-black mb-2 text-[#0F2B5C]">បញ្ជាក់ការផ្ញើសំណើរ</h3>
+                    <p className="text-[12.5px] font-medium text-slate-600 mb-5 leading-relaxed">
+                       សំណើរនេះនិងផ្ញើរទៅកាន់ admin page (អ្នកគ្រប់គ្រង) ដើម្បីពិនិត្យមើលកំហុសរបស់អ្នកសូមរងចាំរយះពេល 2-3នាទី។
+                    </p>
+                    <div className="flex gap-2">
+                       <button onClick={() => setShowAppealConfirm(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2.5 rounded-xl font-bold text-[12px] transition-all active:scale-95">Back (កែតម្រូវ)</button>
+                       <button onClick={confirmAndSubmitAppeal} className="flex-1 bg-[#0F2B5C] text-white px-3 py-2.5 rounded-xl font-black text-[12px] transition-all active:scale-95 shadow-md">យល់ព្រមផ្ញើ</button>
+                    </div>
+                 </div>
+              </div>
+           )}
         </div>
       );
   }
@@ -1162,6 +1286,11 @@ export default function App() {
           className="flex-1 w-full bg-transparent flex flex-col items-center justify-center pt-10 md:pt-0 z-10"
           style={gatewayBg ? { backgroundImage: `url(${gatewayBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
         >
+            <div className="absolute top-4 right-4 z-[100] flex gap-1 bg-white/40 backdrop-blur-md p-1 rounded-lg border border-white/50 shadow-sm pointer-events-auto">
+                <button onClick={() => setLanguage('kh')} className={`px-3 py-1.5 text-[10px] font-black rounded transition-colors ${language === 'kh' ? 'bg-[#0F2B5C] text-white shadow' : 'text-[#0F2B5C] hover:bg-white/60'}`}>KH</button>
+                <button onClick={() => setLanguage('en')} className={`px-3 py-1.5 text-[10px] font-black rounded transition-colors ${language === 'en' ? 'bg-[#0F2B5C] text-white shadow' : 'text-[#0F2B5C] hover:bg-white/60'}`}>EN</button>
+            </div>
+
             <div className="relative w-24 h-24 flex items-center justify-center mb-4 hover:scale-105 transition-transform duration-500">
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-transparent stroke-[1.5px] rotate-90" />
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-[#0F2B5C] stroke-none rotate-90 scale-90" />
@@ -1172,10 +1301,10 @@ export default function App() {
                 )}
             </div>
             <h1 className={`font-logo font-black text-2xl md:text-3xl tracking-wide text-center px-4 ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : 'text-[#0F2B5C]'} mb-1`}>
-                វិទ្យាល័យស្តៅសន្តិភាព
+                {language === 'en' ? 'Sdao Santepheap High School' : 'វិទ្យាល័យស្តៅសន្តិភាព'}
             </h1>
             <p className={`text-[11px] ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] bg-white/80' : 'text-[#0F2B5C] bg-white/10'} font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-sm mt-1`}>
-                យុវជន vmc វិ.ស្តៅសន្តិភាព 2026
+                {language === 'en' ? 'VMC Youth SSHS 2026' : 'យុវជន vmc វិ.ស្តៅសន្តិភាព 2026'}
             </p>
         </div>
 
@@ -1183,36 +1312,40 @@ export default function App() {
             <div className="absolute top-0 right-0 w-48 h-48 bg-[#38BDF8]/5 rounded-full blur-3xl pointer-events-none"></div>
             
             <h2 className="text-white text-xl md:text-2xl font-black mb-4 font-khmer leading-tight z-10">
-                ស្វាគមន៍មកកាន់ប្រព័ន្ធព័ត៌មានវិទ្យាល័យ
+                {language === 'en' ? 'Welcome to the High School Info System' : 'ស្វាគមន៍មកកាន់ប្រព័ន្ធព័ត៌មានវិទ្យាល័យ'}
             </h2>
             <p className="text-sky-100/80 text-[13px] leading-relaxed max-w-sm mb-8 font-khmer px-2 z-10 font-medium">
-                ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ និងយុវជន។
+                {language === 'en' ? 'Commune-Village database system of Ratanak Mondol, facilitating communication and providing quick information to citizens and youth.' : 'ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ និងយុវជន។'}
             </p>
             
             <button 
                 onClick={() => setShowRegModal(true)} 
                 className="w-full max-w-[260px] bg-white text-[#0F2B5C] py-3.5 rounded-xl font-black text-[13.5px] shadow-lg active:scale-95 transition-transform mb-3 font-khmer z-10 hover:bg-slate-50 flex justify-center items-center gap-1.5"
             >
-                ចុះឈ្មោះចូលប្រើ <ArrowRight className="w-4 h-4"/>
+                {language === 'en' ? 'Register / Login' : 'ចុះឈ្មោះចូលប្រើ'} <ArrowRight className="w-4 h-4"/>
             </button>
 
             <button 
                 onClick={handleGuestEntry} 
                 className="w-full max-w-[260px] bg-transparent border-2 border-white/20 text-white/80 py-3.5 rounded-xl font-bold text-[13px] active:scale-95 transition-transform hover:bg-white/10 font-khmer z-10"
             >
-                រំលង (ចូលជាភ្ញៀវ)
+                {language === 'en' ? 'Skip (Guest)' : 'រំលង (ចូលជាភ្ញៀវ)'}
             </button>
         </div>
 
         {showRegModal && (
-            <div className="absolute inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+            <div className="absolute inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in pointer-events-auto">
                 <div className="bg-white w-full max-w-xs rounded-[24px] p-6 shadow-2xl flex flex-col items-center text-center border border-slate-100 relative">
                     <button onClick={()=>setShowRegModal(false)} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-700 bg-slate-50 rounded-full"><X className="w-4 h-4"/></button>
                     <div className="w-16 h-16 bg-sky-50 text-[#38BDF8] rounded-full flex items-center justify-center mb-4 border border-sky-100">
                         <User className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-black text-[#0F2B5C] mb-1 font-khmer">ការបង្កើតគណនីថ្មី</h3>
-                    <p className="text-[12px] text-slate-500 mb-4 font-khmer font-medium">គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។</p>
+                    <h3 className="text-lg font-black text-[#0F2B5C] mb-1 font-khmer">
+                       {language === 'en' ? 'Create New Account' : 'ការបង្កើតគណនីថ្មី'}
+                    </h3>
+                    <p className="text-[12px] text-slate-500 mb-4 font-khmer font-medium">
+                       {language === 'en' ? 'This account will be linked to your current device only.' : 'គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។'}
+                    </p>
                     
                     <form onSubmit={handleGatewayRegister} className="w-full space-y-3">
                         <input 
@@ -1220,11 +1353,11 @@ export default function App() {
                             required
                             value={regName} 
                             onChange={e=>setRegName(e.target.value)} 
-                            placeholder="បញ្ចូលឈ្មោះគណនីឧបករណ៍នេះ..." 
+                            placeholder={language === 'en' ? 'Enter your account name...' : 'បញ្ចូលឈ្មោះគណនីឧបករណ៍នេះ...'} 
                             className="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl text-[14px] font-bold text-center outline-none focus:border-[#38BDF8] font-khmer text-slate-800"
                         />
                         <button type="submit" className="w-full py-3 bg-[#0F2B5C] text-white rounded-xl text-[13.5px] font-black active:scale-95 transition-transform font-khmer flex items-center justify-center gap-1.5">
-                            បង្កើតគណនី <CheckCircle className="w-4.5 h-4.5"/>
+                            {language === 'en' ? 'Create Account' : 'បង្កើតគណនី'} <CheckCircle className="w-4.5 h-4.5"/>
                         </button>
                     </form>
                 </div>
@@ -1260,9 +1393,9 @@ export default function App() {
 
         <div className="flex-1 flex flex-col min-h-0 relative w-full max-w-7xl mx-auto overflow-hidden">
            {currentView === 'home' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} setCurrentView={setCurrentView} profile={profile} showToast={showToast} /></div>}
-           {currentView === 'data' && (
+           {currentView === 'info' && (
              <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
-               <DataView 
+               <InfoView 
                  locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} 
                  onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} 
                  db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} 
@@ -1287,7 +1420,7 @@ export default function App() {
              </div>
            )}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} /></div>}
+           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} /></div>}
            {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} usersList={usersList} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
@@ -1522,7 +1655,7 @@ export default function App() {
 const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo }) => {
   const navItems = [
     { id: 'home', icon: Home, label: 'ទំព័រដើម' },
-    { id: 'data', icon: LayoutGrid, label: 'ទិន្នន័យ' },
+    { id: 'info', icon: Info, label: 'ព័ត៌មាន' },
     { id: 'reports', icon: TrendingUp, label: 'របាយការណ៍' },
     { id: 'chat', icon: MessageCircle, label: 'សារ' },
     { id: 'account', icon: User, label: 'គណនី' },
@@ -1561,7 +1694,7 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo }) => {
 const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   const navItems = [
     { id: 'home', icon: Home, label: 'ទំព័រដើម' },
-    { id: 'data', icon: LayoutGrid, label: 'មុខងារ' },
+    { id: 'info', icon: Info, label: 'ព័ត៌មាន' },
     { id: 'chat', icon: MessageCircle, label: 'សារ' },
     { id: 'account', icon: User, label: 'គណនី' },
   ];
@@ -1701,6 +1834,13 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
      return matchesSearch;
   });
 
+  const sortedFiltered = [...filtered].sort((a, b) => {
+     const aFav = favorites[a.id] ? 1 : 0;
+     const bFav = favorites[b.id] ? 1 : 0;
+     if (aFav !== bFav) return bFav - aFav;
+     return (b.timestamp || 0) - (a.timestamp || 0);
+  });
+
   const handleOtherDistricts = () => {
     if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
        showToast('សូមចុះឈ្មោះកំណត់អត្តសញ្ញាណជាមុនសិន!', 'error');
@@ -1712,26 +1852,6 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
   return (
     <div className="space-y-4 animate-in fade-in duration-300 pt-1 w-full flex-1 font-khmer">
-      {/* Pinned Locations Shortcut Panel */}
-      {Object.keys(favorites).length > 0 && (
-        <div className="space-y-2">
-          <div className="flex justify-between items-center px-1">
-             <h2 className="font-black text-[13px] text-slate-800 flex items-center gap-1"><Pin className="w-4 h-4 text-rose-500 fill-rose-500"/> ទីតាំងដែលបាន Pin ទុក</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-             {locations.filter(l => favorites[l.id]).map(loc => loc && (
-               <div key={loc.id} onClick={() => onOpenLocation(loc)} className="bg-white border-2 border-slate-200 p-2.5 rounded-xl cursor-pointer flex gap-2 items-center hover:border-[#0F2B5C] transition-all shadow-sm">
-                  <img src={loc.image} className="w-10 h-10 object-cover rounded-lg" alt="loc" />
-                  <div className="min-w-0">
-                     <h3 className="font-black text-[11.5px] text-[#0F2B5C] leading-none truncate">{safeStr(loc.title)}</h3>
-                     <span className="text-[9.5px] font-bold text-slate-400 mt-1 block truncate">{safeStr(loc.commune)}</span>
-                  </div>
-               </div>
-             ))}
-          </div>
-        </div>
-      )}
-
       <div className="bg-[#0F2B5C] rounded-[16px] p-4 relative overflow-hidden flex flex-row items-center justify-between w-full min-h-[110px] shadow-md">
          <div className="absolute top-0 right-0 w-32 h-full bg-[#38BDF8]/10 rounded-l-[80px] z-0 pointer-events-none"></div>
          
@@ -1742,7 +1862,7 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
              <p className="text-[12px] text-sky-200 mb-3 font-bold">
                  រហ័ស ងាយស្រួល និងជឿជាក់បាន ១០០%
              </p>
-             <button onClick={()=>setCurrentView('data')} className="bg-[#38BDF8] text-[#0F2B5C] px-3 py-1.5 rounded-lg text-[11px] font-black flex items-center gap-1 hover:bg-sky-400">
+             <button onClick={()=>setCurrentView('info')} className="bg-[#38BDF8] text-[#0F2B5C] px-3 py-1.5 rounded-lg text-[11px] font-black flex items-center gap-1 hover:bg-sky-400">
                  ស្វែងយល់ <ArrowRight className="w-3.5 h-3.5"/>
              </button>
          </div>
@@ -1756,11 +1876,11 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
             <h2 className="font-black text-[13px] text-slate-800 leading-none">ជម្រើសទីតាំង</h2>
          </div>
          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => setActiveHomeFilter(activeHomeFilter==='រតនមណ្ឌល'?'All':'រតនមណ្ឌល')} className={`premium-card p-2.5 flex flex-col justify-center items-center transition-all ${activeHomeFilter==='រតនមណ្ឌល' ? 'border-[#0F2B5C] bg-[#0F2B5C] text-white' : 'text-[#0F2B5C] bg-white'}`}>
+            <button onClick={() => setActiveHomeFilter(activeHomeFilter==='រតនមណ្ឌល'?'All':'រតនមណ្ឌល')} className={`p-2.5 flex flex-col justify-center items-center transition-all rounded-[14px] shadow-sm border ${activeHomeFilter==='រតនមណ្ឌល' ? 'border-[#0F2B5C] bg-[#0F2B5C] text-white' : 'border-slate-200 bg-white text-[#0F2B5C]'}`}>
                <div className={`p-2 rounded-lg mb-1.5 ${activeHomeFilter==='រតនមណ្ឌល' ? 'bg-white/20 text-white' : 'bg-slate-50 text-[#0F2B5C]'}`}><MapSvgIcon /></div>
                <span className="font-black text-[12px]">រតនមណ្ឌល</span>
             </button>
-            <button onClick={handleOtherDistricts} className={`premium-card p-2.5 flex flex-col justify-center items-center transition-all text-[#38BDF8] bg-white`}>
+            <button onClick={handleOtherDistricts} className={`p-2.5 flex flex-col justify-center items-center transition-all rounded-[14px] shadow-sm border border-slate-200 bg-white text-[#38BDF8]`}>
                <div className="p-2 rounded-lg mb-1.5 bg-slate-50"><Globe className="w-5 h-5" /></div>
                <span className="font-black text-[12px]">ស្រុកផ្សេងៗ</span>
             </button>
@@ -1770,16 +1890,16 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
       <div>
         <div className="flex items-center justify-between mb-2.5 px-1 border-l-4 border-[#38BDF8] pl-2">
           <h2 className="text-[13px] font-black text-slate-800 leading-none">ទិន្នន័យដែលបានបញ្ចូល</h2>
-          <button onClick={() => setCurrentView('data')} className="text-[11px] font-bold text-slate-600 flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">មើលទាំងអស់ <ArrowRight className="w-3.5 h-3.5"/></button>
+          <button onClick={() => setCurrentView('info')} className="text-[11px] font-bold text-slate-600 flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">មើលទាំងអស់ <ArrowRight className="w-3.5 h-3.5"/></button>
         </div>
-        {filtered.length === 0 ? (
+        {sortedFiltered.length === 0 ? (
            <div className="text-center py-8 bg-white rounded-xl border border-dashed border-slate-200 font-bold text-[12px] text-slate-400 shadow-sm flex flex-col items-center">
              <MapPin className="w-8 h-8 mb-2 text-slate-300"/>
              គ្មានទិន្នន័យ
            </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {filtered.map(loc => loc && (
+            {sortedFiltered.map(loc => loc && (
               <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} />
             ))}
           </div>
@@ -1789,9 +1909,25 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   );
 };
 
-const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite, onOpenLocation, user, profile, isAdmin, showToast, db, appId, setCurrentView, dbRegions, gpsCoords, captureGps, onOpenAddModal }) => {
+const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite, onOpenLocation, user, profile, isAdmin, showToast, db, appId, setCurrentView, dbRegions, gpsCoords, captureGps, onOpenAddModal }) => {
   const [activeTab, setActiveTab] = useState('រតនមណ្ឌល');
   const [activeFilter, setActiveFilter] = useState('ទាំងអស់');
+
+  const [isHowToModalOpen, setIsHowToModalOpen] = useState(false);
+  const [howToData, setHowToData] = useState(null);
+
+  useEffect(() => {
+     if(db && appId) {
+         const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'how_to_use'), (docSnap) => {
+             if(docSnap.exists()) {
+                 setHowToData(docSnap.data());
+             } else {
+                 setHowToData(null);
+             }
+         });
+         return () => unsub();
+     }
+  }, [db, appId]);
 
   const filtered = (locations || []).filter(l => {
     if (!l) return false;
@@ -1810,6 +1946,13 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     if (activeFilter === 'ពេទ្យ' && l.category !== 'មន្ទីរពេទ្យ' && l.category !== 'ពេទ្យ') matchesLevel = false;
     if (activeFilter === 'សាលារៀន' && l.category !== 'សាលារៀន') matchesLevel = false;
     return matchesSearch && matchesLevel;
+  });
+
+  const sortedFiltered = [...filtered].sort((a, b) => {
+     const aFav = favorites[a.id] ? 1 : 0;
+     const bFav = favorites[b.id] ? 1 : 0;
+     if (aFav !== bFav) return bFav - aFav;
+     return (b.timestamp || 0) - (a.timestamp || 0);
   });
 
   const handleOpenAdd = () => {
@@ -1835,8 +1978,15 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   return (
     <div className="space-y-3 mt-1 flex-1 font-khmer font-medium">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-         <h1 className="text-[14.5px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ទិន្នន័យ</h1>
-         <button onClick={handleOpenAdd} className="btn-gradient px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[12px] w-full sm:w-auto justify-center"><Plus className="w-4 h-4"/> បន្ថែមទិន្នន័យ</button>
+         <h1 className="text-[14.5px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ព័ត៌មាន</h1>
+         <div className="flex w-full sm:w-auto gap-2">
+            <button onClick={() => setIsHowToModalOpen(true)} className="bg-white text-[#0F2B5C] border border-slate-200 px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[12px] flex-1 sm:flex-none justify-center shadow-sm hover:bg-slate-50 transition-colors">
+                <Info className="w-4 h-4"/> របៀបប្រើប្រាស់
+            </button>
+            <button onClick={handleOpenAdd} className="btn-gradient px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[12px] flex-1 sm:flex-none justify-center shadow-sm">
+                <Plus className="w-4 h-4"/> បន្ថែមទិន្នន័យ
+            </button>
+         </div>
       </div>
 
       <div className="flex bg-white border border-slate-200 p-1 rounded-xl shadow-sm">
@@ -1852,17 +2002,21 @@ const DataView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
       </div>
       
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-        {filtered.length === 0 ? (
+        {sortedFiltered.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center py-10 bg-white rounded-xl border border-dashed border-slate-200 shadow-sm">
              <MapPin className="w-8 h-8 text-slate-300 mb-2" />
              <p className="font-bold text-[12px] text-slate-500">គ្មានទិន្នន័យ</p>
           </div>
         ) : (
-          filtered.map(loc => loc && (
+          sortedFiltered.map(loc => loc && (
             <LocationCard key={loc.id} location={loc} isFavorite={!!favorites[loc.id]} onToggleFavorite={() => toggleFavorite(loc.id)} onClick={() => onOpenLocation(loc)} />
           ))
         )}
       </div>
+
+      {isHowToModalOpen && (
+         <HowToUseModal onClose={() => setIsHowToModalOpen(false)} data={howToData} />
+      )}
     </div>
   );
 };
@@ -2087,7 +2241,11 @@ const ImageModal = ({ imageUrl, onClose }) => {
   );
 };
 
-const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser }) => {
+const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], friendRequests = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser }) => {
+  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
+  const myChatName = isAdmin ? 'ADMIN-PAGE' : profile?.username;
+  const myChatAvatar = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid')?.avatar || profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png') : profile?.avatar;
+
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
@@ -2133,11 +2291,11 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   // Mark unseen chat messages targeting the current user as read
   useEffect(() => {
     if (!db || !user || !activeChatUser) return;
-    const unseenMsgs = chats.filter(c => c && c.target === user.uid && c.userId === activeChatUser.id && !c.seen);
+    const unseenMsgs = chats.filter(c => c && c.target === myChatId && c.userId === activeChatUser.id && !c.seen);
     unseenMsgs.forEach(async msg => {
        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id), { seen: true }).catch(()=>{});
     });
-  }, [chats, activeChatUser, user, db]);
+  }, [chats, activeChatUser, myChatId, db]);
 
   // Handle Long Press Start (Telegram style)
   const handlePressStart = (msg) => {
@@ -2146,7 +2304,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     }
     
     pressTimerRef.current[msg.id] = setTimeout(() => {
-      if (isAdmin || msg.userId === user?.uid) {
+      if (isAdmin || msg.userId === myChatId) {
         if (navigator.vibrate) {
           navigator.vibrate(60);
         }
@@ -2200,8 +2358,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       text: userMessage, 
       msgType: 'text',
       target: activeChatUser?.id, 
-      userId: user?.uid || 'guest_uid', 
-      userName: profile?.username, 
+      userId: myChatId, 
+      userName: myChatName, 
       seen: false,
       edited: false,
       timestamp: Date.now()
@@ -2278,8 +2436,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
               duration: durationString,
               audioUrl: finalAudioUrl,
               target: activeChatUser?.id,
-              userId: user?.uid || 'guest_uid',
-              userName: profile?.username,
+              userId: myChatId,
+              userName: myChatName,
               seen: false,
               timestamp: Date.now()
             });
@@ -2333,8 +2491,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
          mapUrl: `https://www.google.com/maps?q=${gpsCoords.lat},${gpsCoords.lng}`,
          targetName: activeChatUser?.label || 'គោលដៅ',
          target: activeChatUser?.id,
-         userId: user?.uid || 'guest_uid',
-         userName: profile?.username,
+         userId: myChatId,
+         userName: myChatName,
          seen: false,
          timestamp: Date.now()
       }).then(() => showToast('ផ្ញើទីតាំងជោគជ័យ', 'success')).catch(()=>{});
@@ -2352,8 +2510,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
             msgType: 'image',
             imageUrl: event.target.result,
             target: activeChatUser?.id,
-            userId: user?.uid || 'guest_uid',
-            userName: profile?.username,
+            userId: myChatId,
+            userName: myChatName,
             seen: false,
             timestamp: Date.now()
          }).catch(()=>{});
@@ -2391,21 +2549,57 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const handleConnectPrivateUser = async (targetUser) => {
      if (!db || !user) return;
      try {
-       await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'contacts', targetUser.id), {
-          id: targetUser.id,
-          label: targetUser.username,
-          avatar: targetUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+       if (myContacts.find(c => c.id === targetUser.id)) {
+          return showToast('អ្នកទាំងពីរជាមិត្តភក្តិនឹងគ្នារួចហើយ', 'info');
+       }
+       await setDoc(doc(db, 'artifacts', appId, 'users', targetUser.id, 'friend_requests', myChatId), {
+          id: myChatId,
+          label: myChatName,
+          avatar: myChatAvatar,
           timestamp: Date.now()
        });
-       showToast(`បានភ្ជាប់ទំនាក់ទំនងជាមួយ ${targetUser.username} ជោគជ័យ!`);
+       showToast(`បានផ្ញើសំណើរសុំធ្វើមិត្តទៅកាន់ ${targetUser.username} ជោគជ័យ!`);
        setShowUserSearch(false);
-       setActiveChatUser({ id: targetUser.id, label: targetUser.username, avatar: targetUser.avatar });
      } catch (err) {
-       showToast('មានបញ្ហាក្នុងការភ្ជាប់ទំនាក់ទំនង', 'error');
+       showToast('មានបញ្ហាក្នុងការផ្ញើសំណើរ', 'error');
      }
   };
 
-  if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
+  const handleAcceptRequest = async (req) => {
+      if (!db || !user) return;
+      await setDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'contacts', req.id), {
+          id: req.id,
+          label: req.label,
+          avatar: req.avatar,
+          timestamp: Date.now()
+      });
+      await setDoc(doc(db, 'artifacts', appId, 'users', req.id, 'contacts', myChatId), {
+          id: myChatId,
+          label: myChatName,
+          avatar: myChatAvatar,
+          timestamp: Date.now()
+      });
+      await deleteDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'friend_requests', req.id));
+      showToast(`អ្នក និង ${req.label} បានក្លាយជាមិត្តភក្តិ!`, 'success');
+  };
+
+  const handleDeclineRequest = async (req) => {
+      if (!db || !user) return;
+      await deleteDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'friend_requests', req.id));
+  };
+
+  const handleRemoveFriend = async (contact) => {
+      const ok = window.confirm(`តើអ្នកពិតជាចង់លុប ${contact.label} ចេញពីបញ្ជីមិត្តភក្តិមែនទេ?`);
+      if (!ok) return;
+      if (db && user) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'contacts', contact.id));
+          await deleteDoc(doc(db, 'artifacts', appId, 'users', contact.id, 'contacts', myChatId));
+          showToast(`បានលុប ${contact.label} ចេញពីបញ្ជីមិត្តភក្តិ`);
+          if (activeChatUser?.id === contact.id) setActiveChatUser(null);
+      }
+  };
+
+  if (!isAdmin && (!profile?.username || profile?.username === 'ភ្ញៀវ')) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center flex-1 font-khmer">
          <div className="w-12 h-12 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-3"><MessageCircle className="w-6 h-6" /></div>
@@ -2442,7 +2636,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
          return true;
      });
 
-     const registeredUsersToShow = (usersList || []).filter(u => u && u.username && u.username !== 'ភ្ញៀវ' && u.id !== user?.uid);
+     const registeredUsersToShow = (usersList || []).filter(u => u && u.username && u.username !== 'ភ្ញៀវ' && u.id !== myChatId && u.id !== 'admin_ramit_fixed_uid');
 
      return (
         <div className="flex flex-col h-full bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden w-full flex-1 font-khmer animate-in fade-in duration-300 pb-[85px] md:pb-0">
@@ -2492,7 +2686,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                                        onClick={() => handleConnectPrivateUser(u)} 
                                        className="text-[10px] font-black bg-[#0F2B5C] text-white px-3 py-1.5 rounded-lg active:scale-95 transition-all shadow-sm"
                                     >
-                                       ភ្ជាប់ទំនាក់ទំនង
+                                       សុំធ្វើមិត្ត
                                     </button>
                                 </div>
                               );
@@ -2551,6 +2745,27 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                )}
 
                <div className="flex-1 overflow-y-auto p-3 hide-scrollbar bg-white">
+                  {friendRequests.length > 0 && !localFilterActive && !showUserSearch && (
+                      <div className="mb-3">
+                          <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wider">សំណើរសុំធ្វើមិត្ត ({friendRequests.length})</div>
+                          {friendRequests.map(req => (
+                              <div key={req.id} className="flex items-center justify-between p-3 bg-sky-50 rounded-xl border border-sky-100 mb-2 shadow-sm">
+                                  <div className="flex items-center gap-2.5">
+                                      <img src={req.avatar} className="w-10 h-10 rounded-full border border-slate-200 object-cover" alt="av" />
+                                      <div>
+                                          <h3 className="font-black text-[13px] text-slate-800">{safeStr(req.label)}</h3>
+                                          <p className="text-[10px] text-slate-500 font-bold">ចង់ក្លាយជាមិត្តរបស់អ្នក</p>
+                                      </div>
+                                  </div>
+                                  <div className="flex gap-1.5">
+                                      <button onClick={() => handleAcceptRequest(req)} className="px-3 py-1.5 bg-[#10b981] text-white rounded-lg text-[10px] font-black shadow-sm">ទទួល</button>
+                                      <button onClick={() => handleDeclineRequest(req)} className="px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black">អត់</button>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  )}
+
                   <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wider">បញ្ជីទំនាក់ទំនង៖</div>
                   {filteredContacts.map((contact, i) => {
                       if (!contact) return null;
@@ -2577,7 +2792,20 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors"><ArrowRight className="w-3.5 h-3.5"/></div>
+                            <div className="flex items-center gap-1.5">
+                                {contact.isPrivate && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); handleRemoveFriend(contact); }}
+                                        className="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center border border-rose-100 hover:bg-rose-500 hover:text-white transition-colors"
+                                        title="លុបមិត្តភក្តិ"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                                <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors">
+                                    <ArrowRight className="w-3.5 h-3.5"/>
+                                </div>
+                            </div>
                         </div>
                       );
                   })}
@@ -2591,8 +2819,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   // Symmetric Bidirectional Chat Filter
   const filteredChats = (chats || []).filter(c => {
       if (!c) return false;
-      return (c.userId === user?.uid && c.target === activeChatUser?.id) ||
-             (c.userId === activeChatUser?.id && c.target === user?.uid);
+      return (c.userId === myChatId && c.target === activeChatUser?.id) ||
+             (c.userId === activeChatUser?.id && c.target === myChatId);
   });
 
   return (
@@ -2675,7 +2903,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         ) : (
           filteredChats.map(msg => {
             if (!msg) return null;
-            const isMe = msg.userId === user?.uid;
+            const isMe = msg.userId === myChatId;
             
             let msgContent;
             if (msg.msgType === 'location') {
@@ -2828,11 +3056,14 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 }
 
 const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView, usersList = [] }) => {
+  const currentAdminProfile = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid') || { username: 'ADMIN-PAGE', avatar: profile?.avatar }) : null;
+  const displayProfile = isAdmin ? currentAdminProfile : profile;
+
   const [pwdInput, setPwdInput] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [localName, setLocalName] = useState(profile?.username || '');
-  const [isEditingName, setIsEditingName] = useState(!profile?.username || profile?.username === 'ភ្ញៀវ' ? true : false);
+  const [localName, setLocalName] = useState(displayProfile?.username || '');
+  const [isEditingName, setIsEditingName] = useState(!displayProfile?.username || displayProfile?.username === 'ភ្ញៀវ' ? true : false);
 
   const [lockoutTime, setLockoutTime] = useState(Number(localStorage.getItem('admin_lockout')) || 0);
   const [attempts, setAttempts] = useState(Number(localStorage.getItem('admin_attempts')) || 0);
@@ -2860,33 +3091,26 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
       const isMatch = await verifyAdminPassword(pwdInput.trim());
       
       if (isMatch) {
-         if (db && user) {
-            // Check if there's already an existing record for username 'ramit' in the user_data collection
-            const targetAdminUid = 'admin_ramit_fixed_uid';
-            const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetAdminUid);
-            
-            // Upsert the specific reserved single 'ramit' account
-            await setDoc(profileRef, { 
-               role: 'admin', 
-               username: 'ramit', 
-               avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-               lastActive: Date.now(),
-               timestamp: Date.now(),
-               uid: targetAdminUid,
-               isBanned: false,
-               warnings: 0
-            }, { merge: true });
+         setIsAdmin(true); 
+         sessionStorage.setItem('tp_admin_session', 'true');
+         
+         const existingAdmin = (usersList || []).find(u => u.id === 'admin_ramit_fixed_uid');
+         let adminAvatar = existingAdmin?.avatar || profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
 
-            // Set current active user reference mapping to the single admin session
-            const currentProfileRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid);
-            await setDoc(currentProfileRef, {
-               role: 'admin',
-               username: 'ramit',
-               avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
-            }, { merge: true });
+         if (db) {
+             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', 'admin_ramit_fixed_uid'), {
+                username: 'ADMIN-PAGE',
+                role: 'admin',
+                avatar: adminAvatar, 
+                timestamp: Date.now(),
+                lastActive: Date.now(),
+                status: 'online',
+                id: 'admin_ramit_fixed_uid'
+             }, { merge: true }).catch(()=>{});
          }
-         setIsAdmin(true);
-         showToast('ចូលប្រើជា Admin (ramit) ជោគជ័យ ✅');
+
+         setLocalName('ADMIN-PAGE');
+         showToast('ចូលប្រើជាគណនី ADMIN ជោគជ័យ ✅');
          setShowAdminLogin(false);
          setPwdInput('');
          setAttempts(0);
@@ -2904,7 +3128,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
           const ip = await getClientIP();
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'cyber_logs'), {
              type: 'Unauthorized security breach attempt to admin panel',
-             username: 'Anonymous Password Entry',
+             username: profile?.username || 'Anonymous Password Entry',
              ip: ip,
              device: getDeviceInfo(),
              timestamp: Date.now()
@@ -2915,7 +3139,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
           const newLockout = Date.now() + 15 * 60 * 1000;
           setLockoutTime(newLockout);
           localStorage.setItem('admin_lockout', newLockout);
-          showToast('ព្យាយាមច្រើនដងពេក! សូមរង់ចាំ ១៥ នាទី।', 'error');
+          showToast('ព្យាយាមច្រើនដងពេក! សូមរង់ចាំ ១៥ នាទី។', 'error');
        } else {
           showToast('លេខសម្ងាត់មិនត្រឹមត្រូវ', 'error');
        }
@@ -2926,19 +3150,29 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   };
 
   const handleSaveName = async () => {
+      if (isAdmin) return showToast('មិនអាចប្តូរឈ្មោះ ADMIN បានទេ', 'error');
+      
       const trimmedName = localName.trim();
       if(!trimmedName || trimmedName === 'ភ្ញៀវ') return showToast('ឈ្មោះមិនអាចទទេ ឬដាក់ថាភ្ញៀវទេ', 'error');
       
-      // Stop regular users from taking the reserved name "ramit"
-      if (trimmedName.toLowerCase() === 'ramit' || trimmedName.toLowerCase() === 'admin') {
-         return showToast('ឈ្មោះគណនីនេះត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ!', 'error');
+      // Stop regular users from taking the reserved name "ADMIN"
+      if ((trimmedName.toUpperCase() === 'ADMIN' || trimmedName.toUpperCase() === 'ADMIN-PAGE') && !isAdmin) {
+         setLocalName(profile?.username || '');
+         return showToast('ហាមឃាត់! ឈ្មោះ "ADMIN-PAGE" ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
       }
 
+      sessionStorage.removeItem('tp_is_guest');
       localStorage.setItem(`tp_username_${user?.uid}`, trimmedName);
       if (db && user) {
-         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
-            username: trimmedName
-         }).catch(()=>{});
+         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
+            username: trimmedName,
+            uid: user.uid,
+            avatar: profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+            timestamp: Date.now(),
+            lastActive: Date.now(),
+            status: 'online',
+            role: isAdmin ? 'admin' : 'user'
+         }, { merge: true }).catch(()=>{});
       }
       setIsEditingName(false);
       showToast('រក្សាទុកជោគជ័យ');
@@ -2950,11 +3184,11 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
     const r = new FileReader();
     r.onload = async () => {
        const b64 = r.result;
-       if (db && user) {
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
+       if (db) {
+          const targetId = isAdmin ? 'admin_ramit_fixed_uid' : user.uid;
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetId), {
              avatar: b64
           }).catch(()=>{});
-          setProfile(p => ({ ...p, avatar: b64 }));
           showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
        }
     };
@@ -2970,7 +3204,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
       <div className="bg-white p-4 rounded-xl flex flex-col items-center shadow-sm border border-slate-200 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-12 bg-slate-50 border-b border-slate-100"></div>
         <div className="w-16 h-16 rounded-full bg-white mb-3 overflow-hidden border-2 border-white shadow-md relative group z-10">
-             <img src={profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-full h-full object-cover bg-slate-100" alt="av"/>
+             <img src={displayProfile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-full h-full object-cover bg-slate-100" alt="av"/>
              <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                 <Camera className="w-5 h-5 text-white"/>
                 <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
@@ -2978,15 +3212,15 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
         </div>
         <div className="w-full relative z-10">
            <label className="text-[11px] font-bold text-slate-400 mb-1.5 block text-center uppercase tracking-widest">ឈ្មោះអ្នកប្រើប្រាស់ឧបករណ៍នេះ</label>
-           {isEditingName ? (
+           {isEditingName && !isAdmin ? (
                <div className="flex flex-col gap-2">
                    <input type="text" value={localName} onChange={e => setLocalName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-[14px] font-bold outline-none text-center" placeholder="កំណត់ឈ្មោះរបស់អ្នក..."/>
                    <button onClick={handleSaveName} className="btn-gradient py-2.5 rounded-xl text-[13px] font-black shadow-sm">រក្សាទុក</button>
                </div>
            ) : (
                <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl">
-                   <span className="text-[14.5px] font-black text-[#0F2B5C]">{safeStr(profile?.username)}</span>
-                   <button onClick={() => setIsEditingName(true)} className="text-slate-600 bg-white border border-slate-200 font-bold px-3 py-1.5 rounded-lg text-[11px] flex items-center gap-1 shadow-sm"><Edit3 className="w-3.5 h-3.5"/> កែប្រែ</button>
+                   <span className="text-[14.5px] font-black text-[#0F2B5C]">{safeStr(displayProfile?.username)}</span>
+                   {!isAdmin && <button onClick={() => setIsEditingName(true)} className="text-slate-600 bg-white border border-slate-200 font-bold px-3 py-1.5 rounded-lg text-[11px] flex items-center gap-1 shadow-sm"><Edit3 className="w-3.5 h-3.5"/> កែប្រែ</button>}
                </div>
            )}
         </div>
@@ -3042,6 +3276,19 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [selectedUsersForDelete, setSelectedUsersForDelete] = useState([]);
+
+  const [howToData, setHowToData] = useState({ guides: [], videoUrl: '' });
+
+  useEffect(() => {
+      if (!db || !appId) return;
+      const unsub = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'how_to_use'), (docSnap) => {
+          if (docSnap.exists()) {
+              setHowToData(docSnap.data());
+          }
+      });
+      return () => unsub();
+  }, [db, appId]);
 
   const [confirmAction, setConfirmAction] = useState(null);
   const [monitoringUser, setMonitoringUser] = useState(null);
@@ -3161,6 +3408,23 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                });
             }
             showToast(`បានលុបគណនីសមាជិកទាំងអស់រួចរាល់`);
+         }
+      );
+  };
+
+  const handleBulkDeleteUsers = () => {
+      if (selectedUsersForDelete.length === 0) return;
+      openConfirm(
+         `លុបគណនី (${selectedUsersForDelete.length})`, 
+         `តើអ្នកពិតជាចង់លុបគណនីដែលបានជ្រើសរើសទាំង ${selectedUsersForDelete.length} នេះមែនទេ?`, 
+         async () => {
+            if (db) {
+               for (const uid of selectedUsersForDelete) {
+                  await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', uid)).catch(()=>{});
+               }
+            }
+            setSelectedUsersForDelete([]);
+            showToast(`បានលុបគណនី ${selectedUsersForDelete.length} ជោគជ័យ`);
          }
       );
   };
@@ -3367,6 +3631,32 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
     <div className="w-full max-w-5xl mx-auto space-y-3 pb-10 flex-1 font-khmer text-slate-800 animate-in fade-in">
       <ConfirmModal isOpen={!!confirmAction} title={confirmAction?.title} message={confirmAction?.message} onConfirm={handleConfirm} onCancel={() => setConfirmAction(null)} />
 
+      {editingLoc && (
+         <div className="fixed inset-0 z-[3000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
+            <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95">
+               <h3 className="font-black text-[14px] text-[#0F2B5C] mb-4 flex items-center gap-2"><Edit3 className="w-4 h-4 text-[#38BDF8]"/> កែប្រែទិន្នន័យ (Edit Data)</h3>
+               <div className="space-y-3">
+                  <div>
+                     <label className="text-[11px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">ចំណងជើងទីតាំង</label>
+                     <input type="text" value={editingLoc.title} onChange={e=>setEditingLoc({...editingLoc, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13.5px] font-bold outline-none focus:border-[#38BDF8]" />
+                  </div>
+                  <div>
+                     <label className="text-[11px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">ការពណ៌នា</label>
+                     <textarea value={editingLoc.desc} onChange={e=>setEditingLoc({...editingLoc, desc: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13.5px] font-medium h-24 outline-none focus:border-[#38BDF8]" />
+                  </div>
+               </div>
+               <div className="flex gap-2 mt-5">
+                  <button onClick={()=>setEditingLoc(null)} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-[12px] active:scale-95 transition-all">បោះបង់</button>
+                  <button onClick={async () => {
+                      if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', editingLoc.id), {title: editingLoc.title, desc: editingLoc.desc}).catch(()=>{});
+                      setEditingLoc(null);
+                      showToast('បានរក្សាទុកការកែប្រែជោគជ័យ ✅');
+                  }} className="flex-1 btn-gradient py-3 rounded-xl font-black text-[12px] active:scale-95 transition-all shadow-md">រក្សាទុក (Save)</button>
+               </div>
+            </div>
+         </div>
+      )}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#0F2B5C] text-white p-4 rounded-[16px] shadow-sm shrink-0">
         <div>
            <div className="flex items-center gap-2">
@@ -3381,6 +3671,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       <div className="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
         {[
           {id: 'data', label: 'ទិន្នន័យ & ទីតាំង'},
+          {id: 'how_to', label: 'គ្រប់គ្រង របៀបប្រើប្រាស់'},
           {id: 'chat_manage', label: 'គ្រប់គ្រងទំនាក់ទំនង'},
           {id: 'chat_monitor', label: 'គ្រប់គ្រងបទល្មើស'},
           {id: 'appeals', label: 'សំណើសម្រុះសម្រួល'},
@@ -3393,6 +3684,89 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       </div>
 
       <div className="min-h-[300px]">
+          {activeTab === 'how_to' && (
+             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4 animate-in fade-in duration-200">
+                <div className="flex justify-between items-center mb-3 border-l-4 border-emerald-500 pl-2">
+                   <h3 className="font-black text-[12.5px] text-[#0F2B5C]">គ្រប់គ្រង របៀបប្រើប្រាស់ Web App</h3>
+                   <button onClick={async () => {
+                       if(db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'how_to_use'), howToData);
+                       showToast('រក្សាទុករួចរាល់ ✅', 'success');
+                   }} className="bg-[#10b981] hover:bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-[11px] font-black shadow-sm transition-colors">រក្សាទុក (Save)</button>
+                </div>
+                
+                <div className="space-y-4">
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <div className="flex justify-between items-center mb-2">
+                           <h4 className="font-bold text-[12px] text-slate-800">ផ្នែកទី១: ការណែនាំ (Guides)</h4>
+                           <button onClick={() => {
+                               setHowToData({...howToData, guides: [...(howToData.guides || []), {title: '', text: '', image: ''}]});
+                           }} className="bg-[#38BDF8] hover:bg-sky-500 text-white px-2.5 py-1 rounded-lg text-[11px] font-black shadow-sm flex items-center gap-1 transition-colors">
+                              <Plus className="w-3.5 h-3.5"/> បន្ថែម (Add)
+                           </button>
+                        </div>
+                        <div className="space-y-3">
+                            {howToData.guides && howToData.guides.map((g, idx) => (
+                                <div key={idx} className="p-3 bg-white border border-slate-200 rounded-lg shadow-sm relative">
+                                    <button onClick={() => {
+                                        const newGuides = [...howToData.guides];
+                                        newGuides.splice(idx, 1);
+                                        setHowToData({...howToData, guides: newGuides});
+                                    }} className="absolute top-2 right-2 text-rose-500 p-1 bg-rose-50 rounded-md hover:bg-rose-100 transition-colors"><Trash2 className="w-3.5 h-3.5"/></button>
+                                    
+                                    <div className="space-y-2 mr-6">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">ចំណងជើងទី {idx + 1}</label>
+                                            <input type="text" value={g.title || ''} onChange={e => {
+                                                const newGuides = [...howToData.guides];
+                                                newGuides[idx].title = e.target.value;
+                                                setHowToData({...howToData, guides: newGuides});
+                                            }} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-bold outline-none" placeholder="ចំណងជើង..."/>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">អត្ថបទខាងក្រោមចំណងជើង</label>
+                                            <textarea value={g.text || ''} onChange={e => {
+                                                const newGuides = [...howToData.guides];
+                                                newGuides[idx].text = e.target.value;
+                                                setHowToData({...howToData, guides: newGuides});
+                                            }} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[12px] font-medium h-20 outline-none" placeholder="អត្ថបទ..."></textarea>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">រូបភាព (Upload Picture)</label>
+                                            <label className="relative flex flex-col items-center justify-center w-full h-24 border border-dashed border-slate-300 bg-slate-50 rounded-lg cursor-pointer overflow-hidden hover:bg-slate-100 transition-colors">
+                                                {g.image ? <img src={g.image} alt="preview" className="w-full h-full object-cover" /> : <div className="text-[10px] font-bold text-slate-400 flex flex-col items-center"><ImageSvgIcon className="mb-1 w-5 h-5"/> ជ្រើសរើសរូបភាព</div>}
+                                                <input type="file" accept="image/*" className="hidden" onChange={e => {
+                                                    if(e.target.files && e.target.files[0]) {
+                                                        const r = new FileReader();
+                                                        r.onload = () => {
+                                                            const newGuides = [...howToData.guides];
+                                                            newGuides[idx].image = r.result;
+                                                            setHowToData({...howToData, guides: newGuides});
+                                                        };
+                                                        r.readAsDataURL(e.target.files[0]);
+                                                    }
+                                                }} />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            <button onClick={() => {
+                                setHowToData({...howToData, guides: [...(howToData.guides || []), {title: '', text: '', image: ''}]});
+                            }} className="w-full py-2 border-2 border-dashed border-[#38BDF8] text-[#38BDF8] bg-sky-50 hover:bg-sky-100 rounded-lg font-black text-[11px] transition-colors">+ បន្ថែមចំណងជើង និងអត្ថបទថ្មី</button>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                        <h4 className="font-bold text-[12px] text-slate-800 mb-2">ផ្នែកទី២: Video ការណែនាំ</h4>
+                        <div>
+                            <label className="text-[10px] font-bold text-slate-500 block mb-0.5">YouTube Video URL</label>
+                            <input type="text" value={howToData.videoUrl || ''} onChange={e => setHowToData({...howToData, videoUrl: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-[12px] font-bold outline-none" placeholder="ឧ. https://www.youtube.com/watch?v=..."/>
+                        </div>
+                    </div>
+                </div>
+             </div>
+          )}
+
           {activeTab === 'security' && (
              <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4 animate-in fade-in">
                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
@@ -3558,13 +3932,23 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                            className="w-full bg-white border border-slate-200 rounded-lg py-2 pl-9 pr-3 text-[12.5px] font-bold"
                         />
                     </div>
-                    <button 
-                       onClick={handleWipeAllUsers} 
-                       className="p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 active:scale-95 transition-all" 
-                       title="លុបសមាជិកទាំងអស់"
-                    >
-                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    {selectedUsersForDelete.length > 0 ? (
+                        <button 
+                           onClick={handleBulkDeleteUsers} 
+                           className="px-3 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 active:scale-95 transition-all text-[11px] font-black flex items-center gap-1" 
+                           title="លុបជម្រើស"
+                        >
+                           <Trash2 className="w-4 h-4" /> លុប ({selectedUsersForDelete.length})
+                        </button>
+                    ) : (
+                        <button 
+                           onClick={handleWipeAllUsers} 
+                           className="p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 active:scale-95 transition-all" 
+                           title="លុបសមាជិកទាំងអស់"
+                        >
+                           <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
 
                 <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1 hide-scrollbar">
@@ -3577,6 +3961,15 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                         return (
                            <div key={u.id} className="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 shadow-sm">
                               <div className="flex items-center gap-2.5">
+                                 <input 
+                                     type="checkbox" 
+                                     checked={selectedUsersForDelete.includes(u.id)}
+                                     onChange={(e) => {
+                                         if (e.target.checked) setSelectedUsersForDelete([...selectedUsersForDelete, u.id]);
+                                         else setSelectedUsersForDelete(selectedUsersForDelete.filter(id => id !== u.id));
+                                     }}
+                                     className="w-4 h-4 rounded border-slate-300 text-[#0F2B5C] cursor-pointer"
+                                 />
                                  <div className="relative">
                                     <img src={u.avatar} className="w-8 h-8 rounded-full object-cover border border-slate-200 bg-white" alt="av" />
                                     <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
@@ -3852,63 +4245,77 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                   <button onClick={() => setMonitoringUser(null)} className="p-1.5 bg-white border border-slate-200 rounded-full"><X className="w-4 h-4"/></button>
                </div>
 
-               <div className="bg-slate-100 p-1.5 border-b border-slate-200 flex gap-1.5 shrink-0">
-                  {[
-                     { id: 'Admin', label: 'Admin Support' },
-                     { id: 'Police', label: 'ប៉ុស្តិ៍ប៉ូលិស' },
-                     { id: 'Commune Chief', label: 'មេឃុំ/ចៅសង្កាត់' }
-                  ].map(targetTab => (
-                     <button 
-                        key={targetTab.id}
-                        onClick={() => setMonitoringTarget(targetTab.id)}
-                        className={`flex-1 py-1.5 rounded-lg text-[9.5px] font-black transition-all border ${monitoringTarget === targetTab.id ? 'bg-[#0F2B5C] text-white border-transparent' : 'bg-white text-slate-500 border-slate-200'}`}
-                     >
-                        {targetTab.label}
-                     </button>
-                  ))}
-               </div>
-
-               <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 telegram-bg hide-scrollbar">
-                  {chats.filter(c => c && c.userId === monitoringUser.id && c.target === monitoringTarget).length === 0 ? (
-                     <div className="text-center py-10 text-slate-400 font-bold text-[11px]">
-                        គ្មានកំណត់ត្រាសន្ទនាជាមួយ {monitoringTarget === 'Admin' ? 'Admin Support' : monitoringTarget === 'Police' ? 'ប៉ុស្តិ៍ប៉ូលិស' : 'មេឃុំ/ចៅសង្កាត់'} ឡើយ
-                     </div>
-                  ) : (
-                     chats.filter(c => c && c.userId === monitoringUser.id && c.target === monitoringTarget).map(msg => (
-                        <div key={msg.id} className="flex justify-start animate-in fade-in">
-                           <div className="max-w-[85%] bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm text-left">
-                              <span className="text-[9px] font-black text-[#0F2B5C] block mb-0.5">
-                                 {safeStr(msg.userName)}
-                              </span>
-                              
-                              {msg.msgType === 'location' ? (
-                                 <div className="p-2 bg-green-50 border border-green-200 rounded-lg space-y-1.5 mt-0.5">
-                                    <span className="text-[9px] text-green-800 font-bold block">🗺️ ទីតាំងភូមិសាស្ត្រ (GPS)</span>
-                                    <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="block text-center py-1 bg-green-600 text-white rounded text-[9px] font-black">បើកលើផែនទី</a>
-                                 </div>
-                              ) : msg.msgType === 'image' ? (
-                                 <img src={msg.imageUrl} className="max-w-full rounded-lg border border-slate-200" alt="attachment" />
-                              ) : msg.msgType === 'audio' ? (
-                                 <TelegramVoiceBubble 
-                                    audioUrl={msg.audioUrl} 
-                                    durationSec={msg.durationSec} 
-                                    durationStr={msg.duration} 
-                                    messageId={msg.id}
-                                    activeAudioId={activeAudioId}
-                                    setActiveAudioId={setActiveAudioId}
-                                 />
-                              ) : (
-                                 <p className="text-[12px] text-slate-700 font-medium leading-relaxed">{safeStr(msg.text)}</p>
-                              )}
-                              
-                              <span className="text-[8px] text-slate-400 block mt-1 text-right">
-                                 {new Date(msg.timestamp).toLocaleString()}
-                              </span>
-                           </div>
+               {(() => {
+                  const activePartnersMap = new Map();
+                  chats.filter(c => c && (c.userId === monitoringUser.id || c.target === monitoringUser.id)).forEach(c => {
+                     if (c.userId === monitoringUser.id && c.target) {
+                        activePartnersMap.set(c.target, c.targetName || c.target);
+                     } else if (c.target === monitoringUser.id && c.userId) {
+                        activePartnersMap.set(c.userId, c.userName || c.userId);
+                     }
+                  });
+                  const activePartners = Array.from(activePartnersMap.entries()).map(([id, label]) => ({ id, label }));
+                  
+                  return (
+                     <>
+                        <div className="bg-slate-100 p-1.5 border-b border-slate-200 flex gap-1.5 shrink-0 overflow-x-auto hide-scrollbar">
+                           {activePartners.length === 0 ? (
+                              <span className="text-[10px] text-slate-500 p-1 font-bold w-full text-center">គ្មានប្រវត្តិដៃគូសន្ទនាទេ</span>
+                           ) : activePartners.map(partner => (
+                              <button 
+                                 key={partner.id}
+                                 onClick={() => setMonitoringTarget(partner.id)}
+                                 className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all border whitespace-nowrap ${monitoringTarget === partner.id ? 'bg-[#0F2B5C] text-white border-transparent shadow-sm' : 'bg-white text-slate-500 border-slate-200'}`}
+                              >
+                                 {partner.label}
+                              </button>
+                           ))}
                         </div>
-                     ))
-                  )}
-               </div>
+
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 telegram-bg hide-scrollbar">
+                           {chats.filter(c => c && ((c.userId === monitoringUser.id && c.target === monitoringTarget) || (c.userId === monitoringTarget && c.target === monitoringUser.id))).length === 0 ? (
+                              <div className="text-center py-10 text-slate-400 font-bold text-[11px]">
+                                 សូមជ្រើសរើសដៃគូសន្ទនាពីបញ្ជីខាងលើ ដើម្បីតាមដានប្រវត្តិសារ
+                              </div>
+                           ) : (
+                              chats.filter(c => c && ((c.userId === monitoringUser.id && c.target === monitoringTarget) || (c.userId === monitoringTarget && c.target === monitoringUser.id))).map(msg => (
+                                 <div key={msg.id} className={`flex ${msg.userId === monitoringUser.id ? 'justify-end' : 'justify-start'} animate-in fade-in`}>
+                                    <div className={`max-w-[85%] bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm text-left ${msg.userId === monitoringUser.id ? 'bg-sky-50' : ''}`}>
+                                       <span className="text-[9px] font-black text-[#0F2B5C] block mb-0.5">
+                                          {safeStr(msg.userName)}
+                                       </span>
+                                       
+                                       {msg.msgType === 'location' ? (
+                                          <div className="p-2 bg-green-50 border border-green-200 rounded-lg space-y-1.5 mt-0.5">
+                                             <span className="text-[9px] text-green-800 font-bold block">🗺️ ទីតាំងភូមិសាស្ត្រ (GPS)</span>
+                                             <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="block text-center py-1 bg-green-600 text-white rounded text-[9px] font-black">បើកលើផែនទី</a>
+                                          </div>
+                                       ) : msg.msgType === 'image' ? (
+                                          <img src={msg.imageUrl} className="max-w-full rounded-lg border border-slate-200" alt="attachment" />
+                                       ) : msg.msgType === 'audio' ? (
+                                          <TelegramVoiceBubble 
+                                             audioUrl={msg.audioUrl} 
+                                             durationSec={msg.durationSec} 
+                                             durationStr={msg.duration} 
+                                             messageId={msg.id}
+                                             activeAudioId={activeAudioId}
+                                             setActiveAudioId={setActiveAudioId}
+                                          />
+                                       ) : (
+                                          <p className="text-[12px] text-slate-700 font-medium leading-relaxed">{safeStr(msg.text)}</p>
+                                       )}
+                                       
+                                       <span className="text-[8px] text-slate-400 block mt-1 text-right">
+                                          {new Date(msg.timestamp).toLocaleString()}
+                                       </span>
+                                    </div>
+                                 </div>
+                              ))
+                           )}
+                        </div>
+                     </>
+                  );
+               })()}
                
                <div className="p-2.5 bg-slate-100 border-t border-slate-200 flex justify-end">
                   <button onClick={() => setMonitoringUser(null)} className="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-[11px] font-bold">ចាកចេញ</button>
@@ -3927,8 +4334,8 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between group relative">
       <div className="absolute top-2 right-2 z-10">
-         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition active:scale-95 ${isFavorite ? 'bg-[#0F2B5C] border-[#0F2B5C] text-[#38BDF8]' : 'bg-white/90 border-slate-200 text-slate-400'}`}>
-            <Pin className={`w-3.5 h-3.5 ${isFavorite ? 'fill-[#38BDF8]' : ''}`} />
+         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition active:scale-95 ${isFavorite ? 'bg-emerald-50 border border-emerald-200 text-emerald-500' : 'bg-white/90 border border-slate-200 text-slate-400'}`}>
+            <Pin className={`w-3.5 h-3.5 ${isFavorite ? 'fill-emerald-500 text-emerald-500' : ''}`} />
          </button>
       </div>
       
@@ -3969,8 +4376,8 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
   const contactLines = parseContactsList(location);
 
   return (
-    <div className="fixed inset-0 z-[150] bg-slate-900/70 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 pointer-events-auto font-khmer">
-       <div className="bg-white w-full max-w-lg rounded-t-2xl md:rounded-[20px] overflow-hidden shadow-2xl flex flex-col h-[70dvh] md:h-auto md:max-h-[80vh] border border-slate-200 animate-in slide-in-from-bottom duration-300">
+    <div className="fixed inset-0 z-[150] bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 pointer-events-auto font-khmer">
+       <div className="bg-white w-full max-w-lg rounded-[20px] overflow-hidden shadow-2xl flex flex-col max-h-[85vh] border border-slate-200 animate-in zoom-in-95 duration-300">
           <div className="relative w-full aspect-[16/10] bg-slate-100 shrink-0">
              <img src={location.image} className="w-full h-full object-cover object-center" alt="loc"/>
              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 flex items-end justify-between">
@@ -3978,7 +4385,7 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
                    <span className="bg-[#38BDF8] text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-sky-400 uppercase tracking-wider">{safeStr(location.category)}</span>
                    <h2 className="text-white font-black text-[14.5px] mt-1 leading-tight">{displayTitle}</h2>
                 </div>
-                <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-[#0F2B5C] text-[#38BDF8]' : 'bg-white text-slate-500'}`}>
+                <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-emerald-500 text-white shadow-lg border border-emerald-400' : 'bg-white text-slate-500 border border-transparent'}`}>
                    <Pin className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`}/>
                 </button>
              </div>

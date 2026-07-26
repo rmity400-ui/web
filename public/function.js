@@ -41,6 +41,7 @@ exports.deleteUserAuth = functions.https.onCall(async (data, context) => {
     // 3. Delete the target user account securely from Firebase Authentication
     await admin.auth().deleteUser(targetUid);
     
+    
     // Log success message in Cloud Logs
     console.log(`Successfully deleted auth record for user ID: ${targetUid}`);
     return { success: true, message: `Successfully deleted user authentication account for ${targetUid}.` };
