@@ -2712,7 +2712,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                                 <div key={u.id} className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm">
                                     <div className="flex items-center gap-2">
                                         <div className="relative">
-                                           <img src={u.avatar || 'ooop.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover" alt="av" />
+                                           <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover" alt="av" />
                                            <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                                         </div>
                                         <div>
