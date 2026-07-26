@@ -29,7 +29,7 @@ import {
 import { 
   LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
 } from 'recharts';
-
+import { Volume2, VolumeX, Megaphone } from 'lucide-react';
 // Safe string casting utility to prevent null-pointers
 export function safeStr(val, fallback = '') {
   if (val === null || val === undefined) return fallback;
@@ -305,6 +305,9 @@ const injectStyles = () => {
     .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
   `;
 };
+
+// EXECUTE IMMEDIATELY: ការពារកុំឲ្យបាត់ Style លោតញាក់ពេលចូលដំបូង (Prevent FOUC)
+injectStyles();
 
 // Generic system confirmation popup
 const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel }) => {
@@ -608,10 +611,10 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   
+  const [language, setLanguage] = useState('kh');
   const [currentPage, setCurrentPage] = useState('gateway'); 
   const [showRegModal, setShowRegModal] = useState(false);
   const [regName, setRegName] = useState('');
-  const [language, setLanguage] = useState('kh');
 
   const [currentView, setCurrentView] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
@@ -621,7 +624,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem('tp_admin_session') === 'true');
   
   /* Customized logo and background states */
-  const [appLogo, setAppLogo] = useState('logo');
+  const [appLogo, setAppLogo] = useState('logo.png');
   // FIXED: Update session when isAdmin changes
   useEffect(() => {
      sessionStorage.setItem('tp_admin_session', isAdmin);
@@ -651,7 +654,8 @@ export default function App() {
   
   const previousChatCount = useRef(0);
   const [activeChatUser, setActiveChatUser] = useState(null);
-
+  
+  const [isSoundMuted, setIsSoundMuted] = useState(() => localStorage.getItem('tp_sound_muted') === 'true');
   const [appealText, setAppealText] = useState('');
   const [appealPhoto, setAppealPhoto] = useState(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -841,13 +845,19 @@ export default function App() {
       const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       msgs.sort((a, b) => a.timestamp - b.timestamp); 
       setChats(msgs);
+      
+      const amIAdmin = sessionStorage.getItem('tp_admin_session') === 'true';
+      const myCheckId = amIAdmin ? 'admin_ramit_fixed_uid' : user.uid;
+      const isMuted = localStorage.getItem('tp_sound_muted') === 'true';
+
       if (previousChatCount.current > 0 && msgs.length > previousChatCount.current) {
          const lastMsg = msgs[msgs.length - 1];
-         const amIAdmin = sessionStorage.getItem('tp_admin_session') === 'true';
-         const myCheckId = amIAdmin ? 'admin_ramit_fixed_uid' : user.uid;
          // Messenger-like behavior: Play ping on incoming unread messages targeting the current user
-         if (lastMsg.userId !== myCheckId && (lastMsg.target === myCheckId || lastMsg.target === user.uid)) {
-             playPingSound();
+         // Check if target is 'all' (Broadcast) or specifically the user. And not sent by me.
+         if (lastMsg.userId !== myCheckId && (lastMsg.target === myCheckId || lastMsg.target === user.uid || lastMsg.target === 'all')) {
+             if (!isMuted) {
+                 playPingSound();
+             }
          }
       }
       previousChatCount.current = msgs.length;
@@ -988,8 +998,8 @@ export default function App() {
     if (!finalizedUsername) return showToast('សូមបញ្ជាក់ឈ្មោះគណនីរបស់អ្នក', 'error');
 
     // Prevent anyone from manually registering the reserved admin names
-    if (finalizedUsername.toLowerCase() === 'admin' || finalizedUsername.toLowerCase() === 'admin-page') {
-        return showToast('ហាមឃាត់! ឈ្មោះ ADMIN-PAGE ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
+    if (finalizedUsername.toLowerCase() === 'admin') {
+        return showToast('ហាមឃាត់! ឈ្មោះ ADMIN ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
     }
 
     if (finalizedUsername.length < 2 || /(.)\1{2,}/.test(finalizedUsername)) {
@@ -1203,7 +1213,20 @@ export default function App() {
   const approvedLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'approved'), [locations]);
   const pendingLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'pending'), [locations]);
 
-  if (isAuthLoading) return <div className="flex items-center justify-center min-h-[100dvh] bg-white"><Loader2 className="w-10 h-10 text-[#0F2B5C] animate-spin"/></div>;
+  // Premium Splash Screen Loading Design (ការពារកុំឲ្យឃើញ UI រញ៉េរញ៉ៃពេលចូលដំបូង)
+  if (isAuthLoading) return (
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0F2B5C] z-[9999] animate-in fade-in font-khmer">
+       <div className="relative w-20 h-20 mb-4 flex items-center justify-center">
+          <Hexagon className="absolute inset-0 w-full h-full text-[#38BDF8] fill-transparent stroke-[2px] rotate-90 animate-pulse" />
+          <GraduationCap className="relative z-10 w-10 h-10 text-white animate-bounce" />
+       </div>
+       <h1 className="text-white font-black text-[18px] tracking-widest font-logo mb-3">វិ.ស្តៅសន្តិភាព</h1>
+       <div className="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full bg-[#38BDF8] rounded-full animate-[progress_1.5s_ease-in-out_infinite] w-1/2"></div>
+       </div>
+       <style>{`@keyframes progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }`}</style>
+    </div>
+  );
 
   // Strict Device Block & Account Ban Appeal interface overlay screen
   if (profile?.isBanned && !isAdmin) {
@@ -1282,15 +1305,15 @@ export default function App() {
       <div className="fixed inset-0 z-[100] flex flex-col md:flex-row font-khmer bg-white text-slate-800 animate-in fade-in duration-500 w-full overflow-hidden">
         {cosmicTheme && <StarryGalaxyCanvas />}
 
+        <div className="absolute top-[max(env(safe-area-inset-top,20px),20px)+30px] right-5 z-[200] flex gap-1 bg-white/40 backdrop-blur-md p-1.5 rounded-xl border border-white/50 shadow-sm pointer-events-auto">
+            <button onClick={() => setLanguage('kh')} className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${language === 'kh' ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-[#0F2B5C] hover:bg-white/60'}`}>KH</button>
+            <button onClick={() => setLanguage('en')} className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${language === 'en' ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-[#0F2B5C] hover:bg-white/60'}`}>EN</button>
+        </div>
+
         <div 
           className="flex-1 w-full bg-transparent flex flex-col items-center justify-center pt-10 md:pt-0 z-10"
           style={gatewayBg ? { backgroundImage: `url(${gatewayBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
         >
-            <div className="absolute top-4 right-4 z-[100] flex gap-1 bg-white/40 backdrop-blur-md p-1 rounded-lg border border-white/50 shadow-sm pointer-events-auto">
-                <button onClick={() => setLanguage('kh')} className={`px-3 py-1.5 text-[10px] font-black rounded transition-colors ${language === 'kh' ? 'bg-[#0F2B5C] text-white shadow' : 'text-[#0F2B5C] hover:bg-white/60'}`}>KH</button>
-                <button onClick={() => setLanguage('en')} className={`px-3 py-1.5 text-[10px] font-black rounded transition-colors ${language === 'en' ? 'bg-[#0F2B5C] text-white shadow' : 'text-[#0F2B5C] hover:bg-white/60'}`}>EN</button>
-            </div>
-
             <div className="relative w-24 h-24 flex items-center justify-center mb-4 hover:scale-105 transition-transform duration-500">
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-transparent stroke-[1.5px] rotate-90" />
                 <Hexagon className="absolute inset-0 w-full h-full text-[#0F2B5C] fill-[#0F2B5C] stroke-none rotate-90 scale-90" />
@@ -1301,10 +1324,10 @@ export default function App() {
                 )}
             </div>
             <h1 className={`font-logo font-black text-2xl md:text-3xl tracking-wide text-center px-4 ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : 'text-[#0F2B5C]'} mb-1`}>
-                {language === 'en' ? 'Sdao Santepheap High School' : 'វិទ្យាល័យស្តៅសន្តិភាព'}
+                វិទ្យាល័យស្តៅសន្តិភាព
             </h1>
             <p className={`text-[11px] ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] bg-white/80' : 'text-[#0F2B5C] bg-white/10'} font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-sm mt-1`}>
-                {language === 'en' ? 'VMC Youth SSHS 2026' : 'យុវជន vmc វិ.ស្តៅសន្តិភាព 2026'}
+                យុវជន vmc វិ.ស្តៅសន្តិភាព 2026
             </p>
         </div>
 
@@ -1312,40 +1335,36 @@ export default function App() {
             <div className="absolute top-0 right-0 w-48 h-48 bg-[#38BDF8]/5 rounded-full blur-3xl pointer-events-none"></div>
             
             <h2 className="text-white text-xl md:text-2xl font-black mb-4 font-khmer leading-tight z-10">
-                {language === 'en' ? 'Welcome to the High School Info System' : 'ស្វាគមន៍មកកាន់ប្រព័ន្ធព័ត៌មានវិទ្យាល័យ'}
+                ស្វាគមន៍មកកាន់ប្រព័ន្ធព័ត៌មានវិទ្យាល័យ
             </h2>
             <p className="text-sky-100/80 text-[13px] leading-relaxed max-w-sm mb-8 font-khmer px-2 z-10 font-medium">
-                {language === 'en' ? 'Commune-Village database system of Ratanak Mondol, facilitating communication and providing quick information to citizens and youth.' : 'ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ និងយុវជន។'}
+                ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ និងយុវជន។
             </p>
             
             <button 
                 onClick={() => setShowRegModal(true)} 
                 className="w-full max-w-[260px] bg-white text-[#0F2B5C] py-3.5 rounded-xl font-black text-[13.5px] shadow-lg active:scale-95 transition-transform mb-3 font-khmer z-10 hover:bg-slate-50 flex justify-center items-center gap-1.5"
             >
-                {language === 'en' ? 'Register / Login' : 'ចុះឈ្មោះចូលប្រើ'} <ArrowRight className="w-4 h-4"/>
+                ចុះឈ្មោះចូលប្រើ <ArrowRight className="w-4 h-4"/>
             </button>
 
             <button 
                 onClick={handleGuestEntry} 
                 className="w-full max-w-[260px] bg-transparent border-2 border-white/20 text-white/80 py-3.5 rounded-xl font-bold text-[13px] active:scale-95 transition-transform hover:bg-white/10 font-khmer z-10"
             >
-                {language === 'en' ? 'Skip (Guest)' : 'រំលង (ចូលជាភ្ញៀវ)'}
+                រំលង (ចូលជាភ្ញៀវ)
             </button>
         </div>
 
         {showRegModal && (
-            <div className="absolute inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in pointer-events-auto">
+            <div className="absolute inset-0 z-50 bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
                 <div className="bg-white w-full max-w-xs rounded-[24px] p-6 shadow-2xl flex flex-col items-center text-center border border-slate-100 relative">
                     <button onClick={()=>setShowRegModal(false)} className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-700 bg-slate-50 rounded-full"><X className="w-4 h-4"/></button>
                     <div className="w-16 h-16 bg-sky-50 text-[#38BDF8] rounded-full flex items-center justify-center mb-4 border border-sky-100">
                         <User className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-black text-[#0F2B5C] mb-1 font-khmer">
-                       {language === 'en' ? 'Create New Account' : 'ការបង្កើតគណនីថ្មី'}
-                    </h3>
-                    <p className="text-[12px] text-slate-500 mb-4 font-khmer font-medium">
-                       {language === 'en' ? 'This account will be linked to your current device only.' : 'គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។'}
-                    </p>
+                    <h3 className="text-lg font-black text-[#0F2B5C] mb-1 font-khmer">ការបង្កើតគណនីថ្មី</h3>
+                    <p className="text-[12px] text-slate-500 mb-4 font-khmer font-medium">គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។</p>
                     
                     <form onSubmit={handleGatewayRegister} className="w-full space-y-3">
                         <input 
@@ -1353,11 +1372,11 @@ export default function App() {
                             required
                             value={regName} 
                             onChange={e=>setRegName(e.target.value)} 
-                            placeholder={language === 'en' ? 'Enter your account name...' : 'បញ្ចូលឈ្មោះគណនីឧបករណ៍នេះ...'} 
+                            placeholder="បញ្ចូលឈ្មោះគណនីឧបករណ៍នេះ..." 
                             className="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl text-[14px] font-bold text-center outline-none focus:border-[#38BDF8] font-khmer text-slate-800"
                         />
                         <button type="submit" className="w-full py-3 bg-[#0F2B5C] text-white rounded-xl text-[13.5px] font-black active:scale-95 transition-transform font-khmer flex items-center justify-center gap-1.5">
-                            {language === 'en' ? 'Create Account' : 'បង្កើតគណនី'} <CheckCircle className="w-4.5 h-4.5"/>
+                            បង្កើតគណនី <CheckCircle className="w-4.5 h-4.5"/>
                         </button>
                     </form>
                 </div>
@@ -1420,7 +1439,7 @@ export default function App() {
              </div>
            )}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} /></div>}
+           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} /></div>}
            {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} usersList={usersList} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
@@ -2120,8 +2139,8 @@ const base64ToBlobUrl = (base64Data, mimeType = 'audio/webm') => {
   }
 };
 
-// Telegram-styled Voice Note Player UI component
-const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10', messageId, activeAudioId, setActiveAudioId }) => {
+// Telegram-styled Voice Note Player UI component (Premium Design)
+const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10', messageId, activeAudioId, setActiveAudioId, isMe }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef(null);
@@ -2133,7 +2152,11 @@ const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10',
     return audioUrl;
   }, [audioUrl]);
 
-  const waveformHeights = [4, 6, 12, 8, 14, 18, 10, 16, 20, 12, 14, 8, 10, 16, 22, 12, 8, 14, 10, 16, 8, 12, 6, 4];
+  // Realistic Telegram Waveform Pattern (Centered bars)
+  const waveformHeights = [
+    15, 25, 40, 60, 45, 30, 20, 35, 55, 80, 100, 75, 45, 30, 
+    40, 70, 90, 60, 40, 25, 45, 65, 85, 50, 30, 20, 15, 10
+  ];
 
   useEffect(() => {
     if (activeAudioId !== messageId && isPlaying) {
@@ -2142,7 +2165,8 @@ const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10',
     }
   }, [activeAudioId, messageId, isPlaying]);
 
-  const togglePlayback = () => {
+  const togglePlayback = (e) => {
+    e.stopPropagation();
     if (!audioRef.current) return;
     try {
       if (isPlaying) {
@@ -2158,10 +2182,11 @@ const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10',
   };
 
   const handleTimelineClick = (e) => {
+    e.stopPropagation();
     if (!audioRef.current || !durationSec) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
-    const widthPercentage = clickX / rect.width;
+    const widthPercentage = Math.max(0, Math.min(1, clickX / rect.width));
     const targetTime = widthPercentage * durationSec;
     audioRef.current.currentTime = targetTime;
     setCurrentTime(targetTime);
@@ -2169,8 +2194,14 @@ const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10',
 
   const currentProgressPercent = durationSec > 0 ? (currentTime / durationSec) * 100 : 0;
 
+  // Adaptive Colors based on Sender/Receiver
+  const playBtnBg = isMe ? 'bg-white text-[#0F2B5C]' : 'bg-[#38BDF8] text-white';
+  const playedColor = isMe ? '#ffffff' : '#38BDF8';
+  const unplayedColor = isMe ? 'rgba(255,255,255,0.3)' : '#CBD5E1';
+  const textColor = isMe ? 'text-sky-100' : 'text-slate-400';
+
   return (
-    <div className="flex items-center gap-2.5 bg-[#EBF2FC] text-slate-800 p-2.5 rounded-xl min-w-[180px] border border-blue-100 shadow-sm select-none font-khmer">
+    <div className="flex items-center gap-3 select-none font-khmer min-w-[210px] sm:w-[240px] pt-1">
       <audio 
         ref={audioRef} 
         src={localBlobUrl} 
@@ -2187,14 +2218,14 @@ const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10',
       <button 
         type="button" 
         onClick={togglePlayback}
-        className="w-8 h-8 rounded-full bg-[#0F2B5C] text-white flex items-center justify-center shrink-0"
+        className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-95 ${playBtnBg}`}
       >
-        {isPlaying ? <Pause className="w-4 h-4 fill-current text-sky-300"/> : <Play className="w-4 h-4 fill-current text-sky-300 ml-0.5" />}
+        {isPlaying ? <Pause className="w-5 h-5 fill-current"/> : <Play className="w-5 h-5 fill-current ml-1" />}
       </button>
 
-      <div className="flex-1 min-w-0 flex flex-col justify-between pt-0.5">
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
         <div 
-          className="flex items-end gap-[2px] h-[20px] cursor-pointer" 
+          className="flex items-center gap-[2px] h-[30px] cursor-pointer" 
           onClick={handleTimelineClick}
         >
           {waveformHeights.map((h, index) => {
@@ -2203,18 +2234,18 @@ const TelegramVoiceBubble = ({ audioUrl, durationSec = 10, durationStr = '0:10',
             return (
               <div 
                 key={index} 
-                className="audio-waveform-bar" 
+                className="w-[3px] rounded-full transition-colors duration-150" 
                 style={{
-                  height: `${h * 0.7}px`,
-                  backgroundColor: isPlayed ? '#0F2B5C' : '#94A3B8'
+                  height: `${Math.max(15, h)}%`,
+                  backgroundColor: isPlayed ? playedColor : unplayedColor
                 }} 
               />
             );
           })}
         </div>
 
-        <div className="flex justify-between items-center mt-1">
-          <span className="text-[10px] font-bold text-slate-500">
+        <div className="flex justify-between items-center mt-0.5">
+          <span className={`text-[11px] font-bold ${textColor} tracking-wide`}>
             {isPlaying 
               ? `${Math.floor(currentTime / 60)}:${Math.floor(currentTime % 60).toString().padStart(2, '0')}` 
               : durationStr
@@ -2241,8 +2272,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
   );
 };
 
-const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], friendRequests = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser }) => {
-  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
+const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], friendRequests = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser, isSoundMuted, setIsSoundMuted }) => {  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
   const myChatName = isAdmin ? 'ADMIN-PAGE' : profile?.username;
   const myChatAvatar = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid')?.avatar || profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png') : profile?.avatar;
 
@@ -2599,6 +2629,14 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       }
   };
 
+  const toggleSound = () => {
+    const newState = !isSoundMuted;
+    setIsSoundMuted(newState);
+    localStorage.setItem('tp_sound_muted', newState);
+    showToast(newState ? 'បានបិទសំឡេង (Muted)' : 'បានបើកសំឡេង (Unmuted)');
+  };
+
+  // Skip the name check block if you are an Admin
   if (!isAdmin && (!profile?.username || profile?.username === 'ភ្ញៀវ')) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center flex-1 font-khmer">
@@ -2674,7 +2712,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                                 <div key={u.id} className="flex items-center justify-between p-2.5 bg-white rounded-lg border border-slate-200 shadow-sm">
                                     <div className="flex items-center gap-2">
                                         <div className="relative">
-                                           <img src={u.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover" alt="av" />
+                                           <img src={u.avatar || 'ooop.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover" alt="av" />
                                            <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
                                         </div>
                                         <div>
@@ -2702,19 +2740,24 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                       <p className="text-[11px] text-slate-500 font-bold mt-1 leading-relaxed">ជ្រើសរើសស្ថាប័ន ឬមិត្តភក្តិដែលអ្នកចង់ឆាតឯកជនជាមួយ។</p>
                    </div>
                    
-                   <div className="flex gap-1.5">
-                       <button 
-                          onClick={() => { setShowUserSearch(true); setLocalFilterActive(false); }} 
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black bg-white border-slate-200 text-slate-600 transition-all active:scale-95"
-                       >
-                          <Plus className="w-3.5 h-3.5" /> Add មិត្ត
+                   <div className="flex flex-col gap-1.5 items-end">
+                       <button onClick={toggleSound} className={`p-1.5 rounded-full border shadow-sm transition-all active:scale-95 ${isSoundMuted ? 'bg-rose-50 border-rose-200 text-rose-500' : 'bg-emerald-50 border-emerald-200 text-emerald-500'}`}>
+                           {isSoundMuted ? <VolumeX className="w-4 h-4"/> : <Volume2 className="w-4 h-4"/>}
                        </button>
-                       <button 
-                          onClick={() => { setLocalFilterActive(!localFilterActive); setShowUserSearch(false); }} 
-                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black transition-all ${localFilterActive ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white' : 'bg-white border-slate-200 text-slate-600'}`}
-                       >
-                          <Radio className="w-3 h-3" /> ក្នុងមូលដ្ឋាន
-                       </button>
+                       <div className="flex gap-1.5">
+                           <button 
+                              onClick={() => { setShowUserSearch(true); setLocalFilterActive(false); }} 
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black bg-white border-slate-200 text-slate-600 transition-all active:scale-95"
+                           >
+                              <Plus className="w-3.5 h-3.5" /> Add មិត្ត
+                           </button>
+                           <button 
+                              onClick={() => { setLocalFilterActive(!localFilterActive); setShowUserSearch(false); }} 
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black transition-all ${localFilterActive ? 'bg-[#0F2B5C] border-[#0F2B5C] text-white' : 'bg-white border-slate-200 text-slate-600'}`}
+                           >
+                              <Radio className="w-3 h-3" /> ក្នុងមូលដ្ឋាន
+                           </button>
+                       </div>
                    </div>
                </div>
 
@@ -2816,11 +2859,14 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      );
   }
 
-  // Symmetric Bidirectional Chat Filter
+  // Symmetric Bidirectional Chat Filter & Broadcast Support
   const filteredChats = (chats || []).filter(c => {
       if (!c) return false;
-      return (c.userId === myChatId && c.target === activeChatUser?.id) ||
-             (c.userId === activeChatUser?.id && c.target === myChatId);
+      // Normal private chat
+      if ((c.userId === myChatId && c.target === activeChatUser?.id) || (c.userId === activeChatUser?.id && c.target === myChatId)) return true;
+      // Broadcast messages (If sent by Admin, and targeted to 'all', and I am looking at Admin's thread)
+      if (c.target === 'all' && c.userId === 'admin_ramit_fixed_uid' && (activeChatUser?.id === 'admin_ramit_fixed_uid' || c.userId === myChatId)) return true;
+      return false;
   });
 
   return (
@@ -2931,6 +2977,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                     messageId={msg.id}
                     activeAudioId={activeAudioId}
                     setActiveAudioId={setActiveAudioId}
+                    isMe={isMe}
                   />
                );
             } else {
@@ -2967,6 +3014,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                          }}
                       >
                          {msgContent}
+                         {msg.target === 'all' && <div className="text-[9px] font-black text-amber-300 mb-1 flex items-center gap-1"><Megaphone className="w-3 h-3"/> ប្រកាសទូទៅ</div>}
                          <div className={`flex items-center justify-end gap-1 mt-1 opacity-80 text-[9px] font-bold self-end ${isMe ? 'text-sky-200' : 'text-slate-400'}`}>
                             {msg.edited && <span className="italic mr-1">edited</span>}
                             <span>{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -3054,19 +3102,26 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     </div>
   );
 }
-
-const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView, usersList = [] }) => {
-  const currentAdminProfile = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid') || { username: 'ADMIN-PAGE', avatar: profile?.avatar }) : null;
+  const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView, usersList = [], isSoundMuted, setIsSoundMuted }) => {
+  const currentAdminProfile = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid') || { username: 'ADMIN', avatar: profile?.avatar }) : null;
   const displayProfile = isAdmin ? currentAdminProfile : profile;
 
   const [pwdInput, setPwdInput] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
   const [localName, setLocalName] = useState(displayProfile?.username || '');
+  const [localBio, setLocalBio] = useState(displayProfile?.bio || '');
   const [isEditingName, setIsEditingName] = useState(!displayProfile?.username || displayProfile?.username === 'ភ្ញៀវ' ? true : false);
 
   const [lockoutTime, setLockoutTime] = useState(Number(localStorage.getItem('admin_lockout')) || 0);
   const [attempts, setAttempts] = useState(Number(localStorage.getItem('admin_attempts')) || 0);
+
+  const toggleSound = () => {
+    const newState = !isSoundMuted;
+    if (setIsSoundMuted) setIsSoundMuted(newState);
+    localStorage.setItem('tp_sound_muted', newState);
+    showToast(newState ? 'បានបិទសំឡេង (Muted)' : 'បានបើកសំឡេង (Unmuted)');
+  };
 
   useEffect(() => {
      if (lockoutTime > 0) {
@@ -3099,7 +3154,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
 
          if (db) {
              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', 'admin_ramit_fixed_uid'), {
-                username: 'ADMIN-PAGE',
+                username: 'ADMIN',
                 role: 'admin',
                 avatar: adminAvatar, 
                 timestamp: Date.now(),
@@ -3109,7 +3164,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
              }, { merge: true }).catch(()=>{});
          }
 
-         setLocalName('ADMIN-PAGE');
+         setLocalName('ADMIN');
          showToast('ចូលប្រើជាគណនី ADMIN ជោគជ័យ ✅');
          setShowAdminLogin(false);
          setPwdInput('');
@@ -3156,9 +3211,9 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
       if(!trimmedName || trimmedName === 'ភ្ញៀវ') return showToast('ឈ្មោះមិនអាចទទេ ឬដាក់ថាភ្ញៀវទេ', 'error');
       
       // Stop regular users from taking the reserved name "ADMIN"
-      if ((trimmedName.toUpperCase() === 'ADMIN' || trimmedName.toUpperCase() === 'ADMIN-PAGE') && !isAdmin) {
+      if (trimmedName.toUpperCase() === 'ADMIN' && !isAdmin) {
          setLocalName(profile?.username || '');
-         return showToast('ហាមឃាត់! ឈ្មោះ "ADMIN-PAGE" ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
+         return showToast('ហាមឃាត់! ឈ្មោះ "ADMIN" ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
       }
 
       sessionStorage.removeItem('tp_is_guest');
@@ -3166,6 +3221,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
       if (db && user) {
          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
             username: trimmedName,
+            bio: localBio.trim(),
             uid: user.uid,
             avatar: profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
             timestamp: Date.now(),
@@ -3215,12 +3271,20 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
            {isEditingName && !isAdmin ? (
                <div className="flex flex-col gap-2">
                    <input type="text" value={localName} onChange={e => setLocalName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-[14px] font-bold outline-none text-center" placeholder="កំណត់ឈ្មោះរបស់អ្នក..."/>
+                   <textarea value={localBio} onChange={e => setLocalBio(e.target.value)} className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-[13px] font-medium outline-none h-20 resize-none text-center" placeholder="ការពិពណ៌នាអំពីខ្លួនអ្នក (ឧ. ទីតាំង, @telegram, លីង...)"></textarea>
                    <button onClick={handleSaveName} className="btn-gradient py-2.5 rounded-xl text-[13px] font-black shadow-sm">រក្សាទុក</button>
                </div>
            ) : (
-               <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl">
-                   <span className="text-[14.5px] font-black text-[#0F2B5C]">{safeStr(displayProfile?.username)}</span>
-                   {!isAdmin && <button onClick={() => setIsEditingName(true)} className="text-slate-600 bg-white border border-slate-200 font-bold px-3 py-1.5 rounded-lg text-[11px] flex items-center gap-1 shadow-sm"><Edit3 className="w-3.5 h-3.5"/> កែប្រែ</button>}
+               <div className="flex flex-col gap-2 w-full">
+                   <div className="flex justify-between items-center bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl w-full">
+                       <span className="text-[14.5px] font-black text-[#0F2B5C]">{safeStr(displayProfile?.username)}</span>
+                       {!isAdmin && <button onClick={() => setIsEditingName(true)} className="text-slate-600 bg-white border border-slate-200 font-bold px-3 py-1.5 rounded-lg text-[11px] flex items-center gap-1 shadow-sm"><Edit3 className="w-3.5 h-3.5"/> កែប្រែ</button>}
+                   </div>
+                   {!isAdmin && displayProfile?.bio && (
+                       <div className="bg-slate-50 border border-slate-200 px-4 py-3 rounded-xl w-full">
+                           <p className="text-[12.5px] text-slate-600 font-medium whitespace-pre-wrap text-center">{safeStr(displayProfile.bio)}</p>
+                       </div>
+                   )}
                </div>
            )}
         </div>
@@ -3231,10 +3295,27 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
             <Settings className="w-4.5 h-4.5 text-slate-400"/> ការកំណត់
          </h2>
          
-         <div className="pt-1">
+         <div className="pt-1 space-y-3">
             <button onClick={() => setShowAdminLogin(true)} className="w-full bg-slate-50/50 hover:bg-slate-100/55 text-[#0F2B5C] py-3 rounded-xl font-black flex items-center justify-center gap-2 text-[12.5px] transition active:scale-95 shadow-sm border border-slate-200/50">
                <ShieldAlert className="w-4.5 h-4.5 text-[#0F2B5C] animate-pulse"/> Admin Portal របស់ប្រព័ន្ធ
             </button>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex justify-between items-center">
+               <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 flex items-center justify-center rounded-full ${isSoundMuted ? 'bg-rose-100 text-rose-500' : 'bg-emerald-100 text-emerald-500'}`}>
+                     {isSoundMuted ? <VolumeX className="w-4 h-4"/> : <Volume2 className="w-4 h-4"/>}
+                  </div>
+                  <div>
+                     <h4 className="font-bold text-[12px] text-slate-800">សំឡេងជូនដំណឹង (Ping Sound)</h4>
+                     <p className="text-[10px] text-slate-500 font-medium">បើក ឬបិទសំឡេងរោទ៍ពេលមានសារថ្មីចូល</p>
+                  </div>
+               </div>
+               <label className="relative flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only toggle-checkbox" checked={!isSoundMuted} onChange={toggleSound} />
+                  <div className={`w-10 h-6 rounded-full transition-colors duration-300 toggle-label ${!isSoundMuted ? 'bg-[#10b981]' : 'bg-slate-300'}`}></div>
+                  <div className={`dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 ${!isSoundMuted ? 'translate-x-4' : 'translate-x-0'}`}></div>
+               </label>
+            </div>
          </div>
       </div>
 
@@ -3312,6 +3393,10 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const [newChatAvatar, setNewChatAvatar] = useState('');
   const [newChatDistrictType, setNewChatDistrictType] = useState('រតនមណ្ឌល');
   const [newChatCustomDistrict, setNewChatCustomDistrict] = useState('');
+
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [editingBroadcast, setEditingBroadcast] = useState(null);
+  const [editBroadcastText, setEditBroadcastText] = useState('');
 
   const handleApprove = async (id, authorUid) => { 
       try {
@@ -3618,6 +3703,30 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
     r.readAsDataURL(file);
   };
 
+  const handleSendBroadcast = async () => {
+    if (!broadcastMessage.trim()) return showToast('សូមបញ្ជូលសារប្រកាសសិន', 'error');
+    if (!db) return showToast('Offline Sandbox Mode');
+    
+    openConfirm("ផ្ញើសារប្រកាស (Broadcast)", "តើអ្នកពិតជាចង់ផ្ញើសារនេះទៅកាន់ User ទាំងអស់មែនទេ? សារនេះនឹងធ្លាក់ចូលប្រអប់សាររបស់ User គ្រប់ៗគ្នា។", async () => {
+        try {
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA'), {
+              text: broadcastMessage.trim(), 
+              msgType: 'text',
+              target: 'all', 
+              userId: 'admin_ramit_fixed_uid', 
+              userName: 'ADMIN-PAGE', 
+              seen: false,
+              edited: false,
+              timestamp: Date.now()
+            });
+            setBroadcastMessage('');
+            showToast('បានផ្ញើសារប្រកាសទៅកាន់ User ទាំងអស់រួចរាល់ ✅', 'success');
+        } catch (e) {
+            showToast('មានបញ្ហាក្នុងការបញ្ជូន', 'error');
+        }
+    });
+  };
+
   const searchedUsersList = useMemo(() => {
      return (usersList || []).filter(u => {
         if (!u || !u.username || u.username === 'ភ្ញៀវ') return false; 
@@ -3631,30 +3740,92 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
     <div className="w-full max-w-5xl mx-auto space-y-3 pb-10 flex-1 font-khmer text-slate-800 animate-in fade-in">
       <ConfirmModal isOpen={!!confirmAction} title={confirmAction?.title} message={confirmAction?.message} onConfirm={handleConfirm} onCancel={() => setConfirmAction(null)} />
 
+      {/* Edit Location Modal */}
       {editingLoc && (
-         <div className="fixed inset-0 z-[3000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 pointer-events-auto">
-            <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95">
-               <h3 className="font-black text-[14px] text-[#0F2B5C] mb-4 flex items-center gap-2"><Edit3 className="w-4 h-4 text-[#38BDF8]"/> កែប្រែទិន្នន័យ (Edit Data)</h3>
-               <div className="space-y-3">
-                  <div>
-                     <label className="text-[11px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">ចំណងជើងទីតាំង</label>
-                     <input type="text" value={editingLoc.title} onChange={e=>setEditingLoc({...editingLoc, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13.5px] font-bold outline-none focus:border-[#38BDF8]" />
-                  </div>
-                  <div>
-                     <label className="text-[11px] font-bold text-slate-500 mb-1 block uppercase tracking-wider">ការពណ៌នា</label>
-                     <textarea value={editingLoc.desc} onChange={e=>setEditingLoc({...editingLoc, desc: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13.5px] font-medium h-24 outline-none focus:border-[#38BDF8]" />
-                  </div>
-               </div>
-               <div className="flex gap-2 mt-5">
-                  <button onClick={()=>setEditingLoc(null)} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold text-[12px] active:scale-95 transition-all">បោះបង់</button>
-                  <button onClick={async () => {
-                      if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', editingLoc.id), {title: editingLoc.title, desc: editingLoc.desc}).catch(()=>{});
-                      setEditingLoc(null);
-                      showToast('បានរក្សាទុកការកែប្រែជោគជ័យ ✅');
-                  }} className="flex-1 btn-gradient py-3 rounded-xl font-black text-[12px] active:scale-95 transition-all shadow-md">រក្សាទុក (Save)</button>
-               </div>
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 pointer-events-auto">
+          <div className="relative w-full max-w-lg bg-white rounded-[20px] overflow-hidden shadow-2xl flex flex-col max-h-[90dvh] border border-slate-200 animate-in zoom-in-95 duration-300">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+              <h2 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1.5"><Edit3 className="w-4.5 h-4.5 text-[#38BDF8]" /> កែប្រែទិន្នន័យទីតាំង</h2>
+              <button type="button" onClick={() => setEditingLoc(null)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500">
+                <X className="w-4.5 h-4.5" />
+              </button>
             </div>
-         </div>
+            
+            <div className="p-4 overflow-y-auto flex-1 bg-white space-y-4 pb-20 font-khmer">
+              <div>
+                 <label className="text-[11px] font-bold text-slate-700 block mb-1 uppercase tracking-wider">ចំណងជើង / ឈ្មោះទីតាំង *</label>
+                 <input type="text" value={editingLoc.title || ''} onChange={e=>setEditingLoc({...editingLoc, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">ប្រភេទ Category *</label>
+                <input type="text" value={editingLoc.category || ''} onChange={e=>setEditingLoc({...editingLoc, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                  <div>
+                      <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">ស្រុក</label>
+                      <input type="text" value={editingLoc.district || ''} onChange={e=>setEditingLoc({...editingLoc, district: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" />
+                  </div>
+                  <div>
+                      <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">ឃុំ</label>
+                      <input type="text" value={editingLoc.commune || ''} onChange={e=>setEditingLoc({...editingLoc, commune: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" />
+                  </div>
+              </div>
+              
+              <div>
+                  <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase tracking-wider">ភូមិ</label>
+                  <input type="text" value={editingLoc.village || ''} onChange={e=>setEditingLoc({...editingLoc, village: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[15px] outline-none font-bold text-slate-800" />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">រូបភាព (Base64 URL) *</label>
+                <input type="text" value={editingLoc.image || ''} onChange={e=>setEditingLoc({...editingLoc, image: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[12px] font-mono outline-none" />
+                {editingLoc.image && (
+                   <div className="mt-2 w-full h-32 rounded-xl overflow-hidden border border-slate-200">
+                      <img src={editingLoc.image} alt="Preview" className="w-full h-full object-cover" />
+                   </div>
+                )}
+              </div>
+              
+              <div>
+                 <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">ការពណ៌នា</label>
+                 <textarea value={editingLoc.desc || ''} onChange={e=>setEditingLoc({...editingLoc, desc: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[14.5px] outline-none h-24 resize-none font-medium text-slate-800"></textarea>
+              </div>
+
+              <div>
+                 <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">ព័ត៌មានទំនាក់ទំនង (JSON Array)</label>
+                 <textarea value={JSON.stringify(editingLoc.contacts || [], null, 2)} onChange={e => {
+                    try {
+                       setEditingLoc({...editingLoc, contacts: JSON.parse(e.target.value)});
+                    } catch(err) {
+                       // Silently ignore parse errors while typing
+                    }
+                 }} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono h-24 outline-none"></textarea>
+              </div>
+            </div>
+
+            <div className="p-3 border-t border-slate-100 shrink-0 bg-slate-50 flex gap-2">
+                <button onClick={() => setEditingLoc(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-[13px] active:scale-95 transition-all border border-slate-200">បោះបង់</button>
+                <button onClick={async () => {
+                   if (db) {
+                      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', editingLoc.id), {
+                         title: editingLoc.title,
+                         category: editingLoc.category,
+                         district: editingLoc.district,
+                         commune: editingLoc.commune,
+                         village: editingLoc.village,
+                         image: editingLoc.image,
+                         desc: editingLoc.desc,
+                         contacts: editingLoc.contacts
+                      }).catch(()=>{});
+                      showToast('បានរក្សាទុកការកែប្រែដោយជោគជ័យ ✅');
+                   }
+                   setEditingLoc(null);
+                }} className="flex-1 py-3 bg-[#0F2B5C] text-white rounded-xl font-black text-[13px] shadow-md active:scale-95 transition-all">រក្សាទុក</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-[#0F2B5C] text-white p-4 rounded-[16px] shadow-sm shrink-0">
@@ -3674,7 +3845,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           {id: 'how_to', label: 'គ្រប់គ្រង របៀបប្រើប្រាស់'},
           {id: 'chat_manage', label: 'គ្រប់គ្រងទំនាក់ទំនង'},
           {id: 'chat_monitor', label: 'គ្រប់គ្រងបទល្មើស'},
-          {id: 'appeals', label: 'សំណើសម្រុះសម្រួល'},
+          {id: 'broadcast', label: 'ប្រកាសព័ត៌មាន (Broadcast)'},          {id: 'appeals', label: 'សំណើសម្រុះសម្រួល'},
           {id: 'approvals', label: 'អនុម័តសំណើរ'},
           {id: 'security', label: 'Security & Logs'},
           {id: 'settings', label: 'Settings'}
@@ -3763,6 +3934,81 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                             <input type="text" value={howToData.videoUrl || ''} onChange={e => setHowToData({...howToData, videoUrl: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg px-2 py-2 text-[12px] font-bold outline-none" placeholder="ឧ. https://www.youtube.com/watch?v=..."/>
                         </div>
                     </div>
+                </div>
+             </div>
+          )}
+
+          {activeTab === 'broadcast' && (
+             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 animate-in fade-in duration-200">
+                <div className="flex justify-between items-center mb-3 border-l-4 border-amber-500 pl-2">
+                   <h3 className="font-black text-[13px] text-[#0F2B5C] flex items-center gap-1.5"><Megaphone className="w-4.5 h-4.5 text-amber-500"/> ប្រកាសព័ត៌មានទូទៅ (Broadcast)</h3>
+                </div>
+                
+                <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 mb-4">
+                    <p className="text-[11px] font-bold text-amber-700 leading-relaxed">
+                        សារដែលអ្នកសរសេរនៅទីនេះ នឹងត្រូវបានផ្ញើចូលទៅកាន់ប្រអប់សារ (Chat) របស់ User ទាំងអស់ដែលប្រើប្រាស់ Web App នេះភ្លាមៗ។ 
+                        សូមប្រើប្រាស់មុខងារនេះសម្រាប់តែការផ្តល់ព័ត៌មានសំខាន់ៗប៉ុណ្ណោះ។
+                    </p>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                    <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">អត្ថបទសារប្រកាស</label>
+                        <textarea 
+                           value={broadcastMessage}
+                           onChange={e => setBroadcastMessage(e.target.value)}
+                           className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[13px] font-medium outline-none h-32 resize-none text-slate-800"
+                           placeholder="សរសេរសារដែលចង់ប្រកាសនៅទីនេះ..."
+                        ></textarea>
+                    </div>
+                    <button 
+                       onClick={handleSendBroadcast}
+                       className="w-full btn-gradient py-3.5 rounded-xl font-black text-[13px] shadow-md flex justify-center items-center gap-2 active:scale-95 transition-transform"
+                    >
+                       <Megaphone className="w-4.5 h-4.5"/> ផ្ញើសារប្រកាសទៅកាន់គ្រប់គ្នា (Send to All)
+                    </button>
+                </div>
+
+                <div className="space-y-3 border-t border-slate-100 pt-4">
+                   <h4 className="font-black text-[12px] text-slate-800 pb-1">ប្រវត្តិសារប្រកាស (Recent Broadcasts)</h4>
+                   <div className="max-h-[300px] overflow-y-auto pr-1 hide-scrollbar space-y-2">
+                      {chats.filter(c => c && c.target === 'all' && c.userId === 'admin_ramit_fixed_uid').sort((a,b) => b.timestamp - a.timestamp).length === 0 ? (
+                          <p className="text-center py-4 text-[11px] text-slate-400 font-bold border border-dashed border-slate-200 rounded-xl bg-slate-50">គ្មានសារប្រកាសនៅឡើយទេ</p>
+                      ) : (
+                          chats.filter(c => c && c.target === 'all' && c.userId === 'admin_ramit_fixed_uid').sort((a,b) => b.timestamp - a.timestamp).map(msg => (
+                             <div key={msg.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 shadow-sm relative">
+                                 {editingBroadcast?.id === msg.id ? (
+                                    <div className="space-y-2">
+                                       <textarea value={editBroadcastText} onChange={e=>setEditBroadcastText(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-[12px] font-medium h-24 outline-none resize-none"></textarea>
+                                       <div className="flex gap-2">
+                                          <button onClick={async () => {
+                                             if(!editBroadcastText.trim()) return;
+                                             if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id), { text: editBroadcastText.trim(), edited: true }).catch(()=>{});
+                                             setEditingBroadcast(null);
+                                             showToast('កែប្រែជោគជ័យ ✅', 'success');
+                                          }} className="px-3 py-1.5 bg-[#10b981] text-white rounded-lg text-[11px] font-black shadow-sm">រក្សាទុក</button>
+                                          <button onClick={()=>setEditingBroadcast(null)} className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold border border-slate-300">បោះបង់</button>
+                                       </div>
+                                    </div>
+                                 ) : (
+                                    <>
+                                       <div className="flex justify-between items-start gap-2 mb-2">
+                                          <span className="text-[10px] text-slate-500 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">{new Date(msg.timestamp).toLocaleString()} {msg.edited && <span className="text-sky-500">(edited)</span>}</span>
+                                          <div className="flex gap-1.5 shrink-0">
+                                             <button onClick={()=>{setEditingBroadcast(msg); setEditBroadcastText(msg.text);}} className="text-sky-500 p-1.5 bg-white shadow-sm border border-slate-200 rounded-md hover:bg-sky-50"><Edit3 className="w-3.5 h-3.5"/></button>
+                                             <button onClick={()=>openConfirm("លុបសារប្រកាស", "តើអ្នកពិតជាចង់លុបសារប្រកាសនេះចេញពីប្រអប់សារអ្នកប្រើប្រាស់មែនទេ?", async () => {
+                                                if(db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA', msg.id)).catch(()=>{});
+                                                showToast('លុបសារប្រកាសជោគជ័យ ✅');
+                                             })} className="text-rose-500 p-1.5 bg-white shadow-sm border border-slate-200 rounded-md hover:bg-rose-50"><Trash2 className="w-3.5 h-3.5"/></button>
+                                          </div>
+                                       </div>
+                                       <p className="text-[12.5px] text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">{safeStr(msg.text)}</p>
+                                    </>
+                                 )}
+                             </div>
+                          ))
+                      )}
+                   </div>
                 </div>
              </div>
           )}
@@ -4245,77 +4491,86 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                   <button onClick={() => setMonitoringUser(null)} className="p-1.5 bg-white border border-slate-200 rounded-full"><X className="w-4 h-4"/></button>
                </div>
 
-               {(() => {
-                  const activePartnersMap = new Map();
-                  chats.filter(c => c && (c.userId === monitoringUser.id || c.target === monitoringUser.id)).forEach(c => {
-                     if (c.userId === monitoringUser.id && c.target) {
-                        activePartnersMap.set(c.target, c.targetName || c.target);
-                     } else if (c.target === monitoringUser.id && c.userId) {
-                        activePartnersMap.set(c.userId, c.userName || c.userId);
-                     }
-                  });
-                  const activePartners = Array.from(activePartnersMap.entries()).map(([id, label]) => ({ id, label }));
-                  
-                  return (
-                     <>
-                        <div className="bg-slate-100 p-1.5 border-b border-slate-200 flex gap-1.5 shrink-0 overflow-x-auto hide-scrollbar">
-                           {activePartners.length === 0 ? (
-                              <span className="text-[10px] text-slate-500 p-1 font-bold w-full text-center">គ្មានប្រវត្តិដៃគូសន្ទនាទេ</span>
-                           ) : activePartners.map(partner => (
-                              <button 
-                                 key={partner.id}
-                                 onClick={() => setMonitoringTarget(partner.id)}
-                                 className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all border whitespace-nowrap ${monitoringTarget === partner.id ? 'bg-[#0F2B5C] text-white border-transparent shadow-sm' : 'bg-white text-slate-500 border-slate-200'}`}
-                              >
-                                 {partner.label}
-                              </button>
-                           ))}
-                        </div>
+               <div className="bg-slate-100 p-1.5 border-b border-slate-200 flex gap-1.5 shrink-0 overflow-x-auto hide-scrollbar">
+                  {(() => {
+                     const targetsMap = new Map();
+                     chats.forEach(c => {
+                        if (c && c.userId === monitoringUser.id) {
+                           if (c.target && !targetsMap.has(c.target)) targetsMap.set(c.target, c.target);
+                        } else if (c && c.target === monitoringUser.id) {
+                           if (c.userId && !targetsMap.has(c.userId)) targetsMap.set(c.userId, c.userId);
+                        }
+                     });
+                     
+                     const dynamicTargets = Array.from(targetsMap.entries()).map(([id, _]) => {
+                         let label = id;
+                         if (id === 'admin_ramit_fixed_uid') label = 'Admin Support';
+                         else {
+                            const t = chatTargets.find(x => x.id === id);
+                            if (t) label = t.label;
+                            else {
+                               const u = usersList.find(x => x.id === id);
+                               if (u) label = u.username;
+                            }
+                         }
+                         return { id, label };
+                     });
 
-                        <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 telegram-bg hide-scrollbar">
-                           {chats.filter(c => c && ((c.userId === monitoringUser.id && c.target === monitoringTarget) || (c.userId === monitoringTarget && c.target === monitoringUser.id))).length === 0 ? (
-                              <div className="text-center py-10 text-slate-400 font-bold text-[11px]">
-                                 សូមជ្រើសរើសដៃគូសន្ទនាពីបញ្ជីខាងលើ ដើម្បីតាមដានប្រវត្តិសារ
-                              </div>
-                           ) : (
-                              chats.filter(c => c && ((c.userId === monitoringUser.id && c.target === monitoringTarget) || (c.userId === monitoringTarget && c.target === monitoringUser.id))).map(msg => (
-                                 <div key={msg.id} className={`flex ${msg.userId === monitoringUser.id ? 'justify-end' : 'justify-start'} animate-in fade-in`}>
-                                    <div className={`max-w-[85%] bg-white border border-slate-200 rounded-xl p-2.5 shadow-sm text-left ${msg.userId === monitoringUser.id ? 'bg-sky-50' : ''}`}>
-                                       <span className="text-[9px] font-black text-[#0F2B5C] block mb-0.5">
-                                          {safeStr(msg.userName)}
-                                       </span>
-                                       
-                                       {msg.msgType === 'location' ? (
-                                          <div className="p-2 bg-green-50 border border-green-200 rounded-lg space-y-1.5 mt-0.5">
-                                             <span className="text-[9px] text-green-800 font-bold block">🗺️ ទីតាំងភូមិសាស្ត្រ (GPS)</span>
-                                             <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="block text-center py-1 bg-green-600 text-white rounded text-[9px] font-black">បើកលើផែនទី</a>
-                                          </div>
-                                       ) : msg.msgType === 'image' ? (
-                                          <img src={msg.imageUrl} className="max-w-full rounded-lg border border-slate-200" alt="attachment" />
-                                       ) : msg.msgType === 'audio' ? (
-                                          <TelegramVoiceBubble 
-                                             audioUrl={msg.audioUrl} 
-                                             durationSec={msg.durationSec} 
-                                             durationStr={msg.duration} 
-                                             messageId={msg.id}
-                                             activeAudioId={activeAudioId}
-                                             setActiveAudioId={setActiveAudioId}
-                                          />
-                                       ) : (
-                                          <p className="text-[12px] text-slate-700 font-medium leading-relaxed">{safeStr(msg.text)}</p>
-                                       )}
-                                       
-                                       <span className="text-[8px] text-slate-400 block mt-1 text-right">
-                                          {new Date(msg.timestamp).toLocaleString()}
-                                       </span>
-                                    </div>
+                     if (dynamicTargets.length === 0) return <span className="text-[10px] text-slate-500 font-bold p-1">មិនទាន់មានដៃគូឆាតទេ</span>;
+
+                     return dynamicTargets.map(targetTab => (
+                         <button 
+                            key={targetTab.id}
+                            onClick={() => setMonitoringTarget(targetTab.id)}
+                            className={`px-3 py-1.5 whitespace-nowrap rounded-lg text-[9.5px] font-black transition-all border ${monitoringTarget === targetTab.id ? 'bg-[#0F2B5C] text-white border-transparent shadow-sm' : 'bg-white text-slate-500 border-slate-200'}`}
+                         >
+                            {targetTab.label}
+                         </button>
+                     ));
+                  })()}
+               </div>
+
+               <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 telegram-bg hide-scrollbar">
+                  {chats.filter(c => c && ((c.userId === monitoringUser.id && c.target === monitoringTarget) || (c.userId === monitoringTarget && c.target === monitoringUser.id))).length === 0 ? (
+                     <div className="text-center py-10 text-slate-400 font-bold text-[11px]">
+                        សូមជ្រើសរើសដៃគូឆាតខាងលើ ដើម្បីមើលសារ (បើមាន)
+                     </div>
+                  ) : (
+                     chats.filter(c => c && ((c.userId === monitoringUser.id && c.target === monitoringTarget) || (c.userId === monitoringTarget && c.target === monitoringUser.id))).map(msg => (
+                        <div key={msg.id} className={`flex ${msg.userId === monitoringUser.id ? 'justify-end' : 'justify-start'} animate-in fade-in`}>
+                           <div className={`max-w-[85%] border rounded-xl p-2.5 shadow-sm text-left ${msg.userId === monitoringUser.id ? 'bg-sky-50 border-sky-100' : 'bg-white border-slate-200'}`}>
+                              <span className="text-[9px] font-black text-[#0F2B5C] block mb-0.5">
+                                 {safeStr(msg.userName)}
+                              </span>
+                              
+                              {msg.msgType === 'location' ? (
+                                 <div className="p-2 bg-green-50 border border-green-200 rounded-lg space-y-1.5 mt-0.5">
+                                    <span className="text-[9px] text-green-800 font-bold block">🗺️ ទីតាំងភូមិសាស្ត្រ (GPS)</span>
+                                    <a href={msg.mapUrl} target="_blank" rel="noreferrer" className="block text-center py-1 bg-green-600 text-white rounded text-[9px] font-black">បើកលើផែនទី</a>
                                  </div>
-                              ))
-                           )}
+                              ) : msg.msgType === 'image' ? (
+                                 <img src={msg.imageUrl} className="max-w-full rounded-lg border border-slate-200" alt="attachment" />
+                              ) : msg.msgType === 'audio' ? (
+                                 <TelegramVoiceBubble 
+                                    audioUrl={msg.audioUrl} 
+                                    durationSec={msg.durationSec} 
+                                    durationStr={msg.duration} 
+                                    messageId={msg.id}
+                                    activeAudioId={activeAudioId}
+                                    setActiveAudioId={setActiveAudioId}
+                                 />
+                              ) : (
+                                 <p className="text-[12px] text-slate-700 font-medium leading-relaxed">{safeStr(msg.text)}</p>
+                              )}
+                              
+                              <span className="text-[8px] text-slate-400 block mt-1 text-right">
+                                 {new Date(msg.timestamp).toLocaleString()}
+                              </span>
+                           </div>
                         </div>
-                     </>
-                  );
-               })()}
+                     ))
+                  )}
+               </div>
                
                <div className="p-2.5 bg-slate-100 border-t border-slate-200 flex justify-end">
                   <button onClick={() => setMonitoringUser(null)} className="px-4 py-1.5 bg-slate-800 text-white rounded-lg text-[11px] font-bold">ចាកចេញ</button>
