@@ -776,10 +776,11 @@ export default function App() {
        const isG = sessionStorage.getItem('tp_is_guest') === 'true';
        const uName = localStorage.getItem(`tp_username_${user.uid}`);
        if (!isG && uName && uName !== 'ភ្ញៀវ') {
-          setDoc(profileRef, { lastActive: Date.now(), status: 'online' }, { merge: true }).catch(()=>{});
+          // កែប្រែ៖ បញ្ចូលឈ្មោះទៅជាមួយជានិច្ច ដើម្បីការពារកុំឱ្យ Database បាត់ឈ្មោះពេល Update
+          setDoc(profileRef, { lastActive: Date.now(), status: 'online', username: uName }, { merge: true }).catch(()=>{});
        }
        if (sessionStorage.getItem('tp_admin_session') === 'true') {
-          setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', 'admin_ramit_fixed_uid'), { lastActive: Date.now(), status: 'online' }, { merge: true }).catch(()=>{});
+          setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', 'admin_ramit_fixed_uid'), { lastActive: Date.now(), status: 'online', username: 'ADMIN' }, { merge: true }).catch(()=>{});
        }
     };
     
@@ -790,6 +791,15 @@ export default function App() {
     const unsubProfile = onSnapshot(profileRef, (snap) => {
       if (snap.exists()) {
         const udata = snap.data();
+        
+        // កែប្រែ៖ ប្រព័ន្ធការពារទិន្នន័យ (Self-Healing Backup)
+        // ប្រសិនបើក្នុង DB ស្រាប់តែបាត់ឈ្មោះ តែក្នុងទូរស័ព្ទនៅមាន ត្រូវយកពីទូរស័ព្ទមកសង្គ្រោះទិន្នន័យវិញភ្លាមៗ
+        const savedName = localStorage.getItem(`tp_username_${user.uid}`);
+        if (!udata.username && savedName && savedName !== 'ភ្ញៀវ') {
+            udata.username = savedName;
+            setDoc(profileRef, { username: savedName }, { merge: true }).catch(()=>{});
+        }
+
         setProfile(udata);
         
         // Dynamic secure role-based administrative check
@@ -2281,9 +2291,9 @@ const ImageModal = ({ imageUrl, onClose }) => {
   if (!imageUrl) return null;
   return (
     <div className="fixed inset-0 z-[3000] bg-black/95 backdrop-blur-md flex justify-center items-center p-0">
-      <div className="absolute top-0 left-0 right-0 p-4 flex justify-end z-10">
-        <button onClick={onClose} className="text-white bg-white/20 p-2 rounded-full">
-          <X className="w-5 h-5" />
+      <div className="absolute top-[60px] right-5 z-20">
+        <button onClick={onClose} className="text-white bg-white/20 p-2.5 rounded-full shadow-lg active:scale-95 transition-transform backdrop-blur-md border border-white/30">
+          <X className="w-6 h-6" />
         </button>
       </div>
       <img src={imageUrl} alt="fullscreen" className="max-w-full max-h-[100dvh] object-contain" />
@@ -2966,6 +2976,22 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                <h2 className="font-black text-[13.5px] text-slate-800 truncate">{safeStr(activeChatUser.label)}</h2>
                <p className="text-[10px] font-bold text-emerald-500 mt-0.5">Online • ឆ្លើយតបរហ័ស</p>
            </div>
+        </div>
+        
+        <div className="flex items-center pr-1">
+           <button 
+              onClick={() => {
+                 if (activeChatUser.phone) {
+                    window.location.href = `tel:${activeChatUser.phone}`;
+                 } else {
+                    showToast('មុខងារខល (Voice Call) កំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍បន្ត!', 'info');
+                 }
+              }}
+              className="w-9 h-9 bg-[#38BDF8]/10 text-[#38BDF8] border border-[#38BDF8]/20 rounded-full flex items-center justify-center hover:bg-[#38BDF8]/20 transition-colors active:scale-95 shadow-sm"
+              title="ខល (Voice Call)"
+           >
+              <Phone className="w-4.5 h-4.5 fill-current" />
+           </button>
         </div>
       </div>
 
