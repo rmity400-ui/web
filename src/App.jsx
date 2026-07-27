@@ -1536,31 +1536,11 @@ export default function App() {
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3 shadow-inner">
                   <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-[11px] font-black text-slate-600 block uppercase">ព័ត៌មានទំនាក់ទំនង (Contacts) *</span>
-                    <button 
-                      type="button"
-                      onClick={() => setAddForm({...addForm, contacts: [...addForm.contacts, { name: '', phone: '' }]})}
-                      className="text-[10px] font-black text-[#0F2B5C] bg-white border border-slate-200 px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-sm"
-                    >
-                      <Plus className="w-3.5 h-3.5"/> បន្ថែមខ្សែទូរស័ព្ទ
-                    </button>
                   </div>
 
                   <div className="space-y-2">
                     {addForm.contacts.map((contact, idx) => (
                       <div key={idx} className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm relative space-y-2">
-                        {addForm.contacts.length > 1 && (
-                          <button 
-                            type="button" 
-                            onClick={() => {
-                              const updated = [...addForm.contacts];
-                              updated.splice(idx, 1);
-                              setAddForm({...addForm, contacts: updated});
-                            }}
-                            className="absolute top-2.5 right-2.5 p-1 text-rose-500 bg-slate-50 rounded-full border border-slate-200"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
                         <div>
                           <label className="text-[10px] font-black text-slate-500 block mb-0.5">ឈ្មោះ ឬ តួនាទី {idx + 1} *</label>
                           <input 
@@ -1577,19 +1557,45 @@ export default function App() {
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-black text-slate-500 block mb-0.5">លេខទូរស័ព្ទ {idx + 1} *</label>
-                          <input 
-                            type="tel" 
-                            required 
-                            value={contact.phone} 
-                            onChange={e => {
-                              const updated = [...addForm.contacts];
-                              updated[idx].phone = e.target.value;
-                              setAddForm({...addForm, contacts: updated});
-                            }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[13.5px] font-bold" 
-                            placeholder="ឧ: 012 345 678..." 
-                          />
+                          <div className="flex justify-between items-center mb-0.5">
+                             <label className="text-[10px] font-black text-slate-500">លេខទូរស័ព្ទ {idx + 1} (Smart, Metfone...)</label>
+                             {idx === addForm.contacts.length - 1 && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => setAddForm({...addForm, contacts: [...addForm.contacts, { name: contact.name, phone: '' }]})}
+                                  className="text-[10px] font-black text-white bg-[#0F2B5C] px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                                >
+                                  <Plus className="w-3.5 h-3.5"/> ថែមប្រព័ន្ធ
+                                </button>
+                             )}
+                          </div>
+                          <div className="flex gap-2">
+                             <input 
+                               type="tel" 
+                               required 
+                               value={contact.phone} 
+                               onChange={e => {
+                                 const updated = [...addForm.contacts];
+                                 updated[idx].phone = e.target.value;
+                                 setAddForm({...addForm, contacts: updated});
+                               }}
+                               className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-[13.5px] font-bold" 
+                               placeholder="ឧ: 012 345 678..." 
+                             />
+                             {addForm.contacts.length > 1 && (
+                               <button 
+                                 type="button" 
+                                 onClick={() => {
+                                   const updated = [...addForm.contacts];
+                                   updated.splice(idx, 1);
+                                   setAddForm({...addForm, contacts: updated});
+                                 }}
+                                 className="w-10 flex items-center justify-center bg-rose-50 text-rose-500 rounded-xl border border-rose-100 active:scale-95"
+                               >
+                                 <Trash2 className="w-4 h-4" />
+                               </button>
+                             )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1767,15 +1773,18 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 m-0 p-0 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-      <div className="flex justify-around items-center h-[62px] px-1">
+    <div 
+      className="md:hidden fixed left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+      style={{ bottom: '0px', paddingBottom: '0px', marginBottom: '0px' }}
+    >
+      <div className="flex justify-around items-center pt-2.5 pb-2 px-1">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
            <button 
              key={item.id} 
              onClick={() => setCurrentView(item.id)} 
-             className="relative flex-1 flex flex-col items-center justify-center h-full transition-all active:scale-90"
+             className="relative flex-1 flex flex-col items-center justify-center transition-all active:scale-90"
            >
              <div className={`flex flex-col items-center justify-center transition-all ${isActive ? 'text-[#0F2B5C]' : 'text-[#94A3B8]'}`}>
                 <div className={`p-1.5 rounded-xl ${isActive ? 'bg-[#0F2B5C]/10' : ''}`}>
