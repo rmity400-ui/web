@@ -1749,20 +1749,17 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div 
-      className="md:hidden fixed bottom-0 left-0 right-0 w-full z-[5000] bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-    >
-      <div className="flex justify-around items-center h-[60px] px-2 pb-1">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 m-0 p-0 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <div className="flex justify-around items-center h-[62px] px-1">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
            <button 
              key={item.id} 
              onClick={() => setCurrentView(item.id)} 
-             className="relative flex-1 flex flex-col items-center justify-center h-full transition-all active:scale-95"
+             className="relative flex-1 flex flex-col items-center justify-center h-full transition-all active:scale-90"
            >
-             <div className={`flex flex-col items-center justify-center transition-all ${isActive ? 'text-[#0F2B5C]' : 'text-slate-400'}`}>
+             <div className={`flex flex-col items-center justify-center transition-all ${isActive ? 'text-[#0F2B5C]' : 'text-[#94A3B8]'}`}>
                 <div className={`p-1.5 rounded-xl ${isActive ? 'bg-[#0F2B5C]/10' : ''}`}>
                    <item.icon className="w-[22px] h-[22px]" />
                 </div>
@@ -3154,11 +3151,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         )}
       </div>
 
-      <div 
-        className="p-2.5 bg-white border-t border-slate-200 shrink-0 z-[100] shadow-[0_-5px_15px_rgba(0,0,0,0.04)] relative w-full" 
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}
-        onClick={e=>e.stopPropagation()}
-      >
+      <div className="p-3 bg-white border-t border-slate-200 shrink-0 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] m-0 relative w-full" onClick={e=>e.stopPropagation()}>
         {showAttachMenu && (
            <div className="absolute bottom-[65px] left-3 bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex flex-col w-40 animate-in slide-in-from-bottom-2">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
