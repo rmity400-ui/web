@@ -1166,19 +1166,25 @@ export default function App() {
     setIsFormSubmitting(true);
     try {
       let submitData = { 
-        ...addForm, 
+        title: safeStr(addForm.title),
+        image: addForm.image || '',
+        coords: addForm.coords || null,
+        mapUrl: safeStr(addForm.mapUrl),
+        desc: safeStr(addForm.desc),
+        category: safeStr(addForm.category, 'ឃុំ'),
+        province: addForm.district === 'រតនមណ្ឌល' ? 'បាត់ដំបង' : safeStr(addForm.province),
+        district: safeStr(addForm.district, 'រតនមណ្ឌល'),
+        commune: safeStr(addForm.commune),
+        village: safeStr(addForm.village),
         contacts: validContacts,
-        role: validContacts[0].name, 
-        phone: validContacts[0].phone, 
-        author: profile?.username || 'Admin', 
-        authorUid: user?.uid || 'guest_uid', 
-        timestamp: Date.now() 
+        role: safeStr(validContacts[0].name),
+        phone: safeStr(validContacts[0].phone),
+        author: safeStr(profile?.username, 'Admin'),
+        authorUid: safeStr(user?.uid, 'guest_uid'),
+        status: isAdmin ? 'approved' : 'pending',
+        likes: 0,
+        timestamp: Date.now()
       };
-      
-      if (addForm.district === 'រតនមណ្ឌល' || !addForm.district) {
-         submitData.province = 'បាត់ដំបង';
-         submitData.district = 'រតនមណ្ឌល';
-      }
       
       if (!db) {
          showToast('រក្សាទុកក្នុងទិន្នន័យបណ្តោះអាសន្នជោគជ័យ (Offline)');
@@ -1187,12 +1193,7 @@ export default function App() {
          return;
       }
 
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_admin_data'), {
-        ...submitData,
-        status: isAdmin ? 'approved' : 'pending',
-        likes: 0,
-        timestamp: Date.now()
-      }).catch(()=>{});
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_admin_data'), submitData);
       
       if (isAdmin) {
         showToast('ទិន្នន័យត្រូវបានបញ្ចូលជោគជ័យ ✅');
@@ -1200,7 +1201,7 @@ export default function App() {
         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
             targetId: user?.uid || 'guest_uid',
             title: 'សំណើរជោគជ័យ', 
-            msg: `សំណើរដែលអ្នកបានផ្ញើរត្រូវបានបញ្ជូន ហើយកំពុងរង់ចាំការត្រួតពិនិត្យពី Admin।`, 
+            msg: `សំណើរដែលអ្នកបានផ្ញើរត្រូវបានបញ្ជូន ហើយកំពុងរង់ចាំការត្រួតពិនិត្យពី Admin។`, 
             type: 'info', 
             timestamp: Date.now()
         }).catch(()=>{});
@@ -1208,7 +1209,7 @@ export default function App() {
       }
       setIsAddModalOpen(false);
     } catch (err) {
-      showToast('បរាជ័យក្នុងការបញ្ជូន', 'error');
+      showToast('បរាជ័យក្នុងការបញ្ជូន: ' + err.message, 'error');
     }
     setIsFormSubmitting(false);
   };
@@ -1669,9 +1670,26 @@ export default function App() {
                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
                        onChange={e => {
                           if (e.target.files && e.target.files[0]) {
-                             const r = new FileReader();
-                             r.onload = () => setAddForm(prev => ({ ...prev, image: r.result }));
-                             r.readAsDataURL(e.target.files[0]);
+                             const file = e.target.files[0];
+                             const reader = new FileReader();
+                             reader.onload = (event) => {
+                                const img = new Image();
+                                img.onload = () => {
+                                   const canvas = document.createElement('canvas');
+                                   let width = img.width;
+                                   let height = img.height;
+                                   const max = 800; // Compress image to prevent Firestore 1MB limit error
+                                   if (width > height && width > max) { height *= max / width; width = max; }
+                                   else if (height > max) { width *= max / height; height = max; }
+                                   canvas.width = width;
+                                   canvas.height = height;
+                                   const ctx = canvas.getContext('2d');
+                                   ctx.drawImage(img, 0, 0, width, height);
+                                   setAddForm(prev => ({ ...prev, image: canvas.toDataURL('image/jpeg', 0.7) }));
+                                };
+                                img.src = event.target.result;
+                             };
+                             reader.readAsDataURL(file);
                           }
                        }} 
                      />
