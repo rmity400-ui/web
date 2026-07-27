@@ -2310,6 +2310,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
   // Hidden requests local state for instant UI updates
   const [hiddenRequests, setHiddenRequests] = useState({});
+  const [sentRequests, setSentRequests] = useState({});
+  const [swipedContactId, setSwipedContactId] = useState(null);
+  const touchStartX = useRef(null);
 
   // In-App Calling UI States
   const [callState, setCallState] = useState({ isActive: false, status: 'calling', duration: 0 });
@@ -2649,8 +2652,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
           avatar: myChatAvatar,
           timestamp: Date.now()
        });
+       setSentRequests(prev => ({ ...prev, [targetUser.id]: true }));
        showToast(`បានផ្ញើសំណើរសុំធ្វើមិត្តទៅកាន់ ${targetUser.username} រួចរាល់!`, 'success');
-       setShowUserSearch(false);
      } catch (err) {
        showToast('មានបញ្ហាក្នុងការផ្ញើសំណើរ', 'error');
      }
@@ -2797,10 +2800,10 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                                         </div>
                                     </div>
                                     <button 
-                                       onClick={() => handleConnectPrivateUser(u)} 
-                                       className="text-[10px] font-black bg-[#0F2B5C] text-white px-3 py-1.5 rounded-lg active:scale-95 transition-all shadow-sm"
+                                       onClick={() => !sentRequests[u.id] && handleConnectPrivateUser(u)} 
+                                       className={`text-[10px] font-black px-3 py-1.5 rounded-lg active:scale-95 transition-all shadow-sm ${sentRequests[u.id] ? 'bg-slate-200 text-slate-500' : 'bg-[#0F2B5C] text-white'}`}
                                     >
-                                       សុំធ្វើមិត្ត
+                                       {sentRequests[u.id] ? 'បានផ្ញើសំណើរ' : 'សុំធ្វើមិត្ត'}
                                     </button>
                                 </div>
                               );
@@ -2888,38 +2891,56 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                       const isOnline = (usersList || []).some(u => u.id === contact.id && (Date.now() - (u.lastActive || 0)) < 120000);
                       
                       return (
-                        <div 
-                           key={contact.id || i} 
-                           onClick={() => setActiveChatUser(contact)}
-                           className="flex items-center justify-between p-3 hover:bg-slate-50 bg-white rounded-xl cursor-pointer transition-all active:scale-[0.99] border border-slate-200 mb-2 shadow-sm relative overflow-hidden group"
-                        >
-                            <div className="flex items-center gap-2.5">
-                                <div className="relative shrink-0">
-                                   <img src={contact.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
-                                   <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                        <div key={contact.id || i} className="relative mb-2 overflow-hidden rounded-xl bg-rose-500 shadow-sm border border-slate-200 group">
+                            
+                            {/* Background Delete Button */}
+                            {contact.isPrivate && (
+                                <div className="absolute inset-y-0 right-0 w-[75px] flex items-center justify-center">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleRemoveFriend(contact); }}
+                                        className="w-full h-full flex flex-col items-center justify-center text-white active:bg-rose-600 transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4 mb-1" />
+                                        <span className="text-[10px] font-black">លុប</span>
+                                    </button>
                                 </div>
-                                <div>
-                                    <h3 className="font-black text-[13px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
-                                    <div className="flex gap-1.5 items-center mt-1">
-                                      <span className="text-[9px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded shadow-sm">
-                                         {contact.isPrivate ? 'មិត្តឯកជន' : 'ស្ថាប័ន'}
-                                      </span>
-                                      <span className="text-[9.5px] text-slate-400 font-bold">{isOnline ? 'Online' : 'offline'}</span>
+                            )}
+
+                            {/* Foreground Swipable Row */}
+                            <div 
+                               onClick={() => {
+                                   if (swipedContactId === contact.id) setSwipedContactId(null);
+                                   else setActiveChatUser(contact);
+                               }}
+                               onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                               onTouchMove={(e) => {
+                                   if (!touchStartX.current || !contact.isPrivate) return;
+                                   const diff = touchStartX.current - e.touches[0].clientX;
+                                   if (diff > 40) setSwipedContactId(contact.id);      // អូសទៅឆ្វេង (Swipe Left)
+                                   else if (diff < -30) setSwipedContactId(null);       // អូសមកស្តាំវិញ (Swipe Right)
+                               }}
+                               onTouchEnd={() => { touchStartX.current = null; }}
+                               className={`relative flex items-center justify-between p-3 bg-white cursor-pointer transition-transform duration-300 w-full h-full border-r border-slate-200 ${swipedContactId === contact.id ? 'translate-x-[-75px]' : 'translate-x-0'}`}
+                            >
+                                <div className="flex items-center gap-2.5">
+                                    <div className="relative shrink-0">
+                                       <img src={contact.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-10 h-10 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
+                                       <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-[13px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
+                                        <div className="flex gap-1.5 items-center mt-1">
+                                          <span className="text-[9px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded shadow-sm">
+                                             {contact.isPrivate ? 'មិត្តឯកជន' : 'ស្ថាប័ន'}
+                                          </span>
+                                          <span className="text-[9.5px] text-slate-400 font-bold">{isOnline ? 'Online' : 'offline'}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                {contact.isPrivate && (
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleRemoveFriend(contact); }}
-                                        className="w-7 h-7 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center border border-rose-100 hover:bg-rose-500 hover:text-white transition-colors"
-                                        title="លុបមិត្តភក្តិ"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
-                                <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 group-hover:bg-[#0F2B5C] group-hover:text-white transition-colors">
-                                    <ArrowRight className="w-3.5 h-3.5"/>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-7 h-7 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200">
+                                        <ArrowRight className="w-3.5 h-3.5"/>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3117,12 +3138,13 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                   
                   <div className="flex items-end gap-1 relative">
                       <div 
-                         className={`px-3 py-2.5 rounded-xl text-[14px] shadow-sm border relative cursor-pointer select-none transition-all ${
+                         className={`px-3 py-2.5 rounded-xl text-[14px] shadow-sm border relative cursor-pointer select-none transition-transform duration-200 active:scale-[0.98] ${
                             isMe 
                               ? 'bg-[#0F2B5C] border-[#0F2B5C] rounded-br-sm text-white' 
                               : 'bg-white text-slate-800 rounded-bl-sm border-slate-200'
                           }`}
                          onTouchStart={() => handlePressStart(msg)}
+                         onTouchMove={() => handlePressEnd(msg)}
                          onTouchEnd={() => handlePressEnd(msg)}
                          onMouseDown={() => handlePressStart(msg)}
                          onMouseUp={() => handlePressEnd(msg)}
@@ -3520,21 +3542,26 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const handleApprove = async (id, authorUid) => { 
       try {
         if (!db) throw new Error("Offline mode");
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', id), { status: 'approved' }); 
+        const targetId = String(id || '');
+        if (!targetId) throw new Error("Invalid ID");
+
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', targetId), { status: 'approved' }); 
         
         if (authorUid) {
            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), { 
-               targetId: authorUid,
+               targetId: String(authorUid),
                title: 'សំណើរជោគជ័យ ✅',
-               msg: 'Admin បានព្រមលើសំណើររបស់អ្នក។ ទិន្នន័យត្រូវបានបញ្ចូលទៅក្នុងប្រព័ន្ធផ្លូវការ।',
+               msg: 'Admin បានព្រមលើសំណើររបស់អ្នក។ ទិន្នន័យត្រូវបានបញ្ចូលទៅក្នុងប្រព័ន្ធផ្លូវការ។',
                type: 'success',
                timestamp: Date.now() 
            }).catch(()=>{});
         }
-        showToast('អនុម័តជោគជ័យ ✅'); 
-      } catch (err) {}
-      if (typeof setLocations === 'function') {
-         setLocations(prev => (prev || []).map(l => l && l.id === id ? { ...l, status: 'approved' } : l).filter(Boolean));
+        showToast('អនុម័តជោគជ័យ ✅', 'success'); 
+        if (typeof setLocations === 'function') {
+           setLocations(prev => (prev || []).map(l => l && l.id === id ? { ...l, status: 'approved' } : l).filter(Boolean));
+        }
+      } catch (err) {
+        showToast('កំហុសក្នុងការអនុម័ត: ' + err.message, 'error');
       }
   };
   
@@ -3542,20 +3569,24 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       openConfirm("បញ្ជាក់ការបដិសេធ", "តើអ្នកពិតជាចង់បដិសេធ និងលុបសំណើរនេះមែនទេ?", async () => {
         try {
           if (!db) throw new Error("Offline execution");
-          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', id)); 
+          const targetId = String(id || '');
+          
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', targetId)); 
           if (authorUid) {
               await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), { 
-                  targetId: authorUid,
+                  targetId: String(authorUid),
                   title: 'បដិសេធ ❌',
-                  msg: 'Admin មិនព្រមលើសំណើររបស់អ្នកទេ។ សំណើរត្រូវបានលុបចោល।',
+                  msg: 'Admin មិនព្រមលើសំណើររបស់អ្នកទេ។ សំណើរត្រូវបានលុបចោល។',
                   type: 'error',
                   timestamp: Date.now() 
               }).catch(()=>{});
           }
           showToast('បានបដិសេធសំណើរ', 'error'); 
-        } catch (err) {}
-        if (typeof setLocations === 'function') {
-           setLocations(prev => (prev || []).filter(l => l && l.id !== id));
+          if (typeof setLocations === 'function') {
+             setLocations(prev => (prev || []).filter(l => l && l.id !== id));
+          }
+        } catch (err) {
+          showToast('កំហុសការបដិសេធ: ' + err.message, 'error');
         }
       });
   };
