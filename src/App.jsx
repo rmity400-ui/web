@@ -795,7 +795,7 @@ export default function App() {
         // Dynamic secure role-based administrative check
         if (udata.role === 'admin') {
           setIsAdmin(true);
-        } else {
+        } else if (sessionStorage.getItem('tp_admin_session') !== 'true') {
           setIsAdmin(false);
         }
         
@@ -1739,8 +1739,8 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] shadow-md bg-white border-t border-slate-100 pb-[max(env(safe-area-inset-bottom),10px)] pt-2">
-      <div className="flex justify-around items-center h-[56px] px-2 relative">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] shadow-[0_-4px_15px_rgba(0,0,0,0.04)] bg-white border-t border-slate-100 pb-[env(safe-area-inset-bottom,0px)] pt-1">
+      <div className="flex justify-around items-center h-[58px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
