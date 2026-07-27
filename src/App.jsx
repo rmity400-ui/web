@@ -817,6 +817,15 @@ export default function App() {
         const savedName = localStorage.getItem(`tp_username_${user.uid}`) || '';
         const isG = sessionStorage.getItem('tp_is_guest') === 'true';
         if (savedName && savedName !== 'ភ្ញៀវ' && !isG) {
+          // Optimistic local state update to prevent UI flickering on mobile
+          setProfile(prev => ({
+             ...prev,
+             username: savedName,
+             uid: user.uid,
+             isBanned: false,
+             warnings: 0,
+             role: 'user'
+          }));
           setDoc(profileRef, {
             username: savedName,
             avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -1008,6 +1017,16 @@ export default function App() {
     
     sessionStorage.removeItem('tp_is_guest');
     localStorage.setItem(`tp_username_${user.uid}`, finalizedUsername);
+
+    // Optimistic local state update to prevent UI flickering before database syncs
+    setProfile(prev => ({
+       ...prev,
+       username: finalizedUsername,
+       uid: user.uid,
+       isBanned: false,
+       warnings: 0,
+       role: 'user'
+    }));
 
     if (db && user) {
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
@@ -1220,7 +1239,7 @@ export default function App() {
           <Hexagon className="absolute inset-0 w-full h-full text-[#38BDF8] fill-transparent stroke-[2px] rotate-90 animate-pulse" />
           <GraduationCap className="relative z-10 w-10 h-10 text-white animate-bounce" />
        </div>
-       <h1 className="text-white font-black text-[18px] tracking-widest font-logo mb-3">វិ.ស្តៅសន្តិភាព</h1>
+       <h1 className="text-white font-black text-[18px] tracking-widest font-khmer mb-3">វិ.ស្តៅសន្តិភាព</h1>
        <div className="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden">
           <div className="h-full bg-[#38BDF8] rounded-full animate-[progress_1.5s_ease-in-out_infinite] w-1/2"></div>
        </div>
@@ -1305,7 +1324,7 @@ export default function App() {
       <div className="fixed inset-0 z-[100] flex flex-col md:flex-row font-khmer bg-white text-slate-800 animate-in fade-in duration-500 w-full overflow-hidden">
         {cosmicTheme && <StarryGalaxyCanvas />}
 
-        <div className="absolute top-[max(env(safe-area-inset-top,20px),20px)+30px] right-5 z-[200] flex gap-1 bg-white/40 backdrop-blur-md p-1.5 rounded-xl border border-white/50 shadow-sm pointer-events-auto">
+        <div className="absolute top-[70px] right-5 z-[200] flex gap-1 bg-white/40 backdrop-blur-md p-1.5 rounded-xl border border-white/50 shadow-sm pointer-events-auto">
             <button onClick={() => setLanguage('kh')} className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${language === 'kh' ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-[#0F2B5C] hover:bg-white/60'}`}>KH</button>
             <button onClick={() => setLanguage('en')} className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${language === 'en' ? 'bg-[#0F2B5C] text-white shadow-md' : 'text-[#0F2B5C] hover:bg-white/60'}`}>EN</button>
         </div>
@@ -1324,10 +1343,10 @@ export default function App() {
                 )}
             </div>
             <h1 className={`font-logo font-black text-2xl md:text-3xl tracking-wide text-center px-4 ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : 'text-[#0F2B5C]'} mb-1`}>
-                វិទ្យាល័យស្តៅសន្តិភាព
+                {language === 'en' ? 'Sdao Santepheap High School' : 'វិទ្យាល័យស្តៅសន្តិភាព'}
             </h1>
             <p className={`text-[11px] ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] bg-white/80' : 'text-[#0F2B5C] bg-white/10'} font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-sm mt-1`}>
-                យុវជន vmc វិ.ស្តៅសន្តិភាព 2026
+                {language === 'en' ? 'VMC Youth Sdao Santepheap 2026' : 'យុវជន vmc វិ.ស្តៅសន្តិភាព 2026'}
             </p>
         </div>
 
@@ -1335,24 +1354,24 @@ export default function App() {
             <div className="absolute top-0 right-0 w-48 h-48 bg-[#38BDF8]/5 rounded-full blur-3xl pointer-events-none"></div>
             
             <h2 className="text-white text-xl md:text-2xl font-black mb-4 font-khmer leading-tight z-10">
-                ស្វាគមន៍មកកាន់ប្រព័ន្ធព័ត៌មានវិទ្យាល័យ
+                {language === 'en' ? 'Welcome to the High School Info System' : 'ស្វាគមន៍មកកាន់ប្រព័ន្ធព័ត៌មានវិទ្យាល័យ'}
             </h2>
             <p className="text-sky-100/80 text-[13px] leading-relaxed max-w-sm mb-8 font-khmer px-2 z-10 font-medium">
-                ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ និងយុវជន។
+                {language === 'en' ? "Ratanak Mondol district's commune-village database system facilitating communication and providing fast information to citizens and youth." : 'ប្រព័ន្ធទិន្នន័យភូមិ-ឃុំ នៃស្រុករតនមណ្ឌល ដែលជួយសម្រួលដល់ការទំនាក់ទំនង និងផ្ដល់ព័ត៌មានរហ័សទាន់ចិត្តដល់ប្រជាពលរដ្ឋ និងយុវជន។'}
             </p>
             
             <button 
                 onClick={() => setShowRegModal(true)} 
                 className="w-full max-w-[260px] bg-white text-[#0F2B5C] py-3.5 rounded-xl font-black text-[13.5px] shadow-lg active:scale-95 transition-transform mb-3 font-khmer z-10 hover:bg-slate-50 flex justify-center items-center gap-1.5"
             >
-                ចុះឈ្មោះចូលប្រើ <ArrowRight className="w-4 h-4"/>
+                {language === 'en' ? 'Register / Login' : 'ចុះឈ្មោះចូលប្រើ'} <ArrowRight className="w-4 h-4"/>
             </button>
 
             <button 
                 onClick={handleGuestEntry} 
                 className="w-full max-w-[260px] bg-transparent border-2 border-white/20 text-white/80 py-3.5 rounded-xl font-bold text-[13px] active:scale-95 transition-transform hover:bg-white/10 font-khmer z-10"
             >
-                រំលង (ចូលជាភ្ញៀវ)
+                {language === 'en' ? 'Skip (Guest)' : 'រំលង (ចូលជាភ្ញៀវ)'}
             </button>
         </div>
 
@@ -1363,8 +1382,8 @@ export default function App() {
                     <div className="w-16 h-16 bg-sky-50 text-[#38BDF8] rounded-full flex items-center justify-center mb-4 border border-sky-100">
                         <User className="w-8 h-8" />
                     </div>
-                    <h3 className="text-lg font-black text-[#0F2B5C] mb-1 font-khmer">ការបង្កើតគណនីថ្មី</h3>
-                    <p className="text-[12px] text-slate-500 mb-4 font-khmer font-medium">គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។</p>
+                    <h3 className="text-lg font-black text-[#0F2B5C] mb-1 font-khmer">{language === 'en' ? 'Create New Account' : 'ការបង្កើតគណនីថ្មី'}</h3>
+                    <p className="text-[12px] text-slate-500 mb-4 font-khmer font-medium">{language === 'en' ? 'This account will be linked to your current device only.' : 'គណនីនេះនឹងត្រូវភ្ជាប់សម្រាប់ឧបករណ៍បច្ចុប្បន្នរបស់អ្នកតែប៉ុណ្ណោះ។'}</p>
                     
                     <form onSubmit={handleGatewayRegister} className="w-full space-y-3">
                         <input 
@@ -1372,11 +1391,11 @@ export default function App() {
                             required
                             value={regName} 
                             onChange={e=>setRegName(e.target.value)} 
-                            placeholder="បញ្ចូលឈ្មោះគណនីឧបករណ៍នេះ..." 
+                            placeholder={language === 'en' ? "Enter your account name..." : "បញ្ចូលឈ្មោះគណនីឧបករណ៍នេះ..."} 
                             className="w-full bg-slate-50 border border-slate-200 px-4 py-3.5 rounded-xl text-[14px] font-bold text-center outline-none focus:border-[#38BDF8] font-khmer text-slate-800"
                         />
                         <button type="submit" className="w-full py-3 bg-[#0F2B5C] text-white rounded-xl text-[13.5px] font-black active:scale-95 transition-transform font-khmer flex items-center justify-center gap-1.5">
-                            បង្កើតគណនី <CheckCircle className="w-4.5 h-4.5"/>
+                            {language === 'en' ? 'Create Account' : 'បង្កើតគណនី'} <CheckCircle className="w-4.5 h-4.5"/>
                         </button>
                     </form>
                 </div>
@@ -1440,7 +1459,7 @@ export default function App() {
            )}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
            {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} /></div>}
-           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} usersList={usersList} /></div>}
+           {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} usersList={usersList} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
                 <AdminDashboard 
@@ -1757,8 +1776,8 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
     }, []);
 
     return (
-        <div className="bg-white border-b border-slate-200 pt-[calc(env(safe-area-inset-top,8px)+8px)] px-4 pb-3 shadow-sm relative z-40 shrink-0 w-full">
-           <div className="flex justify-between items-center mb-2">
+        <div className="bg-white border-b border-slate-200 pt-[calc(env(safe-area-inset-top,16px)+16px)] px-4 pb-4 shadow-sm relative z-40 shrink-0 w-full">
+           <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center overflow-hidden p-0.5 border border-slate-100">
                     {appLogo ? (
@@ -2500,7 +2519,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
   const stopAndCleanRecorder = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stop(); // នេះនឹងបញ្ឆេះ onstop event ដែលនឹងផ្ញើសំឡេង
     } else {
       cleanRecordingStreams();
     }
@@ -2582,13 +2601,14 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
        if (myContacts.find(c => c.id === targetUser.id)) {
           return showToast('អ្នកទាំងពីរជាមិត្តភក្តិនឹងគ្នារួចហើយ', 'info');
        }
+       // ផ្ញើសំណើរសុំធ្វើមិត្ត ជំនួសឲ្យការ Add ចូលភ្លាមៗ
        await setDoc(doc(db, 'artifacts', appId, 'users', targetUser.id, 'friend_requests', myChatId), {
           id: myChatId,
           label: myChatName,
           avatar: myChatAvatar,
           timestamp: Date.now()
        });
-       showToast(`បានផ្ញើសំណើរសុំធ្វើមិត្តទៅកាន់ ${targetUser.username} ជោគជ័យ!`);
+       showToast(`បានផ្ញើសំណើរសុំធ្វើមិត្តទៅកាន់ ${targetUser.username} រួចរាល់!`, 'success');
        setShowUserSearch(false);
      } catch (err) {
        showToast('មានបញ្ហាក្នុងការផ្ញើសំណើរ', 'error');
@@ -2659,6 +2679,19 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
          const map = new Map();
          chatTargets.forEach(t => map.set(t.id, { ...t, isPrivate: false }));
          myContacts.forEach(c => map.set(c.id, { ...c, isPrivate: true, role: 'មិត្តភក្តិ', district: 'ឯកជន' }));
+         
+         if (!isAdmin) {
+             const adminProfile = usersList.find(u => u.id === 'admin_ramit_fixed_uid') || {};
+             map.set('admin_ramit_fixed_uid', {
+                 id: 'admin_ramit_fixed_uid',
+                 label: 'Admin Support',
+                 role: 'អ្នកគ្រប់គ្រងប្រព័ន្ធ',
+                 district: 'មជ្ឈមណ្ឌល',
+                 avatar: adminProfile.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                 isDefault: true,
+                 isPrivate: false
+             });
+         }
          return Array.from(map.values());
      })();
 
@@ -2741,10 +2774,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                    </div>
                    
                    <div className="flex flex-col gap-1.5 items-end">
-                       <button onClick={toggleSound} className={`p-1.5 rounded-full border shadow-sm transition-all active:scale-95 ${isSoundMuted ? 'bg-rose-50 border-rose-200 text-rose-500' : 'bg-emerald-50 border-emerald-200 text-emerald-500'}`}>
-                           {isSoundMuted ? <VolumeX className="w-4 h-4"/> : <Volume2 className="w-4 h-4"/>}
-                       </button>
-                       <div className="flex gap-1.5">
+                       <div className="flex gap-1.5 mt-1">
                            <button 
                               onClick={() => { setShowUserSearch(true); setLocalFilterActive(false); }} 
                               className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-black bg-white border-slate-200 text-slate-600 transition-all active:scale-95"
@@ -2929,7 +2959,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         <div className="flex items-center gap-2.5">
            <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full border border-slate-200"><ArrowLeft className="w-4.5 h-4.5 text-slate-600"/></button>
            <div className="relative">
-              <img src={activeChatUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
+              <img src={activeChatUser.avatar || ' .png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
               <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white bg-emerald-500 animate-pulse"></div>
            </div>
            <div className="min-w-0">
@@ -3040,15 +3070,16 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         )}
 
         {recordingState !== 'idle' ? (
-           <div className="w-full flex items-center justify-between bg-rose-50 border border-rose-200 rounded-xl py-2 px-3">
-              <div className="flex items-center gap-2">
+           <div className="w-full flex items-center justify-between bg-rose-50 border border-rose-200 rounded-xl py-2 px-3 relative overflow-hidden">
+              <div className="absolute inset-0 bg-rose-100/50 animate-pulse pointer-events-none"></div>
+              <div className="flex items-center gap-2 relative z-10">
                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></div>
                  <span className="text-[13px] font-black text-rose-600">
                    {`0:${recordDuration.toString().padStart(2, '0')}`}
                  </span>
               </div>
 
-              <div className="flex items-end gap-[2px] h-[16px] px-2 flex-1 justify-center max-w-[120px]">
+              <div className="flex items-end gap-[2px] h-[16px] px-2 flex-1 justify-center max-w-[120px] relative z-10">
                  {pulseWaves.map((h, i) => (
                     <div 
                       key={i} 
@@ -3057,14 +3088,10 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                     />
                  ))}
               </div>
-
-              <button 
-                type="button" 
-                onClick={stopAndCleanRecorder} 
-                className="bg-rose-500 text-white rounded-lg px-2 py-1 text-[11px] font-bold active:scale-95"
-              >
-                ផ្ញើ (Send)
-              </button>
+              
+              <div className="relative z-10 text-[10px] font-bold text-rose-400 bg-white/80 px-2 py-1 rounded shadow-sm">
+                 ប្រលែងដៃដើម្បីផ្ញើ 📤
+              </div>
            </div>
         ) : (
            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-end gap-2 w-full">
@@ -3091,7 +3118,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                     onTouchStart={startRecordingService}
                     onMouseUp={stopAndCleanRecorder}
                     onTouchEnd={stopAndCleanRecorder}
-                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm active:scale-95"
+                    onMouseLeave={stopAndCleanRecorder} // ការពារពេលអូសដៃចេញពីប៊ូតុង
+                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-90 active:bg-[#38BDF8] active:text-white"
                   >
                      <Mic className="w-5 h-5" />
                   </button>
@@ -3719,6 +3747,20 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
               edited: false,
               timestamp: Date.now()
             });
+            
+            // បាញ់ Notification ទៅកាន់ User ទាំងអស់ដើម្បីឲ្យលោតសំឡេង និងចូលប្រអប់សារ
+            usersList.forEach(u => {
+               if (u.id && u.id !== 'admin_ramit_fixed_uid' && u.username !== 'ភ្ញៀវ') {
+                   addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
+                      targetId: u.id,
+                      title: '📢 សារប្រកាសពី Admin',
+                      msg: broadcastMessage.trim(),
+                      type: 'info',
+                      timestamp: Date.now()
+                   }).catch(()=>{});
+               }
+            });
+
             setBroadcastMessage('');
             showToast('បានផ្ញើសារប្រកាសទៅកាន់ User ទាំងអស់រួចរាល់ ✅', 'success');
         } catch (e) {
@@ -3839,18 +3881,19 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
         <button onClick={handleAdminLogout} className="mt-2.5 sm:mt-0 px-3 py-1.5 bg-white/10 hover:bg-rose-600 rounded-lg text-[10px] font-black flex items-center gap-1"><LogOut className="w-3.5 h-3.5"/> ចាកចេញ</button>
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto hide-scrollbar pb-1">
+      <div className="flex w-full gap-2 overflow-x-auto hide-scrollbar pb-2 pt-1 touch-pan-x scroll-smooth">
         {[
           {id: 'data', label: 'ទិន្នន័យ & ទីតាំង'},
           {id: 'how_to', label: 'គ្រប់គ្រង របៀបប្រើប្រាស់'},
           {id: 'chat_manage', label: 'គ្រប់គ្រងទំនាក់ទំនង'},
           {id: 'chat_monitor', label: 'គ្រប់គ្រងបទល្មើស'},
-          {id: 'broadcast', label: 'ប្រកាសព័ត៌មាន (Broadcast)'},          {id: 'appeals', label: 'សំណើសម្រុះសម្រួល'},
+          {id: 'broadcast', label: 'ប្រកាសព័ត៌មាន (Broadcast)'},          
+          {id: 'appeals', label: 'សំណើសម្រុះសម្រួល'},
           {id: 'approvals', label: 'អនុម័តសំណើរ'},
           {id: 'security', label: 'Security & Logs'},
           {id: 'settings', label: 'Settings'}
         ].map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-3 py-1.5 rounded-lg text-[11px] font-black whitespace-nowrap transition-colors shadow-sm ${activeTab === t.id ? 'bg-[#0F2B5C] text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`shrink-0 px-3.5 py-2 rounded-lg text-[11px] font-black whitespace-nowrap transition-colors shadow-sm ${activeTab === t.id ? 'bg-[#0F2B5C] text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>{t.label}</button>
         ))}
       </div>
 
@@ -4238,8 +4281,16 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                  </button>
                                  <button 
                                     onClick={() => {
+                                        const tMap = new Map();
+                                        chats.forEach(c => {
+                                           if (c && c.userId === u.id && c.target) tMap.set(c.target, c.target);
+                                           else if (c && c.target === u.id && c.userId) tMap.set(c.userId, c.userId);
+                                        });
+                                        const tList = Array.from(tMap.keys());
+                                        const defaultTarget = tList.length > 0 ? tList[0] : 'admin_ramit_fixed_uid';
+                                        
                                         setMonitoringUser(u);
-                                        setMonitoringTarget('Admin');
+                                        setMonitoringTarget(defaultTarget);
                                     }} 
                                     className="p-1.5 bg-sky-50 text-[#38BDF8] border border-sky-100 rounded-lg" 
                                     title="ផ្ទាំងតាមដានឆាត"
