@@ -1739,7 +1739,7 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] shadow-[0_-4px_15px_rgba(0,0,0,0.04)] bg-white border-t border-slate-100 pb-[env(safe-area-inset-bottom,0px)] pt-1">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] shadow-[0_-4px_15px_rgba(0,0,0,0.04)] bg-white border-t border-slate-100 pb-0 mb-0 pt-1">
       <div className="flex justify-around items-center h-[58px] px-2 relative">
       {navItems.map(item => {
          const isActive = currentView === item.id;
