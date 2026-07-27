@@ -1749,21 +1749,24 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] shadow-[0_-4px_15px_rgba(0,0,0,0.04)] bg-white border-t border-slate-100 pb-0 mb-0 pt-1">
-      <div className="flex justify-around items-center h-[58px] px-2 relative">
+    <div 
+      className="md:hidden fixed bottom-0 left-0 right-0 w-full z-[5000] bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="flex justify-around items-center h-[60px] px-2 pb-1">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
            <button 
              key={item.id} 
              onClick={() => setCurrentView(item.id)} 
-             className="relative flex-1 flex flex-col items-center justify-center h-full transition-all active:scale-90"
+             className="relative flex-1 flex flex-col items-center justify-center h-full transition-all active:scale-95"
            >
-             <div className={`flex flex-col items-center justify-center transition-all ${isActive ? 'text-[#0F2B5C]' : 'text-[#94A3B8]'}`}>
-                <div className={`p-1.5 rounded-xl ${isActive ? 'bg-[#0F2B5C]/5' : ''}`}>
+             <div className={`flex flex-col items-center justify-center transition-all ${isActive ? 'text-[#0F2B5C]' : 'text-slate-400'}`}>
+                <div className={`p-1.5 rounded-xl ${isActive ? 'bg-[#0F2B5C]/10' : ''}`}>
                    <item.icon className="w-[22px] h-[22px]" />
                 </div>
-                <span className={`text-[10px] mt-1 font-bold`}>{item.label}</span>
+                <span className={`text-[10px] mt-0.5 font-bold`}>{item.label}</span>
              </div>
            </button>
          )
@@ -2308,6 +2311,13 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const [msgText, setMsgText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
 
+  // Hidden requests local state for instant UI updates
+  const [hiddenRequests, setHiddenRequests] = useState({});
+
+  // In-App Calling UI States
+  const [callState, setCallState] = useState({ isActive: false, status: 'calling', duration: 0 });
+  const callTimerRef = useRef(null);
+
   // Filter dropdown states
   const [localFilterActive, setLocalFilterActive] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
@@ -2604,6 +2614,30 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      setEditInput('');
   };
 
+  // Messenger-style In-App Call Logic
+  const startInAppCall = () => {
+     if (!activeChatUser) return;
+     setCallState({ isActive: true, status: 'calling', duration: 0 });
+     
+     // Simulate Ringing then Connecting after 3 seconds
+     callTimerRef.current = setTimeout(() => {
+         setCallState(prev => ({ ...prev, status: 'connected' }));
+         
+         // Start counting duration
+         callTimerRef.current = setInterval(() => {
+             setCallState(prev => ({ ...prev, duration: prev.duration + 1 }));
+         }, 1000);
+     }, 3000);
+  };
+
+  const endInAppCall = () => {
+     if (callTimerRef.current) {
+         clearTimeout(callTimerRef.current);
+         clearInterval(callTimerRef.current);
+     }
+     setCallState({ isActive: false, status: 'calling', duration: 0 });
+  };
+
   // Connect contact to private friend database mapping
   const handleConnectPrivateUser = async (targetUser) => {
      if (!db || !user) return;
@@ -2626,6 +2660,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   };
 
   const handleAcceptRequest = async (req) => {
+      setHiddenRequests(prev => ({ ...prev, [req.id]: true })); // Hide instantly
       if (!db || !user) return;
       await setDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'contacts', req.id), {
           id: req.id,
@@ -2644,6 +2679,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   };
 
   const handleDeclineRequest = async (req) => {
+      setHiddenRequests(prev => ({ ...prev, [req.id]: true })); // Hide instantly
       if (!db || !user) return;
       await deleteDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'friend_requests', req.id));
   };
@@ -2828,10 +2864,10 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                )}
 
                <div className="flex-1 overflow-y-auto p-3 hide-scrollbar bg-white">
-                  {friendRequests.length > 0 && !localFilterActive && !showUserSearch && (
+                  {friendRequests.filter(req => !hiddenRequests[req.id]).length > 0 && !localFilterActive && !showUserSearch && (
                       <div className="mb-3">
-                          <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wider">សំណើរសុំធ្វើមិត្ត ({friendRequests.length})</div>
-                          {friendRequests.map(req => (
+                          <div className="text-slate-400 text-[10px] font-bold mb-2 pl-1 uppercase tracking-wider">សំណើរសុំធ្វើមិត្ត ({friendRequests.filter(req => !hiddenRequests[req.id]).length})</div>
+                          {friendRequests.filter(req => !hiddenRequests[req.id]).map(req => (
                               <div key={req.id} className="flex items-center justify-between p-3 bg-sky-50 rounded-xl border border-sky-100 mb-2 shadow-sm">
                                   <div className="flex items-center gap-2.5">
                                       <img src={req.avatar} className="w-10 h-10 rounded-full border border-slate-200 object-cover" alt="av" />
@@ -2902,8 +2938,16 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   // Symmetric Bidirectional Chat Filter & Broadcast Support
   const filteredChats = (chats || []).filter(c => {
       if (!c) return false;
-      // Normal private chat
-      if ((c.userId === myChatId && c.target === activeChatUser?.id) || (c.userId === activeChatUser?.id && c.target === myChatId)) return true;
+      
+      // Strict string casting to prevent undefined type matching bugs
+      const cid = String(c.userId);
+      const ctarg = String(c.target);
+      const mid = String(myChatId);
+      const atarg = String(activeChatUser?.id);
+      
+      // Normal private chat (Matches exactly between User A and User B)
+      if ((cid === mid && ctarg === atarg) || (cid === atarg && ctarg === mid)) return true;
+      
       // Broadcast messages (If sent by Admin, and targeted to 'all', and I am looking at Admin's thread)
       if (c.target === 'all' && c.userId === 'admin_ramit_fixed_uid' && (activeChatUser?.id === 'admin_ramit_fixed_uid' || c.userId === myChatId)) return true;
       return false;
@@ -2915,6 +2959,36 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       onClick={()=>setShowAttachMenu(false)}
     >
       <ImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
+
+      {/* IN-APP VOICE CALL OVERLAY (MESSENGER STYLE) */}
+      {callState.isActive && (
+         <div className="fixed inset-0 z-[5000] bg-[#0f172a] text-white flex flex-col items-center justify-between py-16 px-6 animate-in zoom-in-95 duration-300 font-khmer touch-none">
+             <div className="text-center space-y-3 mt-10">
+                 <h2 className="text-3xl font-black tracking-wide drop-shadow-md">{safeStr(activeChatUser?.label)}</h2>
+                 <p className="text-slate-400 font-bold text-[14.5px]">
+                    {callState.status === 'calling' ? 'កំពុងហៅ (Calling)...' :
+                     callState.status === 'connected' ? 
+                     <span className="text-emerald-400">{Math.floor(callState.duration / 60)}:{(callState.duration % 60).toString().padStart(2, '0')}</span> 
+                     : '...'}
+                 </p>
+             </div>
+             
+             <div className="relative mt-[-10vh]">
+                 <div className={`absolute inset-0 rounded-full bg-[#38BDF8] blur-3xl opacity-20 ${callState.status === 'calling' ? 'animate-ping' : ''}`}></div>
+                 <img src={activeChatUser?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-36 h-36 rounded-full object-cover border-4 border-slate-700 relative z-10 shadow-2xl" alt="avatar" />
+             </div>
+             
+             <div className="flex flex-col items-center gap-8 mb-8 w-full max-w-xs">
+                 <div className="flex items-center justify-between w-full px-6">
+                    <button className="w-12 h-12 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-300 active:scale-95 transition-all"><Volume2 className="w-5 h-5"/></button>
+                    <button className="w-12 h-12 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-300 active:scale-95 transition-all"><Mic className="w-5 h-5"/></button>
+                 </div>
+                 <button onClick={endInAppCall} className="w-[72px] h-[72px] rounded-full bg-rose-500 flex items-center justify-center text-white shadow-[0_0_20px_rgba(244,63,94,0.4)] hover:bg-rose-600 transition-all active:scale-90 border-2 border-rose-400">
+                    <Phone className="w-7 h-7 rotate-[135deg] fill-current" />
+                 </button>
+             </div>
+         </div>
+      )}
 
       {/* Action modal for message modification */}
       {selectedActionMsg && (
@@ -2980,13 +3054,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         
         <div className="flex items-center pr-1">
            <button 
-              onClick={() => {
-                 if (activeChatUser.phone) {
-                    window.location.href = `tel:${activeChatUser.phone}`;
-                 } else {
-                    showToast('មុខងារខល (Voice Call) កំពុងស្ថិតក្នុងការអភិវឌ្ឍន៍បន្ត!', 'info');
-                 }
-              }}
+              onClick={startInAppCall}
               className="w-9 h-9 bg-[#38BDF8]/10 text-[#38BDF8] border border-[#38BDF8]/20 rounded-full flex items-center justify-center hover:bg-[#38BDF8]/20 transition-colors active:scale-95 shadow-sm"
               title="ខល (Voice Call)"
            >
@@ -3086,7 +3154,11 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         )}
       </div>
 
-      <div className="p-2.5 bg-white border-t border-slate-200 shrink-0 z-30 shadow-md pb-[max(env(safe-area-inset-bottom),8px)] relative w-full" onClick={e=>e.stopPropagation()}>
+      <div 
+        className="p-2.5 bg-white border-t border-slate-200 shrink-0 z-[100] shadow-[0_-5px_15px_rgba(0,0,0,0.04)] relative w-full" 
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}
+        onClick={e=>e.stopPropagation()}
+      >
         {showAttachMenu && (
            <div className="absolute bottom-[65px] left-3 bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex flex-col w-40 animate-in slide-in-from-bottom-2">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
