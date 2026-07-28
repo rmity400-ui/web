@@ -634,18 +634,27 @@ export default function App() {
   const [gatewayBg, setGatewayBg] = useState('');
   const [profile, setProfile] = useState({ username: '', avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png', isBanned: false, warnings: 0, role: 'user' });
   
-  const [locations, setLocations] = useState([]);  
-  const [usersList, setUsersList] = useState([]);  
+  // បង្កើនល្បឿនដោយប្រើ Local Storage Caching សម្រាប់ការទាញយកទិន្នន័យ (Offline First)
+  const [locations, setLocations] = useState(() => {
+     try { const c = localStorage.getItem('tp_cache_locations'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
+  });  
+  const [usersList, setUsersList] = useState(() => {
+     try { const c = localStorage.getItem('tp_cache_users'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
+  });  
   const [chats, setChats] = useState([]);          
-  const [chatTargets, setChatTargets] = useState([]);
+  const [chatTargets, setChatTargets] = useState(() => {
+     try { const c = localStorage.getItem('tp_cache_chatTargets'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
+  });
   const [myContacts, setMyContacts] = useState([]); 
   const [friendRequests, setFriendRequests] = useState([]);
   const [cyberLogs, setCyberLogs] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [favorites, setFavorites] = useState({});
-  const [dbRegions, setDbRegions] = useState(DEFAULT_REGIONS);
+  const [dbRegions, setDbRegions] = useState(() => {
+     try { const c = localStorage.getItem('tp_cache_regions'); return c ? JSON.parse(c) : DEFAULT_REGIONS; } catch(e) { return DEFAULT_REGIONS; }
+  });
   const [appeals, setAppeals] = useState([]);
-  const [cosmicTheme, setCosmicTheme] = useState(false);
+  const [cosmicTheme, setCosmicTheme] = useState(() => localStorage.getItem('tp_cosmic') === 'true');
 
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [toast, setToast] = useState(null);
@@ -851,12 +860,16 @@ export default function App() {
 
     // Listen to registered profiles
     const unsubAllUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_data'), snap => {
-       setUsersList(snap.docs.map(d => ({id: d.id, ...d.data()})));
+       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+       setUsersList(data);
+       try { localStorage.setItem('tp_cache_users', JSON.stringify(data)); } catch(e){}
     }, () => {});
 
-    // Listen to location items
+    // Listen to location items (Fast Sync with Cache)
     const unsubLocations = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_admin_data'), snap => {
-      setLocations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLocations(data);
+      try { localStorage.setItem('tp_cache_locations', JSON.stringify(data)); } catch(e){}
     }, () => {});
     
     // Listen to universal chat channels
@@ -911,7 +924,11 @@ export default function App() {
     // Fetch regions map
     const configRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions');
     const unsubConfig = onSnapshot(configRef, (snap) => {
-        if(snap.exists() && snap.data().data) setDbRegions(snap.data().data);
+        if(snap.exists() && snap.data().data) {
+           const d = snap.data().data;
+           setDbRegions(d);
+           try { localStorage.setItem('tp_cache_regions', JSON.stringify(d)); } catch(e){}
+        }
         else {
            setDoc(configRef, { data: DEFAULT_REGIONS }, { merge: true });
            setDbRegions(DEFAULT_REGIONS);
@@ -923,7 +940,10 @@ export default function App() {
     const unsubTheme = onSnapshot(themeRef, (snap) => {
         if (snap.exists()) {
            const sdata = snap.data();
-           if (sdata.cosmicTheme !== undefined) setCosmicTheme(sdata.cosmicTheme);
+           if (sdata.cosmicTheme !== undefined) {
+              setCosmicTheme(sdata.cosmicTheme);
+              localStorage.setItem('tp_cosmic', sdata.cosmicTheme);
+           }
            if (sdata.customBg !== undefined) setCustomBg(sdata.customBg || '#f8fafc');
            if (sdata.appLogo !== undefined) setAppLogo(sdata.appLogo || '');
            if (sdata.gatewayBg !== undefined) setGatewayBg(sdata.gatewayBg || '');
@@ -936,6 +956,7 @@ export default function App() {
         const trg = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         trg.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         setChatTargets(trg);
+        try { localStorage.setItem('tp_cache_chatTargets', JSON.stringify(trg)); } catch(e){}
       }
     }, () => {});
 
@@ -1017,8 +1038,9 @@ export default function App() {
     if (!finalizedUsername) return showToast('សូមបញ្ជាក់ឈ្មោះគណនីរបស់អ្នក', 'error');
 
     // Prevent anyone from manually registering the reserved admin names
-    if (finalizedUsername.toLowerCase() === 'admin') {
-        return showToast('ហាមឃាត់! ឈ្មោះ ADMIN ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
+    const upperName = finalizedUsername.toUpperCase();
+    if (upperName.includes('ADMIN') || upperName === 'ADMIN-SUPPORT' || upperName === 'ADMIN SUPPORT') {
+        return showToast('ហាមឃាត់! ឈ្មោះដែលមានពាក្យ ADMIN ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
     }
 
     if (finalizedUsername.length < 2 || /(.)\1{2,}/.test(finalizedUsername)) {
@@ -1039,7 +1061,8 @@ export default function App() {
     }));
 
     if (db && user) {
-        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
+        // ដក await ចេញ ដើម្បីកុំឲ្យ UI រង់ចាំយូរ (Save data ស្ងាត់ៗនៅពីក្រោយ)
+        setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
           username: finalizedUsername,
           timestamp: Date.now(),
           lastActive: Date.now(),
@@ -1048,7 +1071,7 @@ export default function App() {
           isBanned: false,
           warnings: 0,
           role: 'user'
-        }, { merge: true });
+        }, { merge: true }).catch(()=>{});
     }
     showToast('ចុះឈ្មោះគណនីបានជោគជ័យ!');
     setShowRegModal(false);
@@ -1260,6 +1283,30 @@ export default function App() {
 
   // Strict Device Block & Account Ban Appeal interface overlay screen
   if (profile?.isBanned && !isAdmin) {
+      // ត្រួតពិនិត្យមើលថាតើ User នេះបានផ្ញើសំណើររួចហើយឬនៅ
+      const myPendingAppeal = appeals.find(a => a.id === user?.uid || a.userId === user?.uid);
+
+      // ប្រសិនបើបានផ្ញើហើយ លោតផ្ទាំងរង់ចាំ (Pending Review)
+      if (myPendingAppeal) {
+          return (
+              <div className="fixed inset-0 z-[9999] bg-[#0F2B5C] text-white flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-500 font-khmer">
+                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-5 border border-white/10 shadow-[0_0_30px_rgba(56,189,248,0.2)]">
+                      <span className="text-4xl animate-pulse drop-shadow-lg">⏳</span>
+                  </div>
+                  <h1 className="text-lg md:text-xl font-black mb-3 text-[#38BDF8] tracking-wide">កំពុងរង់ចាំការត្រួតពិនិត្យ</h1>
+                  <p className="text-[13px] md:text-[14px] font-medium leading-relaxed max-w-sm text-slate-300 bg-slate-900/40 p-4.5 rounded-2xl border border-white/10 shadow-inner">
+                      សំណើរសុំបើកគណនីរបស់អ្នកបានបញ្ជូនទៅកាន់ Admin រួចរាល់ហើយ។ សូមរង់ចាំបន្តិច ដើម្បីឲ្យក្រុមការងារធ្វើការត្រួតពិនិត្យ និងសម្រេច។
+                  </p>
+                  
+                  <div className="mt-8 flex flex-col items-center gap-2">
+                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">ស្ថានភាព (Status)</span>
+                     <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-lg text-[11px] font-black animate-pulse">Pending...</span>
+                  </div>
+              </div>
+          );
+      }
+
+      // ប្រសិនបើមិនទាន់ផ្ញើ ឬត្រូវ Admin បដិសេធ (Reject) វានឹងលោតមកផ្ទាំងអោយបំពេញសារថ្មីទីនេះ
       return (
         <div className="fixed inset-0 z-[9999] bg-[#0F2B5C] text-white flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-500 font-khmer overflow-y-auto">
            <AlertOctagon className="w-10 h-10 mb-3 animate-pulse text-rose-500 shrink-0" />
@@ -2328,8 +2375,8 @@ const ImageModal = ({ imageUrl, onClose }) => {
   );
 };
 
-const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], friendRequests = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser, isSoundMuted, setIsSoundMuted }) => {  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
-  const myChatName = isAdmin ? 'ADMIN-PAGE' : profile?.username;
+  const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], friendRequests = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser, isSoundMuted, setIsSoundMuted }) => {  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
+  const myChatName = isAdmin ? 'ADMIN-SUPPORT' : profile?.username;
   const myChatAvatar = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid')?.avatar || profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png') : profile?.avatar;
 
   const [msgText, setMsgText] = useState('');
@@ -2366,6 +2413,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   const recordingStreamRef = useRef(null);
   const [pulseWaves, setPulseWaves] = useState(Array(15).fill(4));
   const pulseIntervalRef = useRef(null);
+  
+  // Track if permission was already granted to avoid re-prompting delays if possible
+  const [hasAudioPermission, setHasAudioPermission] = useState(false);
 
   // Message modification overlays
   const [selectedActionMsg, setSelectedActionMsg] = useState(null);
@@ -2462,6 +2512,25 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     }).catch(()=>{});
   };
 
+  // Pre-request audio permission to make the hold-to-record instant after the first time
+  const requestAudioPermission = async () => {
+    if (hasAudioPermission) return true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      // We just want permission, we can stop the tracks immediately if we aren't recording yet, 
+      // but keeping the track open is what prevents the prompt from appearing again in some browsers.
+      // For immediate "push-to-talk", we will keep a persistent stream in a ref.
+      if (!recordingStreamRef.current) {
+         recordingStreamRef.current = stream;
+      }
+      setHasAudioPermission(true);
+      return true;
+    } catch (err) {
+      showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Microphone', 'error');
+      return false;
+    }
+  };
+
   // Start microphone capture recording pipeline
   const startRecordingService = async (e) => {
     if (e && e.cancelable) e.preventDefault();
@@ -2471,6 +2540,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
        setCurrentView('account');
        return;
     }
+
+    const hasPermission = await requestAudioPermission();
+    if (!hasPermission) return;
 
     setRecordingState('recording');
     setRecordDuration(0);
@@ -2485,8 +2557,8 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     }, 1000);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      recordingStreamRef.current = stream;
+      const stream = recordingStreamRef.current || await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      recordingStreamRef.current = stream; // Keep it alive for next time
 
       let chosenMime = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(chosenMime)) chosenMime = 'audio/ogg;codecs=opus';
@@ -2509,15 +2581,16 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
         const collectedDuration = recordDuration;
         if (collectedDuration < 1) {
-          cleanRecordingStreams();
-          return;
+           // Too short, cancel silently
+           setRecordingState('idle');
+           return;
         }
 
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: chosenMime || 'audio/wav' });
           if (!db) {
             showToast('មិនអាចផ្ញើក្នុង Offline Sandbox ទេ');
-            cleanRecordingStreams();
+            setRecordingState('idle');
             return;
           }
 
@@ -2543,34 +2616,35 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         } catch (err) {
           showToast('មានបញ្ហាក្នុងការផ្ញើសារសំឡេង', 'error');
         }
-        cleanRecordingStreams();
+        setRecordingState('idle');
       };
 
       recorder.start();
     } catch (err) {
       showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Microphone', 'error');
-      cleanRecordingStreams();
+      setRecordingState('idle');
     }
   };
 
-  const cleanRecordingStreams = () => {
-    setRecordingState('idle');
-    clearInterval(recordTimerRef.current);
-    clearInterval(pulseIntervalRef.current);
-    if (recordingStreamRef.current) {
-      recordingStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    recordingStreamRef.current = null;
-    mediaRecorderRef.current = null;
-  };
-
-  const stopAndCleanRecorder = () => {
+  const stopAndCleanRecorder = (e) => {
+    if (e && e.cancelable) e.preventDefault();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop(); // នេះនឹងបញ្ឆេះ onstop event ដែលនឹងផ្ញើសំឡេង
+      mediaRecorderRef.current.stop(); // This triggers onstop and sends the audio
     } else {
-      cleanRecordingStreams();
+      setRecordingState('idle');
+      clearInterval(recordTimerRef.current);
+      clearInterval(pulseIntervalRef.current);
     }
   };
+  
+  // Cleanup the persistent microphone stream when the component unmounts
+  useEffect(() => {
+    return () => {
+       if (recordingStreamRef.current) {
+          recordingStreamRef.current.getTracks().forEach(track => track.stop());
+       }
+    };
+  }, []);
 
   // Push GPS coordinates directly inside active chats
   const handleSendLocation = () => {
@@ -2757,7 +2831,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
              const adminProfile = usersList.find(u => u.id === 'admin_ramit_fixed_uid') || {};
              map.set('admin_ramit_fixed_uid', {
                  id: 'admin_ramit_fixed_uid',
-                 label: 'Admin Support',
+                 label: 'ADMIN-SUPPORT',
                  role: 'អ្នកគ្រប់គ្រងប្រព័ន្ធ',
                  district: 'មជ្ឈមណ្ឌល',
                  avatar: adminProfile.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -2990,11 +3064,19 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
       const mid = String(myChatId);
       const atarg = String(activeChatUser?.id);
       
-      // Normal private chat (Matches exactly between User A and User B)
-      if ((cid === mid && ctarg === atarg) || (cid === atarg && ctarg === mid)) return true;
-      
       // Broadcast messages (If sent by Admin, and targeted to 'all', and I am looking at Admin's thread)
       if (c.target === 'all' && c.userId === 'admin_ramit_fixed_uid' && (activeChatUser?.id === 'admin_ramit_fixed_uid' || c.userId === myChatId)) return true;
+
+      // Group/Institution Chats (Public Rooms added by Admin)
+      // បើជាស្ថាប័ន (isPrivate === false) ហើយមិនមែនជា Admin Support ផ្ទាល់ វាជាបន្ទប់ឆាតរួម (Public Room)
+      if (activeChatUser?.isPrivate === false && activeChatUser?.id !== 'admin_ramit_fixed_uid') {
+          if (ctarg === atarg) return true;
+      } else {
+          // Normal private chat (Matches exactly between User A and User B, or User A and Admin)
+          // ការឆាតឯកជនធម្មតារវាងមិត្តភក្តិ ឬឆាតទៅកាន់ Admin
+          if ((cid === mid && ctarg === atarg) || (cid === atarg && ctarg === mid)) return true;
+      }
+
       return false;
   });
 
@@ -3258,8 +3340,9 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
                     onTouchStart={startRecordingService}
                     onMouseUp={stopAndCleanRecorder}
                     onTouchEnd={stopAndCleanRecorder}
-                    onMouseLeave={stopAndCleanRecorder} // ការពារពេលអូសដៃចេញពីប៊ូតុង
-                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-90 active:bg-[#38BDF8] active:text-white"
+                    onMouseLeave={stopAndCleanRecorder}
+                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-90 active:bg-[#38BDF8] active:text-white select-none"
+                    style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
                   >
                      <Mic className="w-5 h-5" />
                   </button>
@@ -3271,7 +3354,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
   );
 }
   const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView, usersList = [], isSoundMuted, setIsSoundMuted }) => {
-  const currentAdminProfile = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid') || { username: 'ADMIN', avatar: profile?.avatar }) : null;
+  const currentAdminProfile = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid') || { username: 'ADMIN-SUPPORT', avatar: profile?.avatar }) : null;
   const displayProfile = isAdmin ? currentAdminProfile : profile;
 
   const [pwdInput, setPwdInput] = useState('');
@@ -3322,7 +3405,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
 
          if (db) {
              await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', 'admin_ramit_fixed_uid'), {
-                username: 'ADMIN',
+                username: 'ADMIN-SUPPORT',
                 role: 'admin',
                 avatar: adminAvatar, 
                 timestamp: Date.now(),
@@ -3332,7 +3415,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
              }, { merge: true }).catch(()=>{});
          }
 
-         setLocalName('ADMIN');
+         setLocalName('ADMIN-SUPPORT');
          showToast('ចូលប្រើជាគណនី ADMIN ជោគជ័យ ✅');
          setShowAdminLogin(false);
          setPwdInput('');
@@ -3407,14 +3490,29 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     if (!file) return;
     const r = new FileReader();
     r.onload = async () => {
-       const b64 = r.result;
-       if (db) {
-          const targetId = isAdmin ? 'admin_ramit_fixed_uid' : user.uid;
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetId), {
-             avatar: b64
-          }).catch(()=>{});
-          showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
-       }
+       const img = new Image();
+       img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const max = 400; // Optimize profile picture size automatically
+          if (width > height && width > max) { height *= max / width; width = max; }
+          else if (height > max) { width *= max / height; height = max; }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const b64 = canvas.toDataURL('image/jpeg', 0.8);
+
+          if (db) {
+             const targetId = isAdmin ? 'admin_ramit_fixed_uid' : user.uid;
+             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetId), {
+                avatar: b64
+             }, { merge: true }).catch(()=>{});
+             showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
+          }
+       };
+       img.src = r.result;
     };
     r.readAsDataURL(file);
   };
@@ -3891,7 +3989,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
               msgType: 'text',
               target: 'all', 
               userId: 'admin_ramit_fixed_uid', 
-              userName: 'ADMIN-PAGE', 
+              userName: 'ADMIN-SUPPORT', 
               seen: false,
               edited: false,
               timestamp: Date.now()
@@ -3970,13 +4068,50 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">រូបភាព (Base64 URL) *</label>
-                <input type="text" value={editingLoc.image || ''} onChange={e=>setEditingLoc({...editingLoc, image: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[12px] font-mono outline-none" />
-                {editingLoc.image && (
-                   <div className="mt-2 w-full h-32 rounded-xl overflow-hidden border border-slate-200">
-                      <img src={editingLoc.image} alt="Preview" className="w-full h-full object-cover" />
-                   </div>
-                )}
+                <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">រូបភាព (ចុចលើរូបដើម្បីប្តូរ) *</label>
+                <label className="relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 overflow-hidden group">
+                   {editingLoc.image ? (
+                      <React.Fragment>
+                         <img src={editingLoc.image} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <span className="text-white font-bold px-3 py-1.5 rounded-lg text-[12px] flex gap-1 items-center bg-[#0F2B5C] border border-white/20 shadow-lg">
+                               <Edit3 className="w-4 h-4"/> ជ្រើសរើសរូបភាពថ្មី
+                            </span>
+                         </div>
+                      </React.Fragment>
+                   ) : (
+                      <div className="text-slate-400 flex flex-col items-center"><ImageSvgIcon className="mb-1"/><span className="text-[11px] font-bold">Upload រូបភាព</span></div>
+                   )}
+                   <input
+                     type="file"
+                     accept="image/*"
+                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                     onChange={e => {
+                        if (e.target.files && e.target.files[0]) {
+                           const file = e.target.files[0];
+                           const reader = new FileReader();
+                           reader.onload = (event) => {
+                              const img = new Image();
+                              img.onload = () => {
+                                 const canvas = document.createElement('canvas');
+                                 let width = img.width;
+                                 let height = img.height;
+                                 const max = 800;
+                                 if (width > height && width > max) { height *= max / width; width = max; }
+                                 else if (height > max) { width *= max / height; height = max; }
+                                 canvas.width = width;
+                                 canvas.height = height;
+                                 const ctx = canvas.getContext('2d');
+                                 ctx.drawImage(img, 0, 0, width, height);
+                                 setEditingLoc({...editingLoc, image: canvas.toDataURL('image/jpeg', 0.8)});
+                              };
+                              img.src = event.target.result;
+                           };
+                           reader.readAsDataURL(file);
+                        }
+                     }}
+                   />
+                </label>
               </div>
               
               <div>
@@ -3985,14 +4120,31 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
               </div>
 
               <div>
-                 <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">ព័ត៌មានទំនាក់ទំនង (JSON Array)</label>
-                 <textarea value={JSON.stringify(editingLoc.contacts || [], null, 2)} onChange={e => {
-                    try {
-                       setEditingLoc({...editingLoc, contacts: JSON.parse(e.target.value)});
-                    } catch(err) {
-                       // Silently ignore parse errors while typing
-                    }
-                 }} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono h-24 outline-none"></textarea>
+                 <div className="flex justify-between items-center mb-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase">ព័ត៌មានទំនាក់ទំនង (JSON Editor)</label>
+                    {editingLoc._jsonError && <span className="text-[10px] font-black text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded">{editingLoc._jsonError}</span>}
+                 </div>
+                 <textarea 
+                    value={editingLoc._rawContacts ?? ''} 
+                    onChange={e => {
+                       const val = e.target.value;
+                       let err = '';
+                       let parsed = editingLoc.contacts;
+                       try {
+                          parsed = JSON.parse(val);
+                       } catch(error) {
+                          err = '⚠️ ទម្រង់ JSON មិនត្រឹមត្រូវ';
+                       }
+                       setEditingLoc({
+                          ...editingLoc, 
+                          _rawContacts: val, 
+                          contacts: parsed,
+                          _jsonError: err
+                       });
+                    }} 
+                    className="w-full bg-[#1e1e1e] text-[#d4d4d4] border border-slate-700 rounded-xl p-3 text-[13px] font-mono h-48 outline-none focus:border-[#38BDF8] focus:ring-2 focus:ring-sky-500/20"
+                    spellCheck="false"
+                 ></textarea>
               </div>
             </div>
 
@@ -4639,7 +4791,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                          </div>
                                       </div>
                                       <div className="flex gap-1 shrink-0">
-                                         <button onClick={()=>setEditingLoc(loc)} className="p-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100"><Edit3 className="w-3 h-3"/></button>
+                                         <button onClick={()=>setEditingLoc({...loc, _rawContacts: JSON.stringify(loc.contacts || [], null, 2)})} className="p-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100"><Edit3 className="w-3 h-3"/></button>
                                          <button onClick={()=>confirmDeleteLocation(loc.id)} className="p-1 bg-rose-50 text-rose-600 rounded-md border border-rose-100"><Trash2 className="w-3 h-3"/></button>
                                       </div>
                                    </div>
@@ -4664,7 +4816,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                                          </div>
                                       </div>
                                       <div className="flex gap-1 shrink-0">
-                                         <button onClick={()=>setEditingLoc(loc)} className="p-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100"><Edit3 className="w-3 h-3"/></button>
+                                         <button onClick={()=>setEditingLoc({...loc, _rawContacts: JSON.stringify(loc.contacts || [], null, 2)})} className="p-1 bg-amber-50 text-amber-600 rounded-md border border-amber-100"><Edit3 className="w-3 h-3"/></button>
                                          <button onClick={()=>confirmDeleteLocation(loc.id)} className="p-1 bg-rose-50 text-rose-600 rounded-md border border-rose-100"><Trash2 className="w-3 h-3"/></button>
                                       </div>
                                    </div>
