@@ -24,7 +24,9 @@ import {
   deleteDoc, 
   updateDoc, 
   addDoc, 
-  increment 
+  increment,
+  query,
+  where
 } from 'firebase/firestore';
 import { 
   LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
@@ -608,11 +610,28 @@ const CallPickerModal = ({ isOpen, title, contacts, onClose }) => {
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  // Streamlining initial state load from local storage for 0ms render delay (Offline-First)
+  const getInitialUser = () => {
+      const cachedUid = localStorage.getItem('tp_firebase_uid');
+      if (cachedUid) return { uid: cachedUid, isAnonymous: true };
+      let localToken = localStorage.getItem('tp_cambodia_device_id');
+      if (!localToken) {
+         localToken = 'dev_uuid_' + crypto.randomUUID();
+         localStorage.setItem('tp_cambodia_device_id', localToken);
+      }
+      return { uid: localToken, isAnonymous: true };
+  };
+
+  const [user, setUser] = useState(getInitialUser);
   
   const [language, setLanguage] = useState('kh');
-  const [currentPage, setCurrentPage] = useState('gateway'); 
+  const [currentPage, setCurrentPage] = useState(() => {
+      const u = getInitialUser();
+      const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
+      const savedName = localStorage.getItem(`tp_username_${u.uid}`);
+      if (isGuest || (savedName && savedName !== 'ភ្ញៀវ')) return 'app';
+      return 'gateway';
+  }); 
   const [showRegModal, setShowRegModal] = useState(false);
   const [regName, setRegName] = useState('');
 
@@ -632,16 +651,30 @@ export default function App() {
 
   const [customBg, setCustomBg] = useState('#f8fafc');
   const [gatewayBg, setGatewayBg] = useState('');
-  const [profile, setProfile] = useState({ username: '', avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png', isBanned: false, warnings: 0, role: 'user' });
   
-  // បង្កើនល្បឿនដោយប្រើ Local Storage Caching សម្រាប់ការទាញយកទិន្នន័យ (Offline First)
+  // Instant profile loading from local cache
+  const [profile, setProfile] = useState(() => {
+      const u = getInitialUser();
+      const savedName = localStorage.getItem(`tp_username_${u.uid}`);
+      return { 
+         username: savedName || '', 
+         avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png', 
+         isBanned: false, 
+         warnings: 0, 
+         role: sessionStorage.getItem('tp_admin_session') === 'true' ? 'admin' : 'user'
+      };
+  });
+  
+  // បង្កើនល្បឿនអតិបរមាដោយប្រើ Local Storage Caching សម្រាប់ការទាញយកទិន្នន័យទាំងអស់ (Offline First)
   const [locations, setLocations] = useState(() => {
      try { const c = localStorage.getItem('tp_cache_locations'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
   });  
   const [usersList, setUsersList] = useState(() => {
      try { const c = localStorage.getItem('tp_cache_users'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
   });  
-  const [chats, setChats] = useState([]);          
+  const [chats, setChats] = useState(() => {
+     try { const c = localStorage.getItem('tp_cache_chats'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
+  });          
   const [chatTargets, setChatTargets] = useState(() => {
      try { const c = localStorage.getItem('tp_cache_chatTargets'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
   });
@@ -674,6 +707,17 @@ export default function App() {
 
   const [callPickerState, setCallPickerState] = useState({ isOpen: false, title: '', contacts: [] });
 
+  /* WebRTC Voice & Video Call States */
+  const [callState, setCallState] = useState({ isActive: false, status: 'idle', duration: 0, isVideo: false, isMicOn: true, isCameraOn: true, isSpeakerOn: true, peerInfo: null });
+  const [incomingCall, setIncomingCall] = useState(null);
+
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const callIdRef = useRef(null);
+  const callDurationTimerRef = useRef(null);
+
   /* Form modal states */
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addForm, setAddForm] = useState({ 
@@ -687,7 +731,7 @@ export default function App() {
     district: 'រតនមណ្ឌល', 
     commune: '', 
     village: '',
-    contacts: [{ name: '', phone: '' }]
+    contacts: [{ name: '', phones: [''] }]
   });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [isFormFetchingGps, setIsFormFetchingGps] = useState(false);
@@ -737,36 +781,16 @@ export default function App() {
       try {
         if (!auth) throw new Error("Auth module not initialized");
         await signInAnonymously(auth);
-      } catch (err) { 
-        let localToken = localStorage.getItem('tp_cambodia_device_id');
-        if (!localToken) {
-           localToken = 'dev_uuid_' + crypto.randomUUID();
-           localStorage.setItem('tp_cambodia_device_id', localToken);
-        }
-        
-        const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
-        const savedLocalUsername = localStorage.getItem(`tp_username_${localToken}`);
-        if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
-           setCurrentPage('app');
-        }
-
-        setUser({ uid: localToken, isAnonymous: true });
-        setIsAuthLoading(false);
-      }
+      } catch (err) {}
     };
     initAuth();
     
     if (auth) {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => { 
           if (currentUser) {
-            const isGuest = sessionStorage.getItem('tp_is_guest') === 'true';
-            const savedLocalUsername = localStorage.getItem(`tp_username_${currentUser.uid}`);
-            if (savedLocalUsername && savedLocalUsername !== 'ភ្ញៀវ' && !isGuest) {
-               setCurrentPage('app');
-            }
-            
+            // Save real UID to local storage immediately so next reload is instantaneous
+            localStorage.setItem('tp_firebase_uid', currentUser.uid);
             setUser(currentUser);
-            setIsAuthLoading(false);
           }
       });
       return () => unsubscribe();
@@ -865,7 +889,7 @@ export default function App() {
        try { localStorage.setItem('tp_cache_users', JSON.stringify(data)); } catch(e){}
     }, () => {});
 
-    // Listen to location items (Fast Sync with Cache)
+    // Listen to location items
     const unsubLocations = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_admin_data'), snap => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setLocations(data);
@@ -877,6 +901,7 @@ export default function App() {
       const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       msgs.sort((a, b) => a.timestamp - b.timestamp); 
       setChats(msgs);
+      try { localStorage.setItem('tp_cache_chats', JSON.stringify(msgs)); } catch(e){}
       
       const amIAdmin = sessionStorage.getItem('tp_admin_session') === 'true';
       const myCheckId = amIAdmin ? 'admin_ramit_fixed_uid' : user.uid;
@@ -992,6 +1017,249 @@ export default function App() {
         return false;
     });
   }, [notifications, user, isAdmin, chatTargets]);
+
+  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
+  const myChatName = isAdmin ? 'ADMIN-PAGE' : profile?.username;
+  const myChatAvatar = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid')?.avatar || profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png') : profile?.avatar;
+
+  useEffect(() => {
+      if (!db || !user || myChatId === 'guest_uid') return;
+      const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'calls'), where('targetId', '==', myChatId), where('status', '==', 'calling'));
+      const unsub = onSnapshot(q, snapshot => {
+          snapshot.docChanges().forEach(change => {
+              if (change.type === 'added') {
+                  const callData = change.doc.data();
+                  if (Date.now() - callData.timestamp < 60000) { // Ignore ghost calls older than 60s
+                      setIncomingCall({ id: change.doc.id, ...callData });
+                      playPingSound();
+                  }
+              }
+          });
+      });
+      return () => unsub();
+  }, [db, user, myChatId]);
+
+  const toggleMic = () => {
+      if (localStreamRef.current) {
+          const audioTrack = localStreamRef.current.getAudioTracks()[0];
+          if (audioTrack) {
+              audioTrack.enabled = !audioTrack.enabled;
+              setCallState(prev => ({ ...prev, isMicOn: audioTrack.enabled }));
+          }
+      }
+  };
+
+  const toggleCamera = () => {
+      if (localStreamRef.current) {
+          const videoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (videoTrack) {
+              videoTrack.enabled = !videoTrack.enabled;
+              setCallState(prev => ({ ...prev, isCameraOn: videoTrack.enabled }));
+          }
+      }
+  };
+
+  const toggleSpeaker = () => {
+      if (remoteVideoRef.current) {
+          remoteVideoRef.current.muted = !remoteVideoRef.current.muted;
+          setCallState(prev => ({ ...prev, isSpeakerOn: !remoteVideoRef.current.muted }));
+      }
+  };
+
+  const endRealCall = async () => {
+      if (callIdRef.current && db) {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'calls', callIdRef.current), { status: 'ended' }).catch(()=>{});
+      }
+      if (peerConnectionRef.current) {
+          peerConnectionRef.current.close();
+          peerConnectionRef.current = null;
+      }
+      if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach(track => track.stop());
+          localStreamRef.current = null;
+      }
+      if (callDurationTimerRef.current) {
+          clearInterval(callDurationTimerRef.current);
+          callDurationTimerRef.current = null;
+      }
+      if (window.unsubCallVars) {
+          if (window.unsubCallVars.unsubCall) window.unsubCallVars.unsubCall();
+          if (window.unsubCallVars.unsubIce) window.unsubCallVars.unsubIce();
+          window.unsubCallVars = null;
+      }
+      setCallState({ isActive: false, status: 'idle', duration: 0 });
+      callIdRef.current = null;
+  };
+
+  const startRealCall = async (targetUser, isVideoCall) => {
+     if (!targetUser) return;
+     try {
+         const stream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
+         localStreamRef.current = stream;
+         
+         const pc = new RTCPeerConnection({
+             iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }]
+         });
+         peerConnectionRef.current = pc;
+
+         stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+         pc.ontrack = event => {
+             if (remoteVideoRef.current) {
+                 remoteVideoRef.current.srcObject = event.streams[0];
+             }
+         };
+
+         const callDocRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'calls'));
+         callIdRef.current = callDocRef.id;
+
+         pc.onicecandidate = event => {
+             if(event.candidate) {
+                 addDoc(collection(callDocRef, 'callerCandidates'), event.candidate.toJSON());
+             }
+         };
+
+         const offer = await pc.createOffer();
+         await pc.setLocalDescription(offer);
+
+         await setDoc(callDocRef, {
+             offer: { type: offer.type, sdp: offer.sdp },
+             callerId: myChatId,
+             callerName: myChatName,
+             callerAvatar: myChatAvatar,
+             targetId: targetUser.id,
+             isVideo: isVideoCall,
+             status: 'calling',
+             timestamp: Date.now()
+         });
+
+         setCallState({ 
+             isActive: true, status: 'calling', duration: 0, 
+             isVideo: isVideoCall, isMicOn: true, isCameraOn: isVideoCall, isSpeakerOn: true,
+             peerInfo: targetUser 
+         });
+
+         const unsubCall = onSnapshot(callDocRef, snapshot => {
+             const data = snapshot.data();
+             if(!pc.currentRemoteDescription && data?.answer) {
+                 const answerDescription = new RTCSessionDescription(data.answer);
+                 pc.setRemoteDescription(answerDescription);
+                 setCallState(prev => ({...prev, status: 'connected'}));
+                 
+                 callDurationTimerRef.current = setInterval(() => {
+                     setCallState(p => ({...p, duration: p.duration + 1}));
+                 }, 1000);
+             }
+             if(data?.status === 'ended' || data?.status === 'rejected') {
+                 endRealCall();
+                 if (data?.status === 'rejected') showToast('ការហៅត្រូវបានបដិសេធ', 'error');
+             }
+         });
+
+         const unsubIce = onSnapshot(collection(callDocRef, 'calleeCandidates'), snapshot => {
+             snapshot.docChanges().forEach(change => {
+                 if(change.type === 'added') {
+                     const candidate = new RTCIceCandidate(change.doc.data());
+                     pc.addIceCandidate(candidate);
+                 }
+             });
+         });
+
+         window.unsubCallVars = { unsubCall, unsubIce };
+
+     } catch (e) {
+         showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Camera & Mic', 'error');
+     }
+  };
+
+  const acceptIncomingCall = async () => {
+      if (!incomingCall) return;
+      const callId = incomingCall.id;
+      const callData = incomingCall;
+      setIncomingCall(null);
+      
+      try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: callData.isVideo, audio: true });
+          localStreamRef.current = stream;
+
+          const pc = new RTCPeerConnection({
+             iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }]
+          });
+          peerConnectionRef.current = pc;
+
+          stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+          pc.ontrack = event => {
+             if (remoteVideoRef.current) {
+                 remoteVideoRef.current.srcObject = event.streams[0];
+             }
+          };
+
+          const callDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'calls', callId);
+          callIdRef.current = callId;
+
+          pc.onicecandidate = event => {
+             if(event.candidate) {
+                 addDoc(collection(callDocRef, 'calleeCandidates'), event.candidate.toJSON());
+             }
+          };
+
+          await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+
+          await updateDoc(callDocRef, {
+              answer: { type: answer.type, sdp: answer.sdp },
+              status: 'connected'
+          });
+
+          setCallState({ 
+              isActive: true, status: 'connected', duration: 0, 
+              isVideo: callData.isVideo, isMicOn: true, isCameraOn: callData.isVideo, isSpeakerOn: true,
+              peerInfo: { label: callData.callerName, avatar: callData.callerAvatar }
+          });
+
+          callDurationTimerRef.current = setInterval(() => {
+              setCallState(p => ({...p, duration: p.duration + 1}));
+          }, 1000);
+
+          const unsubCall = onSnapshot(callDocRef, snapshot => {
+              const data = snapshot.data();
+              if(data?.status === 'ended') {
+                  endRealCall();
+              }
+          });
+
+          const unsubIce = onSnapshot(collection(callDocRef, 'callerCandidates'), snapshot => {
+              snapshot.docChanges().forEach(change => {
+                  if(change.type === 'added') {
+                      const candidate = new RTCIceCandidate(change.doc.data());
+                      pc.addIceCandidate(candidate);
+                  }
+              });
+          });
+
+          window.unsubCallVars = { unsubCall, unsubIce };
+
+      } catch (e) {
+          showToast('បរាជ័យក្នុងការភ្ជាប់ Media Devices', 'error');
+          rejectIncomingCall(callId);
+      }
+  };
+
+  const rejectIncomingCall = async (idToReject = null) => {
+      const id = idToReject || incomingCall?.id;
+      if (id && db) {
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'calls', id), { status: 'rejected' }).catch(()=>{});
+      }
+      setIncomingCall(null);
+  };
+
+  useEffect(() => {
+      if (callState.isActive && localVideoRef.current && localStreamRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+      }
+  }, [callState.isActive, callState.isVideo, callState.isCameraOn]);
 
   // Handle live geolocation capture
   const handleGPS = () => {
@@ -1181,7 +1449,16 @@ export default function App() {
     if (!addForm.title.trim()) return showToast('សូមបញ្ចូលចំណងជើង ឬឈ្មោះទីតាំង', 'error');
     if (!addForm.image) return showToast('សូមបញ្ចូលរូបភាព', 'error');
     
-    const validContacts = addForm.contacts.filter(c => c.name.trim() && c.phone.trim());
+    const validContacts = [];
+    addForm.contacts.forEach(c => {
+       const n = c.name.trim();
+       if (n) {
+          c.phones.forEach(p => {
+             if (p.trim()) validContacts.push({ name: n, phone: p.trim() });
+          });
+       }
+    });
+
     if (validContacts.length === 0) {
       return showToast('សូមបញ្ចូលឈ្មោះ និងលេខទូរស័ព្ទទំនាក់ទំនងយ៉ាងហោចណាស់ ១ ខ្សែ!', 'error');
     }
@@ -1265,21 +1542,6 @@ export default function App() {
 
   const approvedLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'approved'), [locations]);
   const pendingLocations = useMemo(() => (locations || []).filter(l => l && l.status === 'pending'), [locations]);
-
-  // Premium Splash Screen Loading Design (ការពារកុំឲ្យឃើញ UI រញ៉េរញ៉ៃពេលចូលដំបូង)
-  if (isAuthLoading) return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0F2B5C] z-[9999] animate-in fade-in font-khmer">
-       <div className="relative w-20 h-20 mb-4 flex items-center justify-center">
-          <Hexagon className="absolute inset-0 w-full h-full text-[#38BDF8] fill-transparent stroke-[2px] rotate-90 animate-pulse" />
-          <GraduationCap className="relative z-10 w-10 h-10 text-white animate-bounce" />
-       </div>
-       <h1 className="text-white font-black text-[18px] tracking-widest font-khmer mb-3">វិ.ស្តៅសន្តិភាព</h1>
-       <div className="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-[#38BDF8] rounded-full animate-[progress_1.5s_ease-in-out_infinite] w-1/2"></div>
-       </div>
-       <style>{`@keyframes progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }`}</style>
-    </div>
-  );
 
   // Strict Device Block & Account Ban Appeal interface overlay screen
   if (profile?.isBanned && !isAdmin) {
@@ -1508,7 +1770,7 @@ export default function App() {
                      district: 'រតនមណ្ឌល', 
                      commune: '', 
                      village: '',
-                     contacts: [{ name: '', phone: '' }]
+                     contacts: [{ name: '', phones: [''] }]
                    });
                    setIsAddModalOpen(true);
                  }}
@@ -1516,7 +1778,7 @@ export default function App() {
              </div>
            )}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} /></div>}
+           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} startRealCall={startRealCall} /></div>}
            {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} usersList={usersList} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
@@ -1583,65 +1845,85 @@ export default function App() {
                 <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3 shadow-inner">
                   <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-[11px] font-black text-slate-600 block uppercase">ព័ត៌មានទំនាក់ទំនង (Contacts) *</span>
+                    <button 
+                      type="button" 
+                      onClick={() => setAddForm({...addForm, contacts: [...addForm.contacts, { name: '', phones: [''] }]})}
+                      className="text-[10px] font-black text-white bg-[#0F2B5C] px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5"/> ថែមឈ្មោះ/តួនាទីថ្មី
+                    </button>
                   </div>
 
-                  <div className="space-y-2">
-                    {addForm.contacts.map((contact, idx) => (
-                      <div key={idx} className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm relative space-y-2">
-                        <div>
-                          <label className="text-[10px] font-black text-slate-500 block mb-0.5">ឈ្មោះ ឬ តួនាទី {idx + 1} *</label>
+                  <div className="space-y-3">
+                    {addForm.contacts.map((contact, pIdx) => (
+                      <div key={pIdx} className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm relative space-y-3">
+                        {addForm.contacts.length > 1 && (
+                          <button type="button" onClick={() => {
+                             const updated = [...addForm.contacts];
+                             updated.splice(pIdx, 1);
+                             setAddForm({...addForm, contacts: updated});
+                          }} className="absolute top-2 right-2 text-rose-500 bg-rose-50 p-1.5 rounded-lg active:scale-95 border border-rose-100"><Trash2 className="w-4 h-4"/></button>
+                        )}
+                        <div className={addForm.contacts.length > 1 ? "pr-8" : ""}>
+                          <label className="text-[10px] font-black text-slate-500 block mb-1">ឈ្មោះ ឬ តួនាទី {pIdx + 1} *</label>
                           <input 
                             type="text" 
                             required 
                             value={contact.name} 
                             onChange={e => {
                               const updated = [...addForm.contacts];
-                              updated[idx].name = e.target.value;
+                              updated[pIdx].name = e.target.value;
                               setAddForm({...addForm, contacts: updated});
                             }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-[13.5px] font-bold" 
-                            placeholder="ឧ: លោក មេភូមិ..." 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[13.5px] font-bold" 
+                            placeholder="ឧ: លោក មេឃុំ..." 
                           />
                         </div>
-                        <div>
-                          <div className="flex justify-between items-center mb-0.5">
-                             <label className="text-[10px] font-black text-slate-500">លេខទូរស័ព្ទ {idx + 1} (Smart, Metfone...)</label>
-                             {idx === addForm.contacts.length - 1 && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => setAddForm({...addForm, contacts: [...addForm.contacts, { name: contact.name, phone: '' }]})}
-                                  className="text-[10px] font-black text-white bg-[#0F2B5C] px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm active:scale-95 transition-all"
-                                >
-                                  <Plus className="w-3.5 h-3.5"/> ថែមប្រព័ន្ធ
-                                </button>
-                             )}
+                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                          <div className="flex justify-between items-center mb-2">
+                             <label className="text-[10px] font-black text-slate-500">លេខទូរស័ព្ទរបស់គាត់</label>
+                             <button 
+                                type="button" 
+                                onClick={() => {
+                                    const updated = [...addForm.contacts];
+                                    updated[pIdx].phones.push('');
+                                    setAddForm({...addForm, contacts: updated});
+                                }}
+                                className="text-[9px] font-black text-[#10b981] bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-md flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+                              >
+                                <Plus className="w-3 h-3"/> ថែមលេខឲ្យគាត់
+                              </button>
                           </div>
-                          <div className="flex gap-2">
-                             <input 
-                               type="tel" 
-                               required 
-                               value={contact.phone} 
-                               onChange={e => {
-                                 const updated = [...addForm.contacts];
-                                 updated[idx].phone = e.target.value;
-                                 setAddForm({...addForm, contacts: updated});
-                               }}
-                               className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-[13.5px] font-bold" 
-                               placeholder="ឧ: 012 345 678..." 
-                             />
-                             {addForm.contacts.length > 1 && (
-                               <button 
-                                 type="button" 
-                                 onClick={() => {
-                                   const updated = [...addForm.contacts];
-                                   updated.splice(idx, 1);
-                                   setAddForm({...addForm, contacts: updated});
-                                 }}
-                                 className="w-10 flex items-center justify-center bg-rose-50 text-rose-500 rounded-xl border border-rose-100 active:scale-95"
-                               >
-                                 <Trash2 className="w-4 h-4" />
-                               </button>
-                             )}
+                          <div className="space-y-2">
+                             {contact.phones.map((phone, phIdx) => (
+                               <div key={phIdx} className="flex gap-2">
+                                 <input 
+                                   type="tel" 
+                                   required 
+                                   value={phone} 
+                                   onChange={e => {
+                                     const updated = [...addForm.contacts];
+                                     updated[pIdx].phones[phIdx] = e.target.value;
+                                     setAddForm({...addForm, contacts: updated});
+                                   }}
+                                   className="flex-1 bg-white border border-slate-200 rounded-xl p-2 text-[13.5px] font-bold" 
+                                   placeholder="ឧ: 012 345 678..." 
+                                 />
+                                 {contact.phones.length > 1 && (
+                                   <button 
+                                     type="button" 
+                                     onClick={() => {
+                                       const updated = [...addForm.contacts];
+                                       updated[pIdx].phones.splice(phIdx, 1);
+                                       setAddForm({...addForm, contacts: updated});
+                                     }}
+                                     className="w-10 flex items-center justify-center bg-rose-50 text-rose-500 rounded-xl border border-rose-100 active:scale-95 shrink-0"
+                                   >
+                                     <Trash2 className="w-4 h-4" />
+                                   </button>
+                                 )}
+                               </div>
+                             ))}
                           </div>
                         </div>
                       </div>
@@ -1765,6 +2047,93 @@ export default function App() {
 
           </div>
         </div>
+      )}
+
+      {}
+      {/* INCOMING CALL OVERLAY */}
+      {incomingCall && (
+         <div className="fixed inset-0 z-[6000] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-white animate-in zoom-in-95 duration-300 font-khmer">
+             <div className="text-center space-y-4 mb-10">
+                 <div className="relative w-32 h-32 mx-auto">
+                    <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-30"></div>
+                    <img src={incomingCall.callerAvatar} className="w-full h-full object-cover rounded-full border-4 border-slate-700 shadow-2xl relative z-10" alt="caller" />
+                 </div>
+                 <h2 className="text-2xl font-black">{safeStr(incomingCall.callerName)}</h2>
+                 <p className="text-emerald-400 font-bold">{incomingCall.isVideo ? 'វីដេអូខល (Video Call)' : 'ហៅសំឡេង (Voice Call)'} ចូល...</p>
+             </div>
+             <div className="flex gap-10">
+                 <button onClick={() => rejectIncomingCall()} className="w-16 h-16 rounded-full bg-rose-500 hover:bg-rose-600 flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                     <Phone className="w-6 h-6 rotate-[135deg] fill-current" />
+                 </button>
+                 <button onClick={acceptIncomingCall} className="w-16 h-16 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center shadow-lg active:scale-90 transition-all animate-bounce">
+                     <Phone className="w-6 h-6 fill-current" />
+                 </button>
+             </div>
+         </div>
+      )}
+
+      {/* ACTIVE CALL OVERLAY */}
+      {callState.isActive && (
+         <div className="fixed inset-0 z-[5000] bg-[#0f172a] text-white flex flex-col font-khmer touch-none animate-in fade-in duration-300">
+             <div className="absolute inset-0 bg-black flex items-center justify-center overflow-hidden">
+                 <video 
+                     ref={remoteVideoRef} 
+                     autoPlay 
+                     playsInline 
+                     className={`w-full h-full object-cover ${!callState.isVideo ? 'opacity-0' : 'opacity-100'}`} 
+                 />
+                 {!callState.isVideo && (
+                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900">
+                         <div className={`relative w-40 h-40 ${callState.status === 'calling' ? 'animate-pulse' : ''}`}>
+                             <div className="absolute inset-0 rounded-full bg-[#38BDF8] blur-3xl opacity-20"></div>
+                             <img src={callState.peerInfo?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-full h-full rounded-full object-cover border-4 border-slate-700 relative z-10 shadow-2xl" alt="avatar" />
+                         </div>
+                     </div>
+                 )}
+             </div>
+
+             {callState.isVideo && callState.isCameraOn && (
+                 <div className="absolute top-20 right-4 w-28 h-40 bg-slate-800 rounded-xl overflow-hidden border-2 border-slate-600 shadow-2xl z-20">
+                     <video 
+                         ref={localVideoRef} 
+                         autoPlay 
+                         playsInline 
+                         muted
+                         className="w-full h-full object-cover transform scale-x-[-1]" 
+                     />
+                 </div>
+             )}
+
+             <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/80 to-transparent z-20 pt-safe">
+                 <h2 className="text-xl font-black drop-shadow-md text-center">{safeStr(callState.peerInfo?.label || callState.peerInfo?.username)}</h2>
+                 <p className="text-center text-slate-300 font-bold text-[13px] mt-1 drop-shadow-md">
+                    {callState.status === 'calling' ? 'កំពុងហៅ (Calling)...' :
+                     callState.status === 'connected' ? 
+                     <span className="text-emerald-400">{Math.floor(callState.duration / 60)}:{(callState.duration % 60).toString().padStart(2, '0')}</span> 
+                     : '...'}
+                 </p>
+             </div>
+
+             <div className="absolute bottom-10 left-0 right-0 flex justify-center items-center gap-6 z-20 pb-safe">
+                 <button onClick={toggleMic} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${callState.isMicOn ? 'bg-slate-700/80 hover:bg-slate-600' : 'bg-rose-500 text-white'}`}>
+                     {callState.isMicOn ? <Mic className="w-5 h-5"/> : <VolumeX className="w-5 h-5"/>}
+                 </button>
+                 
+                 {callState.isVideo && (
+                     <button onClick={toggleCamera} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${callState.isCameraOn ? 'bg-slate-700/80 hover:bg-slate-600' : 'bg-rose-500 text-white'}`}>
+                         <Camera className="w-5 h-5"/>
+                     </button>
+                 )}
+
+                 <button onClick={toggleSpeaker} className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${callState.isSpeakerOn ? 'bg-slate-700/80 hover:bg-slate-600' : 'bg-rose-500 text-white'}`}>
+                     {callState.isSpeakerOn ? <Volume2 className="w-5 h-5"/> : <VolumeX className="w-5 h-5"/>}
+                 </button>
+
+                 <button onClick={endRealCall} className="w-[64px] h-[64px] rounded-full bg-rose-500 flex items-center justify-center text-white shadow-[0_0_20px_rgba(244,63,94,0.4)] hover:bg-rose-600 transition-all active:scale-90 border-2 border-rose-400">
+                    <Phone className="w-6 h-6 rotate-[135deg] fill-current" />
+                 </button>
+             </div>
+         </div>
       )}
 
     </div>
@@ -1947,9 +2316,16 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   
   const filtered = (locations || []).filter(l => {
      if (!l) return false;
-     const combinedNames = safeStr(l.title);
-     const safeDesc = safeStr(l.desc);
-     const matchesSearch = combinedNames.toLowerCase().includes(searchQuery.toLowerCase()) || safeDesc.toLowerCase().includes(searchQuery.toLowerCase());
+     const searchLower = searchQuery.toLowerCase().trim();
+     
+     // ស្វែងរកក្តោបយកទាំង ចំណងជើង ការពណ៌នា ឈ្មោះឃុំ ឈ្មោះភូមិ និងប្រភេទ (Category)
+     const matchesSearch = 
+        safeStr(l.title).toLowerCase().includes(searchLower) || 
+        safeStr(l.desc).toLowerCase().includes(searchLower) ||
+        safeStr(l.commune).toLowerCase().includes(searchLower) ||
+        safeStr(l.village).toLowerCase().includes(searchLower) ||
+        safeStr(l.category).toLowerCase().includes(searchLower);
+        
      if(activeHomeFilter === 'All') return matchesSearch;
      if(activeHomeFilter === 'រតនមណ្ឌល') return matchesSearch && l.district === 'រតនមណ្ឌល';
      if(activeHomeFilter === 'ផ្សេងៗ') return matchesSearch && l.district !== 'រតនមណ្ឌល';
@@ -1957,9 +2333,23 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   });
 
   const sortedFiltered = [...filtered].sort((a, b) => {
+     // 1. Favorites មកមុនគេ
      const aFav = favorites[a.id] ? 1 : 0;
      const bFav = favorites[b.id] ? 1 : 0;
      if (aFav !== bFav) return bFav - aFav;
+     
+     // 2. ផ្តល់អាទិភាពលើសេវាកម្មសំខាន់ៗ (ប៉ូលិស ពេទ្យ សាលារៀន ជាដាច់ខាតត្រូវនៅខាងលើគេបង្អស់ Priority 3)
+     const getPri = (cat) => {
+         const c = String(cat || '').trim();
+         if (['ប៉ូលិស', 'មន្ទីរពេទ្យ', 'ពេទ្យ', 'សាលារៀន'].includes(c)) return 3;
+         if (['ឃុំ', 'សង្កាត់'].includes(c)) return 2;
+         return 1;
+     };
+     const aPri = getPri(a.category);
+     const bPri = getPri(b.category);
+     if (aPri !== bPri) return bPri - aPri;
+
+     // 3. ទិន្នន័យបញ្ចូលថ្មីៗនៅខាងលើ
      return (b.timestamp || 0) - (a.timestamp || 0);
   });
 
@@ -2053,9 +2443,15 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
   const filtered = (locations || []).filter(l => {
     if (!l) return false;
-    const combinedNames = safeStr(l.title);
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = combinedNames.toLowerCase().includes(searchLower) || safeStr(l.desc).toLowerCase().includes(searchLower);
+    const searchLower = searchQuery.toLowerCase().trim();
+    
+    // ស្វែងរកក្តោបយកទាំង ចំណងជើង ការពណ៌នា ឈ្មោះឃុំ ឈ្មោះភូមិ និងប្រភេទ (Category)
+    const matchesSearch = 
+        safeStr(l.title).toLowerCase().includes(searchLower) || 
+        safeStr(l.desc).toLowerCase().includes(searchLower) ||
+        safeStr(l.commune).toLowerCase().includes(searchLower) ||
+        safeStr(l.village).toLowerCase().includes(searchLower) ||
+        safeStr(l.category).toLowerCase().includes(searchLower);
     
     const isRatanak = l.district === 'រតនមណ្ឌល';
     if (activeTab === 'រតនមណ្ឌល' && !isRatanak) return false;
@@ -2071,9 +2467,23 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   });
 
   const sortedFiltered = [...filtered].sort((a, b) => {
+     // 1. Favorites មកមុនគេ
      const aFav = favorites[a.id] ? 1 : 0;
      const bFav = favorites[b.id] ? 1 : 0;
      if (aFav !== bFav) return bFav - aFav;
+     
+     // 2. ផ្តល់អាទិភាពលើសេវាកម្មសំខាន់ៗ (ប៉ូលិស ពេទ្យ សាលារៀន ជាដាច់ខាតត្រូវនៅខាងលើគេបង្អស់ Priority 3)
+     const getPri = (cat) => {
+         const c = String(cat || '').trim();
+         if (['ប៉ូលិស', 'មន្ទីរពេទ្យ', 'ពេទ្យ', 'សាលារៀន'].includes(c)) return 3;
+         if (['ឃុំ', 'សង្កាត់'].includes(c)) return 2;
+         return 1;
+     };
+     const aPri = getPri(a.category);
+     const bPri = getPri(b.category);
+     if (aPri !== bPri) return bPri - aPri;
+
+     // 3. ទិន្នន័យបញ្ចូលថ្មីៗនៅខាងលើ
      return (b.timestamp || 0) - (a.timestamp || 0);
   });
 
@@ -2375,8 +2785,8 @@ const ImageModal = ({ imageUrl, onClose }) => {
   );
 };
 
-  const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], friendRequests = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser, isSoundMuted, setIsSoundMuted }) => {  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
-  const myChatName = isAdmin ? 'ADMIN-SUPPORT' : profile?.username;
+const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentView, isAdmin, chatTargets = [], myContacts = [], friendRequests = [], dbRegions, gpsStatus, captureGps, gpsCoords, usersList = [], activeChatUser, setActiveChatUser, isSoundMuted, setIsSoundMuted, startRealCall }) => {  const myChatId = isAdmin ? 'admin_ramit_fixed_uid' : (user?.uid || 'guest_uid');
+  const myChatName = isAdmin ? 'ADMIN-PAGE' : profile?.username;
   const myChatAvatar = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid')?.avatar || profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png') : profile?.avatar;
 
   const [msgText, setMsgText] = useState('');
@@ -2387,10 +2797,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
   const [sentRequests, setSentRequests] = useState({});
   const [swipedContactId, setSwipedContactId] = useState(null);
   const touchStartX = useRef(null);
-
-  // In-App Calling UI States
-  const [callState, setCallState] = useState({ isActive: false, status: 'calling', duration: 0 });
-  const callTimerRef = useRef(null);
 
   // Filter dropdown states
   const [localFilterActive, setLocalFilterActive] = useState(false);
@@ -2413,9 +2819,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
   const recordingStreamRef = useRef(null);
   const [pulseWaves, setPulseWaves] = useState(Array(15).fill(4));
   const pulseIntervalRef = useRef(null);
-  
-  // Track if permission was already granted to avoid re-prompting delays if possible
-  const [hasAudioPermission, setHasAudioPermission] = useState(false);
 
   // Message modification overlays
   const [selectedActionMsg, setSelectedActionMsg] = useState(null);
@@ -2424,7 +2827,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const scrollContainerRef = useRef(null);
 
-  // Reference for tracking long-press intervals (Telegram style)
+  // Reference for tracking long-press intervals
   const pressTimerRef = useRef({});
 
   // Scroll to bottom of chat list
@@ -2433,7 +2836,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
   }, [chats, activeChatUser, recordingState]);
-
   // Mark unseen chat messages targeting the current user as read
   useEffect(() => {
     if (!db || !user || !activeChatUser) return;
@@ -2487,7 +2889,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
           await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'user_notifications'), {
              targetId: user.uid,
              title: 'ការព្រមានការប្រើប្រាស់ពាក្យសំដី ⚠️',
-             msg: 'អ្នកបានប្រើប្រាស់ពាក្យពេចន៍មិនសមរម្យ।',
+             msg: 'អ្នកបានប្រើប្រាស់ពាក្យពេចន៍មិនសមរម្យ។',
              type: 'error',
              timestamp: Date.now()
           }).catch(()=>{});
@@ -2512,25 +2914,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
     }).catch(()=>{});
   };
 
-  // Pre-request audio permission to make the hold-to-record instant after the first time
-  const requestAudioPermission = async () => {
-    if (hasAudioPermission) return true;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      // We just want permission, we can stop the tracks immediately if we aren't recording yet, 
-      // but keeping the track open is what prevents the prompt from appearing again in some browsers.
-      // For immediate "push-to-talk", we will keep a persistent stream in a ref.
-      if (!recordingStreamRef.current) {
-         recordingStreamRef.current = stream;
-      }
-      setHasAudioPermission(true);
-      return true;
-    } catch (err) {
-      showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Microphone', 'error');
-      return false;
-    }
-  };
-
   // Start microphone capture recording pipeline
   const startRecordingService = async (e) => {
     if (e && e.cancelable) e.preventDefault();
@@ -2540,9 +2923,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
        setCurrentView('account');
        return;
     }
-
-    const hasPermission = await requestAudioPermission();
-    if (!hasPermission) return;
 
     setRecordingState('recording');
     setRecordDuration(0);
@@ -2557,8 +2937,8 @@ const ImageModal = ({ imageUrl, onClose }) => {
     }, 1000);
 
     try {
-      const stream = recordingStreamRef.current || await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      recordingStreamRef.current = stream; // Keep it alive for next time
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      recordingStreamRef.current = stream;
 
       let chosenMime = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(chosenMime)) chosenMime = 'audio/ogg;codecs=opus';
@@ -2581,16 +2961,15 @@ const ImageModal = ({ imageUrl, onClose }) => {
 
         const collectedDuration = recordDuration;
         if (collectedDuration < 1) {
-           // Too short, cancel silently
-           setRecordingState('idle');
-           return;
+          cleanRecordingStreams();
+          return;
         }
 
         try {
           const audioBlob = new Blob(audioChunksRef.current, { type: chosenMime || 'audio/wav' });
           if (!db) {
             showToast('មិនអាចផ្ញើក្នុង Offline Sandbox ទេ');
-            setRecordingState('idle');
+            cleanRecordingStreams();
             return;
           }
 
@@ -2616,35 +2995,34 @@ const ImageModal = ({ imageUrl, onClose }) => {
         } catch (err) {
           showToast('មានបញ្ហាក្នុងការផ្ញើសារសំឡេង', 'error');
         }
-        setRecordingState('idle');
+        cleanRecordingStreams();
       };
 
       recorder.start();
     } catch (err) {
       showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Microphone', 'error');
-      setRecordingState('idle');
+      cleanRecordingStreams();
     }
   };
 
-  const stopAndCleanRecorder = (e) => {
-    if (e && e.cancelable) e.preventDefault();
+  const cleanRecordingStreams = () => {
+    setRecordingState('idle');
+    clearInterval(recordTimerRef.current);
+    clearInterval(pulseIntervalRef.current);
+    if (recordingStreamRef.current) {
+      recordingStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    recordingStreamRef.current = null;
+    mediaRecorderRef.current = null;
+  };
+
+  const stopAndCleanRecorder = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop(); // This triggers onstop and sends the audio
+      mediaRecorderRef.current.stop(); // នេះនឹងបញ្ឆេះ onstop event ដែលនឹងផ្ញើសំឡេង
     } else {
-      setRecordingState('idle');
-      clearInterval(recordTimerRef.current);
-      clearInterval(pulseIntervalRef.current);
+      cleanRecordingStreams();
     }
   };
-  
-  // Cleanup the persistent microphone stream when the component unmounts
-  useEffect(() => {
-    return () => {
-       if (recordingStreamRef.current) {
-          recordingStreamRef.current.getTracks().forEach(track => track.stop());
-       }
-    };
-  }, []);
 
   // Push GPS coordinates directly inside active chats
   const handleSendLocation = () => {
@@ -2715,30 +3093,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
      setEditInput('');
   };
 
-  // Messenger-style In-App Call Logic
-  const startInAppCall = () => {
-     if (!activeChatUser) return;
-     setCallState({ isActive: true, status: 'calling', duration: 0 });
-     
-     // Simulate Ringing then Connecting after 3 seconds
-     callTimerRef.current = setTimeout(() => {
-         setCallState(prev => ({ ...prev, status: 'connected' }));
-         
-         // Start counting duration
-         callTimerRef.current = setInterval(() => {
-             setCallState(prev => ({ ...prev, duration: prev.duration + 1 }));
-         }, 1000);
-     }, 3000);
-  };
-
-  const endInAppCall = () => {
-     if (callTimerRef.current) {
-         clearTimeout(callTimerRef.current);
-         clearInterval(callTimerRef.current);
-     }
-     setCallState({ isActive: false, status: 'calling', duration: 0 });
-  };
-
   // Connect contact to private friend database mapping
   const handleConnectPrivateUser = async (targetUser) => {
      if (!db || !user) return;
@@ -2795,14 +3149,6 @@ const ImageModal = ({ imageUrl, onClose }) => {
           if (activeChatUser?.id === contact.id) setActiveChatUser(null);
       }
   };
-
-  const toggleSound = () => {
-    const newState = !isSoundMuted;
-    setIsSoundMuted(newState);
-    localStorage.setItem('tp_sound_muted', newState);
-    showToast(newState ? 'បានបិទសំឡេង (Muted)' : 'បានបើកសំឡេង (Unmuted)');
-  };
-
   // Skip the name check block if you are an Admin
   if (!isAdmin && (!profile?.username || profile?.username === 'ភ្ញៀវ')) {
     return (
@@ -2831,7 +3177,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
              const adminProfile = usersList.find(u => u.id === 'admin_ramit_fixed_uid') || {};
              map.set('admin_ramit_fixed_uid', {
                  id: 'admin_ramit_fixed_uid',
-                 label: 'ADMIN-SUPPORT',
+                 label: 'Admin Support',
                  role: 'អ្នកគ្រប់គ្រងប្រព័ន្ធ',
                  district: 'មជ្ឈមណ្ឌល',
                  avatar: adminProfile.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
@@ -3032,7 +3378,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
                                         <h3 className="font-black text-[13px] leading-tight text-slate-800">{safeStr(contact.label)}</h3>
                                         <div className="flex gap-1.5 items-center mt-1">
                                           <span className="text-[9px] text-white font-bold bg-[#0F2B5C] px-1.5 py-0.5 rounded shadow-sm">
-                                             {contact.isPrivate ? 'មិត្តឯកជន' : 'ស្ថាប័ន'}
+                                              {contact.isPrivate ? 'មិត្តឯកជន' : 'ស្ថាប័ន'}
                                           </span>
                                           <span className="text-[9.5px] text-slate-400 font-bold">{isOnline ? 'Online' : 'offline'}</span>
                                         </div>
@@ -3064,19 +3410,11 @@ const ImageModal = ({ imageUrl, onClose }) => {
       const mid = String(myChatId);
       const atarg = String(activeChatUser?.id);
       
+      // Normal private chat (Matches exactly between User A and User B)
+      if ((cid === mid && ctarg === atarg) || (cid === atarg && ctarg === mid)) return true;
+      
       // Broadcast messages (If sent by Admin, and targeted to 'all', and I am looking at Admin's thread)
       if (c.target === 'all' && c.userId === 'admin_ramit_fixed_uid' && (activeChatUser?.id === 'admin_ramit_fixed_uid' || c.userId === myChatId)) return true;
-
-      // Group/Institution Chats (Public Rooms added by Admin)
-      // បើជាស្ថាប័ន (isPrivate === false) ហើយមិនមែនជា Admin Support ផ្ទាល់ វាជាបន្ទប់ឆាតរួម (Public Room)
-      if (activeChatUser?.isPrivate === false && activeChatUser?.id !== 'admin_ramit_fixed_uid') {
-          if (ctarg === atarg) return true;
-      } else {
-          // Normal private chat (Matches exactly between User A and User B, or User A and Admin)
-          // ការឆាតឯកជនធម្មតារវាងមិត្តភក្តិ ឬឆាតទៅកាន់ Admin
-          if ((cid === mid && ctarg === atarg) || (cid === atarg && ctarg === mid)) return true;
-      }
-
       return false;
   });
 
@@ -3087,40 +3425,121 @@ const ImageModal = ({ imageUrl, onClose }) => {
     >
       <ImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
 
-      {/* IN-APP VOICE CALL OVERLAY (MESSENGER STYLE) */}
+      {/* 
+         ========================================================================
+         TELEGRAM-STYLE IN-APP VOICE & VIDEO CALL OVERLAY (REAL WEBRTC)
+         ======================================================================== 
+      */}
       {callState.isActive && (
-         <div className="fixed inset-0 z-[5000] bg-[#0f172a] text-white flex flex-col items-center justify-between py-16 px-6 animate-in zoom-in-95 duration-300 font-khmer touch-none">
-             <div className="text-center space-y-3 mt-10">
-                 <h2 className="text-3xl font-black tracking-wide drop-shadow-md">{safeStr(activeChatUser?.label)}</h2>
-                 <p className="text-slate-400 font-bold text-[14.5px]">
-                    {callState.status === 'calling' ? 'កំពុងហៅ (Calling)...' :
-                     callState.status === 'connected' ? 
-                     <span className="text-emerald-400">{Math.floor(callState.duration / 60)}:{(callState.duration % 60).toString().padStart(2, '0')}</span> 
-                     : '...'}
-                 </p>
-             </div>
-             
-             <div className="relative mt-[-10vh]">
-                 <div className={`absolute inset-0 rounded-full bg-[#38BDF8] blur-3xl opacity-20 ${callState.status === 'calling' ? 'animate-ping' : ''}`}></div>
-                 <img src={activeChatUser?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-36 h-36 rounded-full object-cover border-4 border-slate-700 relative z-10 shadow-2xl" alt="avatar" />
-             </div>
-             
-             <div className="flex flex-col items-center gap-8 mb-8 w-full max-w-xs">
-                 <div className="flex items-center justify-between w-full px-6">
-                    <button className="w-12 h-12 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-300 active:scale-95 transition-all"><Volume2 className="w-5 h-5"/></button>
-                    <button className="w-12 h-12 rounded-full bg-slate-800/80 flex items-center justify-center text-slate-300 active:scale-95 transition-all"><Mic className="w-5 h-5"/></button>
-                 </div>
-                 <button onClick={endInAppCall} className="w-[72px] h-[72px] rounded-full bg-rose-500 flex items-center justify-center text-white shadow-[0_0_20px_rgba(244,63,94,0.4)] hover:bg-rose-600 transition-all active:scale-90 border-2 border-rose-400">
-                    <Phone className="w-7 h-7 rotate-[135deg] fill-current" />
-                 </button>
-             </div>
-         </div>
+          <div className="fixed inset-0 z-[5000] bg-[#0f172a] text-white flex flex-col font-khmer touch-none animate-in fade-in duration-300">
+              {/* Remote Audio/Video Elements */}
+              <audio ref={remoteAudioRef} autoPlay className="hidden" />
+              <video 
+                  ref={remoteVideoRef} 
+                  autoPlay 
+                  playsInline 
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${callState.isCameraOn || (remoteStreamRef.current && remoteStreamRef.current.getVideoTracks().length > 0) ? 'opacity-100' : 'opacity-0'}`} 
+              />
+
+              {/* Local Video Overlay (Picture in Picture - Only displays when camera is ON) */}
+              {callState.isCameraOn && (
+                  <div className="absolute top-24 right-4 w-28 h-40 bg-slate-800 rounded-xl overflow-hidden border-2 border-slate-600 shadow-2xl z-20 animate-in zoom-in">
+                      <video 
+                          ref={localVideoRef} 
+                          autoPlay 
+                          playsInline 
+                          muted
+                          className="w-full h-full object-cover transform scale-x-[-1]" 
+                      />
+                  </div>
+              )}
+
+              {/* Header Info */}
+              <div className="absolute top-0 left-0 right-0 p-8 bg-gradient-to-b from-black/80 to-transparent z-20 pt-safe">
+                  <h2 className="text-2xl md:text-3xl font-black drop-shadow-md text-center">{safeStr(callState.peerInfo?.label)}</h2>
+                  <p className="text-center text-slate-300 font-bold text-[14.5px] mt-1.5 drop-shadow-md tracking-wider">
+                     {callState.status === 'ringing' ? 'រោទ៍... (Ringing)' :
+                      callState.status === 'calling' ? 'កំពុងហៅ (Calling)...' :
+                      callState.status === 'connected' ? 
+                      <span className="text-white">{Math.floor(callState.duration / 60)}:{(callState.duration % 60).toString().padStart(2, '0')}</span> 
+                      : '...'}
+                  </p>
+              </div>
+
+              {/* Central Avatar (Visible when no video is active) */}
+              {!(callState.isCameraOn || (remoteStreamRef.current && remoteStreamRef.current.getVideoTracks().length > 0)) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <div className="relative w-40 h-40 md:w-48 md:h-48">
+                          {/* Pulsing ring during dialing/ringing */}
+                          {(callState.status === 'calling' || callState.status === 'ringing') && (
+                             <div className="absolute inset-0 rounded-full bg-[#38BDF8] blur-2xl opacity-20 animate-ping"></div>
+                          )}
+                          <img src={callState.peerInfo?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-full h-full rounded-full object-cover border-[3px] border-slate-700 relative z-10 shadow-2xl" alt="avatar" />
+                      </div>
+                  </div>
+              )}
+
+              {/* Incoming Call Controls */}
+              {callState.isIncoming && callState.status === 'ringing' ? (
+                  <div className="absolute bottom-12 left-0 right-0 flex justify-around px-10 z-20 pb-safe">
+                     <div className="flex flex-col items-center gap-2">
+                         <button onClick={rejectIncomingCall} className="w-[68px] h-[68px] rounded-full bg-rose-500 flex items-center justify-center text-white shadow-[0_4px_14px_rgba(244,63,94,0.4)] hover:bg-rose-600 transition-all active:scale-90">
+                            <Phone className="w-7 h-7 rotate-[135deg] fill-current" />
+                         </button>
+                         <span className="text-[13px] font-bold text-slate-300">បដិសេធ</span>
+                     </div>
+                     <div className="flex flex-col items-center gap-2">
+                         <button onClick={acceptIncomingCall} className="w-[68px] h-[68px] rounded-full bg-[#10b981] flex items-center justify-center text-white shadow-[0_4px_14px_rgba(16,185,129,0.4)] hover:bg-[#059669] transition-all active:scale-90 animate-bounce">
+                            <Phone className="w-7 h-7 fill-current" />
+                         </button>
+                         <span className="text-[13px] font-bold text-slate-300">ទទួល</span>
+                     </div>
+                  </div>
+              ) : (
+                  /* Active Call Bottom Controls */
+                  <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-8 z-20 pb-safe">
+                      <div className="flex justify-center items-center gap-8">
+                          {/* Speaker Button */}
+                          <div className="flex flex-col items-center gap-2">
+                              <button onClick={toggleSpeaker} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${callState.isSpeakerOn ? 'bg-slate-700/80 hover:bg-slate-600 text-white backdrop-blur-md' : 'bg-white text-slate-900'}`}>
+                                  {callState.isSpeakerOn ? <Volume2 className="w-6 h-6"/> : <VolumeX className="w-6 h-6"/>}
+                              </button>
+                              <span className="text-[11px] font-bold text-slate-400">Speaker</span>
+                          </div>
+                          
+                          {/* Camera Button (ONLY appears after call is connected) */}
+                          {callState.status === 'connected' && (
+                              <div className="flex flex-col items-center gap-2 animate-in slide-in-from-bottom-5">
+                                  <button onClick={toggleCamera} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${!callState.isCameraOn ? 'bg-slate-700/80 hover:bg-slate-600 text-white backdrop-blur-md' : 'bg-white text-slate-900'}`}>
+                                      <Camera className="w-6 h-6"/>
+                                  </button>
+                                  <span className="text-[11px] font-bold text-slate-400">Camera</span>
+                              </div>
+                          )}
+
+                          {/* Microphone Button */}
+                          <div className="flex flex-col items-center gap-2">
+                              <button onClick={toggleMic} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${callState.isMicOn ? 'bg-slate-700/80 hover:bg-slate-600 text-white backdrop-blur-md' : 'bg-white text-slate-900'}`}>
+                                  <Mic className="w-6 h-6"/>
+                                  {!callState.isMicOn && <div className="absolute w-[26px] h-[2px] bg-slate-900 rotate-45 rounded"></div>}
+                              </button>
+                              <span className="text-[11px] font-bold text-slate-400">Mute</span>
+                          </div>
+                      </div>
+
+                      {/* End Call Button */}
+                      <button onClick={endRealCall} className="w-[72px] h-[72px] rounded-full bg-rose-500 flex items-center justify-center text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:bg-rose-600 transition-all active:scale-90 border-2 border-rose-400/50">
+                         <Phone className="w-8 h-8 rotate-[135deg] fill-current" />
+                      </button>
+                  </div>
+              )}
+          </div>
       )}
 
       {/* Action modal for message modification */}
       {selectedActionMsg && (
          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-56 overflow-hidden border border-slate-200 select-none">
+            <div className="bg-white rounded-2xl shadow-2xl w-56 overflow-hidden border border-slate-200 select-none animate-in zoom-in-95 duration-200">
                {selectedActionMsg.msgType === 'text' && (
                  <>
                  <button onClick={() => {
@@ -3146,7 +3565,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
       )}
 
       {editingMsg && (
-         <div className="absolute bottom-[70px] left-0 right-0 z-40 bg-white p-3 border-t border-slate-200 shadow-md rounded-t-2xl">
+         <div className="absolute bottom-[70px] left-0 right-0 z-40 bg-white p-3 border-t border-slate-200 shadow-md rounded-t-2xl animate-in slide-in-from-bottom-2">
             <div className="flex justify-between items-center mb-2">
                <span className="text-[12px] font-black text-sky-500 flex items-center gap-1 bg-sky-50 px-2 py-0.5 rounded"><Edit3 className="w-3 h-3"/> កំពុងកែប្រែសារ</span>
                <button onClick={() => {setEditingMsg(null); setEditInput('');}} className="p-1 bg-slate-100 rounded-full"><X className="w-3.5 h-3.5"/></button>
@@ -3170,7 +3589,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
         <div className="flex items-center gap-2.5">
            <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full border border-slate-200"><ArrowLeft className="w-4.5 h-4.5 text-slate-600"/></button>
            <div className="relative">
-              <img src={activeChatUser.avatar || ' .png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
+              <img src={activeChatUser.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" alt="av"/>
               <div className="absolute bottom-0 right-0 w-2 h-2 rounded-full border border-white bg-emerald-500 animate-pulse"></div>
            </div>
            <div className="min-w-0">
@@ -3181,7 +3600,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
         
         <div className="flex items-center pr-1">
            <button 
-              onClick={startInAppCall}
+              onClick={() => startRealCall && startRealCall(activeChatUser, false)}
               className="w-9 h-9 bg-[#38BDF8]/10 text-[#38BDF8] border border-[#38BDF8]/20 rounded-full flex items-center justify-center hover:bg-[#38BDF8]/20 transition-colors active:scale-95 shadow-sm"
               title="ខល (Voice Call)"
            >
@@ -3251,7 +3670,7 @@ const ImageModal = ({ imageUrl, onClose }) => {
                             isMe 
                               ? 'bg-[#0F2B5C] border-[#0F2B5C] rounded-br-sm text-white' 
                               : 'bg-white text-slate-800 rounded-bl-sm border-slate-200'
-                          }`}
+                         }`}
                          onTouchStart={() => handlePressStart(msg)}
                          onTouchMove={() => handlePressEnd(msg)}
                          onTouchEnd={() => handlePressEnd(msg)}
@@ -3340,9 +3759,8 @@ const ImageModal = ({ imageUrl, onClose }) => {
                     onTouchStart={startRecordingService}
                     onMouseUp={stopAndCleanRecorder}
                     onTouchEnd={stopAndCleanRecorder}
-                    onMouseLeave={stopAndCleanRecorder}
-                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-90 active:bg-[#38BDF8] active:text-white select-none"
-                    style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}
+                    onMouseLeave={stopAndCleanRecorder} 
+                    className="w-11 h-11 rounded-full bg-sky-50 text-[#38BDF8] border border-sky-100 flex items-center justify-center shrink-0 shadow-sm transition-transform active:scale-90 active:bg-[#38BDF8] active:text-white"
                   >
                      <Mic className="w-5 h-5" />
                   </button>
@@ -3353,7 +3771,8 @@ const ImageModal = ({ imageUrl, onClose }) => {
     </div>
   );
 }
-  const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView, usersList = [], isSoundMuted, setIsSoundMuted }) => {
+
+const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAdmin, setIsAdmin, setCurrentView, usersList = [], isSoundMuted, setIsSoundMuted }) => {
   const currentAdminProfile = isAdmin ? (usersList.find(u => u.id === 'admin_ramit_fixed_uid') || { username: 'ADMIN-SUPPORT', avatar: profile?.avatar }) : null;
   const displayProfile = isAdmin ? currentAdminProfile : profile;
 
@@ -3506,9 +3925,9 @@ const ImageModal = ({ imageUrl, onClose }) => {
 
           if (db) {
              const targetId = isAdmin ? 'admin_ramit_fixed_uid' : user.uid;
-             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetId), {
+             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetId), {
                 avatar: b64
-             }, { merge: true }).catch(()=>{});
+             }).catch(()=>{});
              showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
           }
        };
