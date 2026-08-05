@@ -340,6 +340,30 @@ const DEFAULT_REGIONS = {
   }
 };
 
+// ទិន្នន័យបម្រុងទុក (Pre-loaded Data) ដើម្បីឲ្យពេលចូល App ភ្លាមលោតឃើញទិន្នន័យភ្លាមៗតែម្តង (0ms delay)
+const DEFAULT_PRELOAD_LOCATIONS = [
+  {
+    id: 'preload_1', title: 'វិទ្យាល័យស្តៅសន្តិភាព', category: 'សាលារៀន', district: 'រតនមណ្ឌល', commune: 'ស្តៅ', village: 'ស្តៅ',
+    image: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&q=80', desc: 'សាលារៀនផ្តល់ចំណេះដឹងទូទៅសម្រាប់សិស្សានុសិស្សក្នុងស្រុករតនមណ្ឌល។',
+    status: 'approved', views: 850, timestamp: Date.now(), contacts: [{ name: 'នាយកសាលា', phone: '012 000 000' }]
+  },
+  {
+    id: 'preload_2', title: 'ប៉ុស្តិ៍នគរបាលរដ្ឋបាលស្តៅ', category: 'ប៉ូលិស', district: 'រតនមណ្ឌល', commune: 'ស្តៅ', village: 'ស្តៅ',
+    image: 'https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=500&q=80', desc: 'បម្រើសេវាសន្តិសុខ និងសណ្តាប់ធ្នាប់ជូនប្រជាពលរដ្ឋ២៤ម៉ោង។',
+    status: 'approved', views: 530, timestamp: Date.now() - 1000, contacts: [{ name: 'ប្រចាំការ', phone: '012 111 111' }]
+  },
+  {
+    id: 'preload_3', title: 'មណ្ឌលសុខភាពស្តៅ', category: 'មន្ទីរពេទ្យ', district: 'រតនមណ្ឌល', commune: 'ស្តៅ', village: 'ស្តៅ',
+    image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=500&q=80', desc: 'ផ្តល់សេវាពិនិត្យ និងព្យាបាលជំងឺទូទៅជូនប្រជាពលរដ្ឋក្នុងមូលដ្ឋាន។',
+    status: 'approved', views: 420, timestamp: Date.now() - 2000, contacts: [{ name: 'សង្គ្រោះបន្ទាន់', phone: '012 222 222' }]
+  },
+  {
+    id: 'preload_4', title: 'សាលាឃុំស្តៅ', category: 'ឃុំ', district: 'រតនមណ្ឌល', commune: 'ស្តៅ', village: 'ស្តៅ',
+    image: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=500&q=80', desc: 'ផ្តល់សេវារដ្ឋបាលសាធារណៈជូនប្រជាពលរដ្ឋ។',
+    status: 'approved', views: 290, timestamp: Date.now() - 3000, contacts: [{ name: 'មេឃុំ', phone: '012 333 333' }]
+  }
+];
+
 // Simple anti-abuse text analysis tool
 const containsAbuse = (text) => {
   const badWords = ["troll", "fuck", "bad", "spam", "scam", "អាខ្លៅ", "អាឆ្កែ", "ចោរ", "ល្ងង់", "ឡប់", "ឆ្កួត"];
@@ -611,12 +635,11 @@ const CallPickerModal = ({ isOpen, title, contacts, onClose }) => {
 
 export default function App() {
   // Streamlining initial state load from local storage for 0ms render delay (Offline-First)
+  // FIXED: Using a permanent device ID as the unique identifier to prevent profile loss on refresh
   const getInitialUser = () => {
-      const cachedUid = localStorage.getItem('tp_firebase_uid');
-      if (cachedUid) return { uid: cachedUid, isAnonymous: true };
       let localToken = localStorage.getItem('tp_cambodia_device_id');
       if (!localToken) {
-         localToken = 'dev_uuid_' + crypto.randomUUID();
+         localToken = 'dev_uuid_' + crypto.randomUUID().replace(/-/g, '');
          localStorage.setItem('tp_cambodia_device_id', localToken);
       }
       return { uid: localToken, isAnonymous: true };
@@ -667,7 +690,15 @@ export default function App() {
   
   // បង្កើនល្បឿនអតិបរមាដោយប្រើ Local Storage Caching សម្រាប់ការទាញយកទិន្នន័យទាំងអស់ (Offline First)
   const [locations, setLocations] = useState(() => {
-     try { const c = localStorage.getItem('tp_cache_locations'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
+     try { 
+         const c = localStorage.getItem('tp_cache_locations'); 
+         if (c) {
+             const parsed = JSON.parse(c);
+             if (parsed && parsed.length > 0) return parsed;
+         }
+     } catch(e) {}
+     // បញ្ចូលទិន្នន័យបម្រុងទុកពីដើមទី ដើម្បីកុំឲ្យ App លោតទទេស្អាតពេលទើបបើកដំណើរការដំបូង!
+     return DEFAULT_PRELOAD_LOCATIONS;
   });  
   const [usersList, setUsersList] = useState(() => {
      try { const c = localStorage.getItem('tp_cache_users'); return c ? JSON.parse(c) : []; } catch(e) { return []; }
@@ -688,8 +719,23 @@ export default function App() {
   });
   const [appeals, setAppeals] = useState([]);
   const [cosmicTheme, setCosmicTheme] = useState(() => localStorage.getItem('tp_cosmic') === 'true');
+  const [chatFeatureEnabled, setChatFeatureEnabled] = useState(() => localStorage.getItem('tp_chat_enabled') !== 'false');
 
   const [selectedLocation, setSelectedLocation] = useState(null);
+  
+  const handleOpenLocation = async (loc) => {
+    setSelectedLocation(loc);
+    // បង្កើនចំនួនអ្នកចូលមើលនៅក្នុង Database
+    if (db && loc.id) {
+       try {
+           const locRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', loc.id);
+           await updateDoc(locRef, { views: increment(1) });
+       } catch (e) {
+           console.log("View count error:", e);
+       }
+    }
+  };
+
   const [toast, setToast] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('red'); 
   const [gpsCoords, setGpsCoords] = useState(null);
@@ -787,11 +833,8 @@ export default function App() {
     
     if (auth) {
       const unsubscribe = onAuthStateChanged(auth, (currentUser) => { 
-          if (currentUser) {
-            // Save real UID to local storage immediately so next reload is instantaneous
-            localStorage.setItem('tp_firebase_uid', currentUser.uid);
-            setUser(currentUser);
-          }
+          // Auth works in background, but we keep our persistent getInitialUser() ID 
+          // to guarantee the user's profile and image never disappear across sessions!
       });
       return () => unsubscribe();
     }
@@ -801,6 +844,9 @@ export default function App() {
     if (!user) return;
 
     if (!db) return;
+
+    // ប្រព័ន្ធ Anti-Flicker ការពារមិនឲ្យ Firebase លុបទិន្នន័យ Local Storage ពេលកំពុងទាញយកទិន្នន័យថ្មី
+    let firstTick = { locs: true, users: true, chats: true, targets: true };
 
     const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid);
     
@@ -835,10 +881,7 @@ export default function App() {
 
         setProfile(udata);
         
-        // Dynamic secure role-based administrative check
-        if (udata.role === 'admin') {
-          setIsAdmin(true);
-        } else if (sessionStorage.getItem('tp_admin_session') !== 'true') {
+        if (sessionStorage.getItem('tp_admin_session') !== 'true') {
           setIsAdmin(false);
         }
         
@@ -885,6 +928,14 @@ export default function App() {
     // Listen to registered profiles
     const unsubAllUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_data'), snap => {
        const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+       
+       if (firstTick.users && data.length === 0) {
+           firstTick.users = false;
+           const c = localStorage.getItem('tp_cache_users');
+           if (c && JSON.parse(c).length > 0) return; // Prevent initial wipe
+       }
+       firstTick.users = false;
+
        setUsersList(data);
        try { localStorage.setItem('tp_cache_users', JSON.stringify(data)); } catch(e){}
     }, () => {});
@@ -892,6 +943,14 @@ export default function App() {
     // Listen to location items
     const unsubLocations = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'user_admin_data'), snap => {
       const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      if (firstTick.locs && data.length === 0) {
+          firstTick.locs = false;
+          const c = localStorage.getItem('tp_cache_locations');
+          if (c && JSON.parse(c).length > 0) return; // Prevent initial wipe
+      }
+      firstTick.locs = false;
+
       setLocations(data);
       try { localStorage.setItem('tp_cache_locations', JSON.stringify(data)); } catch(e){}
     }, () => {});
@@ -900,6 +959,14 @@ export default function App() {
     const unsubChats = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA'), snap => {
       const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       msgs.sort((a, b) => a.timestamp - b.timestamp); 
+      
+      if (firstTick.chats && msgs.length === 0) {
+         firstTick.chats = false;
+         const c = localStorage.getItem('tp_cache_chats');
+         if (c && JSON.parse(c).length > 0) return; // Prevent initial wipe
+      }
+      firstTick.chats = false;
+
       setChats(msgs);
       try { localStorage.setItem('tp_cache_chats', JSON.stringify(msgs)); } catch(e){}
       
@@ -955,10 +1022,16 @@ export default function App() {
            try { localStorage.setItem('tp_cache_regions', JSON.stringify(d)); } catch(e){}
         }
         else {
-           setDoc(configRef, { data: DEFAULT_REGIONS }, { merge: true });
+           try { setDoc(configRef, { data: DEFAULT_REGIONS }, { merge: true }); } catch(e){}
            setDbRegions(DEFAULT_REGIONS);
         }
-    }, () => { setDbRegions(DEFAULT_REGIONS); });
+    }, (error) => {
+        // FIXED: Do NOT reset to default if there is a permission error or offline issue
+        try { 
+           const c = localStorage.getItem('tp_cache_regions'); 
+           if(c) setDbRegions(JSON.parse(c)); 
+        } catch(e) {}
+    });
 
     /* Load Dynamic Settings & Custom Theme/Logo configuration from Firestore */
     const themeRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme');
@@ -968,6 +1041,10 @@ export default function App() {
            if (sdata.cosmicTheme !== undefined) {
               setCosmicTheme(sdata.cosmicTheme);
               localStorage.setItem('tp_cosmic', sdata.cosmicTheme);
+           }
+           if (sdata.chatFeatureEnabled !== undefined) {
+              setChatFeatureEnabled(sdata.chatFeatureEnabled);
+              localStorage.setItem('tp_chat_enabled', sdata.chatFeatureEnabled);
            }
            if (sdata.customBg !== undefined) setCustomBg(sdata.customBg || '#f8fafc');
            if (sdata.appLogo !== undefined) setAppLogo(sdata.appLogo || '');
@@ -980,6 +1057,14 @@ export default function App() {
       if (!snap.empty) {
         const trg = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         trg.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        if (firstTick.targets && trg.length === 0) {
+           firstTick.targets = false;
+           const c = localStorage.getItem('tp_cache_chatTargets');
+           if (c && JSON.parse(c).length > 0) return; // Prevent initial wipe
+        }
+        firstTick.targets = false;
+
         setChatTargets(trg);
         try { localStorage.setItem('tp_cache_chatTargets', JSON.stringify(trg)); } catch(e){}
       }
@@ -1035,7 +1120,7 @@ export default function App() {
                   }
               }
           });
-      });
+      }, (error) => { console.warn("Incoming call listener error:", error.code); });
       return () => unsub();
   }, [db, user, myChatId]);
 
@@ -1066,6 +1151,47 @@ export default function App() {
       }
   };
 
+  const triggerChatFlow = async (loc) => {
+      if (!chatFeatureEnabled && !isAdmin) {
+          showToast('មុខងារឆាតត្រូវបានបិទជាបណ្តោះអាសន្នដោយ Admin', 'error');
+          return;
+      }
+      if (!user || (profile?.username === 'ភ្ញៀវ' && !isAdmin)) {
+          showToast('សូមចុះឈ្មោះគណនីជាមុនសិន មុននឹងអាចឆាតបាន', 'error');
+          setCurrentView('account');
+          setSelectedLocation(null);
+          return;
+      }
+      const targetId = loc.authorUid;
+      if (!targetId || targetId === 'guest_uid') {
+          showToast('មិនអាចឆាតទៅកាន់ម្ចាស់ទីតាំងនេះបានទេ', 'error');
+          return;
+      }
+      if (targetId === myChatId) {
+          showToast('នេះជាទីតាំងដែលអ្នកបានបញ្ចូលដោយខ្លួនឯង', 'info');
+          return;
+      }
+      
+      showToast('កំពុងបើកបន្ទប់ឆាត...', 'info', 1000);
+      const targetUser = {
+          id: targetId,
+          label: loc.author || 'ម្ចាស់ទីតាំង',
+          avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+          isPrivate: true,
+          role: 'ម្ចាស់ទីតាំង',
+          district: loc.district || 'ផ្សេងៗ'
+      };
+      if (db) {
+          await setDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'contacts', targetId), {
+              ...targetUser,
+              timestamp: Date.now()
+          }, { merge: true }).catch(()=>{});
+      }
+      setActiveChatUser(targetUser);
+      setCurrentView('chat');
+      setSelectedLocation(null);
+  };
+
   const endRealCall = async () => {
       if (callIdRef.current && db) {
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'calls', callIdRef.current), { status: 'ended' }).catch(()=>{});
@@ -1093,6 +1219,7 @@ export default function App() {
 
   const startRealCall = async (targetUser, isVideoCall) => {
      if (!targetUser) return;
+     if (!db) return showToast('មិនអាចខលបានទេក្នុង Sandbox Mode (គ្មាន Database)', 'error');
      try {
          const stream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
          localStreamRef.current = stream;
@@ -1154,7 +1281,7 @@ export default function App() {
                  endRealCall();
                  if (data?.status === 'rejected') showToast('ការហៅត្រូវបានបដិសេធ', 'error');
              }
-         });
+         }, (err) => { console.warn("Call doc error:", err.code); });
 
          const unsubIce = onSnapshot(collection(callDocRef, 'calleeCandidates'), snapshot => {
              snapshot.docChanges().forEach(change => {
@@ -1163,7 +1290,7 @@ export default function App() {
                      pc.addIceCandidate(candidate);
                  }
              });
-         });
+         }, (err) => { console.warn("ICE error:", err.code); });
 
          window.unsubCallVars = { unsubCall, unsubIce };
 
@@ -1228,7 +1355,7 @@ export default function App() {
               if(data?.status === 'ended') {
                   endRealCall();
               }
-          });
+          }, (err) => { console.warn("Call doc error:", err.code); });
 
           const unsubIce = onSnapshot(collection(callDocRef, 'callerCandidates'), snapshot => {
               snapshot.docChanges().forEach(change => {
@@ -1237,7 +1364,7 @@ export default function App() {
                       pc.addIceCandidate(candidate);
                   }
               });
-          });
+          }, (err) => { console.warn("ICE error:", err.code); });
 
           window.unsubCallVars = { unsubCall, unsubIce };
 
@@ -1483,6 +1610,7 @@ export default function App() {
         authorUid: safeStr(user?.uid, 'guest_uid'),
         status: isAdmin ? 'approved' : 'pending',
         likes: 0,
+        views: 0,
         timestamp: Date.now()
       };
       
@@ -1727,7 +1855,7 @@ export default function App() {
 
   return (
     <div 
-      className="fixed inset-0 font-khmer flex flex-col md:flex-row overflow-hidden animate-in fade-in" 
+      className="fixed inset-0 font-khmer flex flex-col md:flex-row overflow-hidden" 
       style={{ backgroundColor: customBg }}
     >
       
@@ -1743,19 +1871,21 @@ export default function App() {
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} appLogo={appLogo} />
 
       <main className="flex-1 flex flex-col min-w-0 h-full relative bg-transparent md:bg-black/5 shadow-inner z-20">
-        <TopHeader 
-            setCurrentPage={setCurrentPage} notifications={myNotifications} notificationsOpen={notificationsOpen} 
-            setNotificationsOpen={setNotificationsOpen} searchQuery={searchQuery} setSearchQuery={setSearchQuery} 
-            db={db} appId={appId} user={user} appLogo={appLogo} currentView={currentView} 
-        />
+        {!(currentView === 'chat' && activeChatUser) && (
+          <TopHeader 
+              setCurrentPage={setCurrentPage} notifications={myNotifications} notificationsOpen={notificationsOpen} 
+              setNotificationsOpen={setNotificationsOpen} searchQuery={searchQuery} setSearchQuery={setSearchQuery} 
+              db={db} appId={appId} user={user} appLogo={appLogo} currentView={currentView} 
+          />
+        )}
 
         <div className="flex-1 flex flex-col min-h-0 relative w-full max-w-7xl mx-auto overflow-hidden">
-           {currentView === 'home' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={setSelectedLocation} setCurrentView={setCurrentView} profile={profile} showToast={showToast} /></div>}
+           {currentView === 'home' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><HomeView locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} onOpenLocation={handleOpenLocation} setCurrentView={setCurrentView} profile={profile} showToast={showToast} chatFeatureEnabled={chatFeatureEnabled} isAdmin={isAdmin} /></div>}
            {currentView === 'info' && (
              <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
                <InfoView 
                  locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} 
-                 onOpenLocation={setSelectedLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} 
+                 onOpenLocation={handleOpenLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} 
                  db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} 
                  captureGps={handleGPS} 
                  onOpenAddModal={() => {
@@ -1778,12 +1908,19 @@ export default function App() {
              </div>
            )}
            {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
-           {currentView === 'chat' && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} startRealCall={startRealCall} /></div>}
+           {currentView === 'chat' && (chatFeatureEnabled || isAdmin) && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} startRealCall={startRealCall} /></div>}
+           {currentView === 'chat' && !chatFeatureEnabled && !isAdmin && (
+             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                <MessageCircle className="w-12 h-12 text-slate-300 mb-4" />
+                <h2 className="text-[16px] font-black text-slate-700 mb-2">មុខងារឆាតត្រូវបានបិទ</h2>
+                <p className="text-[13px] text-slate-500">អភិបាលប្រព័ន្ធបានបិទមុខងារនេះជាបណ្តោះអាសន្ន។</p>
+             </div>
+           )}
            {currentView === 'account' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><AccountView user={user} profile={profile} db={db} appId={appId} showToast={showToast} setCurrentPage={setCurrentPage} isAdmin={isAdmin} setIsAdmin={setIsAdmin} setCurrentView={setCurrentView} usersList={usersList} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} /></div>}
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
                 <AdminDashboard 
-                  locations={locations} setLocations={setLocations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} dbRegions={dbRegions} setDbRegions={setDbRegions} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} setIsAdmin={setIsAdmin} chatTargets={chatTargets} setChatTargets={setChatTargets} appeals={appeals} setAppeals={setAppeals} cosmicTheme={cosmicTheme} setCosmicTheme={setCosmicTheme} customBg={customBg} setCustomBg={setCustomBg} appLogo={appLogo} setAppLogo={setAppLogo} gatewayBg={gatewayBg} setGatewayBg={setGatewayBg}
+                  locations={locations} setLocations={setLocations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} dbRegions={dbRegions} setDbRegions={setDbRegions} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} setIsAdmin={setIsAdmin} chatTargets={chatTargets} setChatTargets={setChatTargets} appeals={appeals} setAppeals={setAppeals} cosmicTheme={cosmicTheme} setCosmicTheme={setCosmicTheme} customBg={customBg} setCustomBg={setCustomBg} appLogo={appLogo} setAppLogo={setAppLogo} gatewayBg={gatewayBg} setGatewayBg={setGatewayBg} chatFeatureEnabled={chatFeatureEnabled} setChatFeatureEnabled={setChatFeatureEnabled}
                 />
               </div>
            )}
@@ -1792,12 +1929,12 @@ export default function App() {
 
       {/* Hide bottom menu navigation during an active chat interaction context to save screen real estate */}
       {!(currentView === 'chat' && activeChatUser) && (
-        <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} />
+        <BottomNav currentView={currentView} setCurrentView={setCurrentView} isAdmin={isAdmin} chatFeatureEnabled={chatFeatureEnabled} />
       )}
 
       {selectedLocation && (
         <LocationDetailModal 
-          location={selectedLocation} onClose={() => setSelectedLocation(null)} favorites={favorites} toggleFavorite={toggleFavorite} gpsCoords={gpsCoords} onCallTrigger={triggerCallFlow}
+          location={selectedLocation} onClose={() => setSelectedLocation(null)} favorites={favorites} toggleFavorite={toggleFavorite} gpsCoords={gpsCoords} onCallTrigger={triggerCallFlow} onChatTrigger={triggerChatFlow} chatFeatureEnabled={chatFeatureEnabled} isAdmin={isAdmin}
         />
       )}
 
@@ -2140,14 +2277,14 @@ export default function App() {
   );
 }
 
-const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo }) => {
+const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, chatFeatureEnabled }) => {
   const navItems = [
     { id: 'home', icon: Home, label: 'ទំព័រដើម' },
     { id: 'info', icon: Info, label: 'ព័ត៌មាន' },
     { id: 'reports', icon: TrendingUp, label: 'របាយការណ៍' },
-    { id: 'chat', icon: MessageCircle, label: 'សារ' },
-    { id: 'account', icon: User, label: 'គណនី' },
   ];
+  if (chatFeatureEnabled || isAdmin) navItems.push({ id: 'chat', icon: MessageCircle, label: 'សារ' });
+  navItems.push({ id: 'account', icon: User, label: 'គណនី' });
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'អ្នកគ្រប់គ្រង' });
 
   return (
@@ -2179,21 +2316,20 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo }) => {
   );
 };
 
-const BottomNav = ({ currentView, setCurrentView, isAdmin }) => {
+const BottomNav = ({ currentView, setCurrentView, isAdmin, chatFeatureEnabled }) => {
   const navItems = [
     { id: 'home', icon: Home, label: 'ទំព័រដើម' },
     { id: 'info', icon: Info, label: 'ព័ត៌មាន' },
-    { id: 'chat', icon: MessageCircle, label: 'សារ' },
-    { id: 'account', icon: User, label: 'គណនី' },
   ];
+  if (chatFeatureEnabled || isAdmin) navItems.push({ id: 'chat', icon: MessageCircle, label: 'សារ' });
+  navItems.push({ id: 'account', icon: User, label: 'គណនី' });
   if (isAdmin) navItems.push({ id: 'admin', icon: ShieldCheck, label: 'Admin' });
 
   return (
     <div 
-      className="md:hidden fixed left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-      style={{ bottom: '0px', paddingBottom: '0px', marginBottom: '0px' }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-safe"
     >
-      <div className="flex justify-around items-center pt-2.5 pb-2 px-1">
+      <div className="flex justify-around items-center pt-2 pb-1 px-1">
       {navItems.map(item => {
          const isActive = currentView === item.id;
          return (
@@ -2289,7 +2425,7 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
            </div>
            
            <div className="flex flex-col w-full">
-              {currentView === 'home' && (
+              {(currentView === 'home' || currentView === 'info') && (
                   <form onSubmit={(e) => {
                      e.preventDefault();
                      document.activeElement?.blur(); 
@@ -2311,7 +2447,7 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
     );
 };
 
-const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite, onOpenLocation, setCurrentView, profile, showToast }) => {
+const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite, onOpenLocation, setCurrentView, profile, showToast, chatFeatureEnabled, isAdmin }) => {
   const [activeHomeFilter, setActiveHomeFilter] = useState('All');
   
   const filtered = (locations || []).filter(l => {
@@ -2354,16 +2490,11 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   });
 
   const handleOtherDistricts = () => {
-    if (!profile?.username || profile?.username === 'ភ្ញៀវ') {
-       showToast('សូមចុះឈ្មោះកំណត់អត្តសញ្ញាណជាមុនសិន!', 'error');
-       setCurrentView('account');
-    } else {
-       showToast('មុខងារកំពុងអភិវឌ្ឍ (Under Development) ⚠️', 'info');
-    }
+     showToast('មុខងារកំពុងអភិវឌ្ឍ (Under Development) ⚠️', 'info');
   };
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300 pt-1 w-full flex-1 font-khmer">
+    <div className="space-y-4 pt-1 w-full flex-1 font-khmer">
       <div className="bg-[#0F2B5C] rounded-[16px] p-4 relative overflow-hidden flex flex-row items-center justify-between w-full min-h-[110px] shadow-md">
          <div className="absolute top-0 right-0 w-32 h-full bg-[#38BDF8]/10 rounded-l-[80px] z-0 pointer-events-none"></div>
          
@@ -2436,7 +2567,7 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
              } else {
                  setHowToData(null);
              }
-         });
+         }, (err) => {});
          return () => unsub();
      }
   }, [db, appId]);
@@ -2489,23 +2620,12 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
   const handleOpenAdd = () => {
     if (!isAdmin && (!profile?.username || profile?.username === 'ភ្ញៀវ')) {
-       showToast('សូមកំណត់ឈ្មោះគណនីជាមុនសិន', 'error');
+       showToast('សូមកំណត់ឈ្មោះគណនីជាមុនសិន ដើម្បីអាចបញ្ចូលទិន្នន័យបាន', 'error');
        setCurrentView('account');
        return;
     }
     onOpenAddModal();
   };
-
-  if ((!profile?.username || profile?.username === 'ភ្ញៀវ') && !isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[50vh] text-center font-khmer">
-         <div className="w-12 h-12 bg-slate-100 text-[#0F2B5C] rounded-full flex items-center justify-center mb-3"><User className="w-6 h-6" /></div>
-         <h2 className="text-[14px] font-black mb-1.5 text-[#0F2B5C]">តម្រូវឲ្យមានឈ្មោះគណនី</h2>
-         <p className="text-slate-500 mb-4 text-[12px] max-w-sm font-medium px-4">សូមចូលទៅកាន់គណនីដើម្បីកំណត់ឈ្មោះរបស់អ្នកសិន។ ភ្ញៀវមិនអាចបញ្ជូលទិន្នន័យបានទេ។</p>
-         <button onClick={() => setCurrentView('account')} className="btn-gradient px-4 py-2 rounded-lg font-bold text-[12px]">កំណត់ឈ្មោះឥឡូវនេះ</button>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-3 mt-1 flex-1 font-khmer font-medium">
@@ -2634,6 +2754,83 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
       </div>
     </div>
   );
+};
+
+// Category Color mapping helpers
+const getCategoryTheme = (category) => {
+   const cat = String(category || '').trim();
+   if (cat === 'ប៉ូលិស') return { 
+       badge: 'text-blue-700 bg-blue-100 border-blue-200',
+       solid: 'bg-blue-500 text-white border-blue-400 shadow-blue-500/30',
+       title: 'text-blue-800',
+       locText: 'text-blue-600',
+       contactBox: 'bg-blue-50/80 border-blue-100',
+       contactName: 'text-blue-700',
+       contactPhone: 'text-blue-600',
+       icon: 'text-blue-500',
+       views: 'text-blue-600 bg-blue-50 border-blue-100',
+       emoji: '🛡️'
+   };
+   if (cat === 'មន្ទីរពេទ្យ' || cat === 'ពេទ្យ') return { 
+       badge: 'text-rose-700 bg-rose-100 border-rose-200',
+       solid: 'bg-rose-500 text-white border-rose-400 shadow-rose-500/30',
+       title: 'text-rose-800',
+       locText: 'text-rose-600',
+       contactBox: 'bg-rose-50/80 border-rose-100',
+       contactName: 'text-rose-700',
+       contactPhone: 'text-rose-600',
+       icon: 'text-rose-500',
+       views: 'text-rose-600 bg-rose-50 border-rose-100',
+       emoji: '🏥'
+   };
+   if (cat === 'សាលារៀន') return { 
+       badge: 'text-orange-700 bg-orange-100 border-orange-200',
+       solid: 'bg-orange-500 text-white border-orange-400 shadow-orange-500/30',
+       title: 'text-orange-800',
+       locText: 'text-orange-600',
+       contactBox: 'bg-orange-50/80 border-orange-100',
+       contactName: 'text-orange-700',
+       contactPhone: 'text-orange-600',
+       icon: 'text-orange-500',
+       views: 'text-orange-600 bg-orange-50 border-orange-100',
+       emoji: '🎓'
+   };
+   if (cat === 'ឃុំ' || cat === 'សង្កាត់') return { 
+       badge: 'text-emerald-700 bg-emerald-100 border-emerald-200',
+       solid: 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/30',
+       title: 'text-emerald-800',
+       locText: 'text-emerald-600',
+       contactBox: 'bg-emerald-50/80 border-emerald-100',
+       contactName: 'text-emerald-700',
+       contactPhone: 'text-emerald-600',
+       icon: 'text-emerald-500',
+       views: 'text-emerald-600 bg-emerald-50 border-emerald-100',
+       emoji: '🏛️'
+   };
+   if (cat === 'ភូមិ') return { 
+       badge: 'text-violet-700 bg-violet-100 border-violet-200',
+       solid: 'bg-violet-500 text-white border-violet-400 shadow-violet-500/30',
+       title: 'text-violet-800',
+       locText: 'text-violet-600',
+       contactBox: 'bg-violet-50/80 border-violet-100',
+       contactName: 'text-violet-700',
+       contactPhone: 'text-violet-600',
+       icon: 'text-violet-500',
+       views: 'text-violet-600 bg-violet-50 border-violet-100',
+       emoji: '🏘️'
+   };
+   return { 
+       badge: 'text-sky-700 bg-sky-100 border-sky-200',
+       solid: 'bg-sky-500 text-white border-sky-400 shadow-sky-500/30',
+       title: 'text-[#0F2B5C]',
+       locText: 'text-slate-600',
+       contactBox: 'bg-slate-50 border-slate-200',
+       contactName: 'text-slate-800',
+       contactPhone: 'text-slate-600',
+       icon: 'text-[#38BDF8]',
+       views: 'text-[#38BDF8] bg-sky-50 border-sky-100',
+       emoji: '📍'
+   };
 };
 
 const base64ToBlobUrl = (base64Data, mimeType = 'audio/webm') => {
@@ -3203,7 +3400,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
      const registeredUsersToShow = (usersList || []).filter(u => u && u.username && u.username !== 'ភ្ញៀវ' && u.id !== myChatId && u.id !== 'admin_ramit_fixed_uid');
 
      return (
-        <div className="flex flex-col h-full bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden w-full flex-1 font-khmer animate-in fade-in duration-300 pb-[85px] md:pb-0">
+        <div className="flex flex-col h-full bg-white md:rounded-xl md:border md:border-slate-200 overflow-hidden w-full flex-1 font-khmer md:pb-0" style={{ paddingBottom: 'calc(75px + env(safe-area-inset-bottom, 0px))' }}>
            
            {/* Add Friend Interface Container with explicit Back Arrow button */}
            {showUserSearch ? (
@@ -3425,117 +3622,6 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
     >
       <ImageModal imageUrl={fullscreenImage} onClose={() => setFullscreenImage(null)} />
 
-      {/* 
-         ========================================================================
-         TELEGRAM-STYLE IN-APP VOICE & VIDEO CALL OVERLAY (REAL WEBRTC)
-         ======================================================================== 
-      */}
-      {callState.isActive && (
-          <div className="fixed inset-0 z-[5000] bg-[#0f172a] text-white flex flex-col font-khmer touch-none animate-in fade-in duration-300">
-              {/* Remote Audio/Video Elements */}
-              <audio ref={remoteAudioRef} autoPlay className="hidden" />
-              <video 
-                  ref={remoteVideoRef} 
-                  autoPlay 
-                  playsInline 
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${callState.isCameraOn || (remoteStreamRef.current && remoteStreamRef.current.getVideoTracks().length > 0) ? 'opacity-100' : 'opacity-0'}`} 
-              />
-
-              {/* Local Video Overlay (Picture in Picture - Only displays when camera is ON) */}
-              {callState.isCameraOn && (
-                  <div className="absolute top-24 right-4 w-28 h-40 bg-slate-800 rounded-xl overflow-hidden border-2 border-slate-600 shadow-2xl z-20 animate-in zoom-in">
-                      <video 
-                          ref={localVideoRef} 
-                          autoPlay 
-                          playsInline 
-                          muted
-                          className="w-full h-full object-cover transform scale-x-[-1]" 
-                      />
-                  </div>
-              )}
-
-              {/* Header Info */}
-              <div className="absolute top-0 left-0 right-0 p-8 bg-gradient-to-b from-black/80 to-transparent z-20 pt-safe">
-                  <h2 className="text-2xl md:text-3xl font-black drop-shadow-md text-center">{safeStr(callState.peerInfo?.label)}</h2>
-                  <p className="text-center text-slate-300 font-bold text-[14.5px] mt-1.5 drop-shadow-md tracking-wider">
-                     {callState.status === 'ringing' ? 'រោទ៍... (Ringing)' :
-                      callState.status === 'calling' ? 'កំពុងហៅ (Calling)...' :
-                      callState.status === 'connected' ? 
-                      <span className="text-white">{Math.floor(callState.duration / 60)}:{(callState.duration % 60).toString().padStart(2, '0')}</span> 
-                      : '...'}
-                  </p>
-              </div>
-
-              {/* Central Avatar (Visible when no video is active) */}
-              {!(callState.isCameraOn || (remoteStreamRef.current && remoteStreamRef.current.getVideoTracks().length > 0)) && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <div className="relative w-40 h-40 md:w-48 md:h-48">
-                          {/* Pulsing ring during dialing/ringing */}
-                          {(callState.status === 'calling' || callState.status === 'ringing') && (
-                             <div className="absolute inset-0 rounded-full bg-[#38BDF8] blur-2xl opacity-20 animate-ping"></div>
-                          )}
-                          <img src={callState.peerInfo?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'} className="w-full h-full rounded-full object-cover border-[3px] border-slate-700 relative z-10 shadow-2xl" alt="avatar" />
-                      </div>
-                  </div>
-              )}
-
-              {/* Incoming Call Controls */}
-              {callState.isIncoming && callState.status === 'ringing' ? (
-                  <div className="absolute bottom-12 left-0 right-0 flex justify-around px-10 z-20 pb-safe">
-                     <div className="flex flex-col items-center gap-2">
-                         <button onClick={rejectIncomingCall} className="w-[68px] h-[68px] rounded-full bg-rose-500 flex items-center justify-center text-white shadow-[0_4px_14px_rgba(244,63,94,0.4)] hover:bg-rose-600 transition-all active:scale-90">
-                            <Phone className="w-7 h-7 rotate-[135deg] fill-current" />
-                         </button>
-                         <span className="text-[13px] font-bold text-slate-300">បដិសេធ</span>
-                     </div>
-                     <div className="flex flex-col items-center gap-2">
-                         <button onClick={acceptIncomingCall} className="w-[68px] h-[68px] rounded-full bg-[#10b981] flex items-center justify-center text-white shadow-[0_4px_14px_rgba(16,185,129,0.4)] hover:bg-[#059669] transition-all active:scale-90 animate-bounce">
-                            <Phone className="w-7 h-7 fill-current" />
-                         </button>
-                         <span className="text-[13px] font-bold text-slate-300">ទទួល</span>
-                     </div>
-                  </div>
-              ) : (
-                  /* Active Call Bottom Controls */
-                  <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-8 z-20 pb-safe">
-                      <div className="flex justify-center items-center gap-8">
-                          {/* Speaker Button */}
-                          <div className="flex flex-col items-center gap-2">
-                              <button onClick={toggleSpeaker} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${callState.isSpeakerOn ? 'bg-slate-700/80 hover:bg-slate-600 text-white backdrop-blur-md' : 'bg-white text-slate-900'}`}>
-                                  {callState.isSpeakerOn ? <Volume2 className="w-6 h-6"/> : <VolumeX className="w-6 h-6"/>}
-                              </button>
-                              <span className="text-[11px] font-bold text-slate-400">Speaker</span>
-                          </div>
-                          
-                          {/* Camera Button (ONLY appears after call is connected) */}
-                          {callState.status === 'connected' && (
-                              <div className="flex flex-col items-center gap-2 animate-in slide-in-from-bottom-5">
-                                  <button onClick={toggleCamera} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${!callState.isCameraOn ? 'bg-slate-700/80 hover:bg-slate-600 text-white backdrop-blur-md' : 'bg-white text-slate-900'}`}>
-                                      <Camera className="w-6 h-6"/>
-                                  </button>
-                                  <span className="text-[11px] font-bold text-slate-400">Camera</span>
-                              </div>
-                          )}
-
-                          {/* Microphone Button */}
-                          <div className="flex flex-col items-center gap-2">
-                              <button onClick={toggleMic} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all ${callState.isMicOn ? 'bg-slate-700/80 hover:bg-slate-600 text-white backdrop-blur-md' : 'bg-white text-slate-900'}`}>
-                                  <Mic className="w-6 h-6"/>
-                                  {!callState.isMicOn && <div className="absolute w-[26px] h-[2px] bg-slate-900 rotate-45 rounded"></div>}
-                              </button>
-                              <span className="text-[11px] font-bold text-slate-400">Mute</span>
-                          </div>
-                      </div>
-
-                      {/* End Call Button */}
-                      <button onClick={endRealCall} className="w-[72px] h-[72px] rounded-full bg-rose-500 flex items-center justify-center text-white shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:bg-rose-600 transition-all active:scale-90 border-2 border-rose-400/50">
-                         <Phone className="w-8 h-8 rotate-[135deg] fill-current" />
-                      </button>
-                  </div>
-              )}
-          </div>
-      )}
-
       {/* Action modal for message modification */}
       {selectedActionMsg && (
          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -3564,28 +3650,7 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
          </div>
       )}
 
-      {editingMsg && (
-         <div className="absolute bottom-[70px] left-0 right-0 z-40 bg-white p-3 border-t border-slate-200 shadow-md rounded-t-2xl animate-in slide-in-from-bottom-2">
-            <div className="flex justify-between items-center mb-2">
-               <span className="text-[12px] font-black text-sky-500 flex items-center gap-1 bg-sky-50 px-2 py-0.5 rounded"><Edit3 className="w-3 h-3"/> កំពុងកែប្រែសារ</span>
-               <button onClick={() => {setEditingMsg(null); setEditInput('');}} className="p-1 bg-slate-100 rounded-full"><X className="w-3.5 h-3.5"/></button>
-            </div>
-            <div className="flex gap-2">
-               <input 
-                  type="text" 
-                  value={editInput} 
-                  onChange={e => setEditInput(e.target.value)} 
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[15px] font-medium"
-                  autoFocus
-               />
-               <button onClick={saveEditedMessage} className="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-3 py-2 text-[13px] font-black flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5"/> Save
-               </button>
-            </div>
-         </div>
-      )}
-
-      <div className="p-2.5 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between shrink-0 z-30 shadow-sm pt-safe">
+      <div className="p-2.5 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between shrink-0 z-30 shadow-sm" style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}>
         <div className="flex items-center gap-2.5">
            <button onClick={() => setActiveChatUser(null)} className="p-1.5 bg-slate-50 rounded-full border border-slate-200"><ArrowLeft className="w-4.5 h-4.5 text-slate-600"/></button>
            <div className="relative">
@@ -3701,9 +3766,31 @@ const ChatView = ({ chats = [], user, profile, showToast, db, appId, setCurrentV
         )}
       </div>
 
-      <div className="p-3 bg-white border-t border-slate-200 shrink-0 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] m-0 relative w-full" onClick={e=>e.stopPropagation()}>
+      <div className="px-3 pt-3 bg-white border-t border-slate-200 shrink-0 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] m-0 relative w-full" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }} onClick={e=>e.stopPropagation()}>
+        
+        {editingMsg && (
+           <div className="absolute bottom-[100%] left-0 right-0 z-40 bg-white p-3 border-t border-slate-200 shadow-md rounded-t-2xl animate-in slide-in-from-bottom-2">
+              <div className="flex justify-between items-center mb-2">
+                 <span className="text-[12px] font-black text-sky-500 flex items-center gap-1 bg-sky-50 px-2 py-0.5 rounded"><Edit3 className="w-3 h-3"/> កំពុងកែប្រែសារ</span>
+                 <button onClick={() => {setEditingMsg(null); setEditInput('');}} className="p-1 bg-slate-100 rounded-full"><X className="w-3.5 h-3.5"/></button>
+              </div>
+              <div className="flex gap-2">
+                 <input 
+                    type="text" 
+                    value={editInput} 
+                    onChange={e => setEditInput(e.target.value)} 
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[15px] font-medium"
+                    autoFocus
+                 />
+                 <button onClick={saveEditedMessage} className="bg-sky-500 hover:bg-sky-600 text-white rounded-xl px-3 py-2 text-[13px] font-black flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5"/> Save
+                 </button>
+              </div>
+           </div>
+        )}
+
         {showAttachMenu && (
-           <div className="absolute bottom-[65px] left-3 bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex flex-col w-40 animate-in slide-in-from-bottom-2">
+           <div className="absolute bottom-[100%] mb-2 left-3 bg-white rounded-xl shadow-2xl border border-slate-200 p-1.5 flex flex-col w-40 animate-in slide-in-from-bottom-2">
               <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
               <button type="button" onClick={()=>fileInputRef.current?.click()} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg text-[12px] font-bold text-[#0F2B5C] text-left"><ImageSvgIcon className="text-[#38BDF8]"/> ផ្ញើររូបភាព</button>
               <button type="button" onClick={handleSendLocation} className="flex items-center gap-2 p-2 hover:bg-slate-50 rounded-lg text-[12px] font-bold text-[#0F2B5C] text-left border-t border-slate-100"><MapPin className="w-4 h-4 text-rose-500"/> ផ្ញើទីតាំង (GPS)</button>
@@ -3888,20 +3975,28 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
 
       sessionStorage.removeItem('tp_is_guest');
       localStorage.setItem(`tp_username_${user?.uid}`, trimmedName);
-      if (db && user) {
-         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
-            username: trimmedName,
-            bio: localBio.trim(),
-            uid: user.uid,
-            avatar: profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-            timestamp: Date.now(),
-            lastActive: Date.now(),
-            status: 'online',
-            role: isAdmin ? 'admin' : 'user'
-         }, { merge: true }).catch(()=>{});
-      }
+      
+      // Optimistic update so it reflects instantly and doesn't disappear
+      setProfile(prev => ({ ...prev, username: trimmedName, bio: localBio.trim() }));
       setIsEditingName(false);
-      showToast('រក្សាទុកជោគជ័យ');
+
+      if (db && user) {
+         try {
+             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', user.uid), {
+                username: trimmedName,
+                bio: localBio.trim(),
+                uid: user.uid,
+                avatar: profile?.avatar || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                timestamp: Date.now(),
+                lastActive: Date.now(),
+                status: 'online',
+                role: isAdmin ? 'admin' : 'user'
+             }, { merge: true });
+             showToast('រក្សាទុកឈ្មោះនិង Bio បានជោគជ័យ ✅');
+         } catch(err) {
+             showToast('បញ្ហាក្នុងការរក្សាទុកទិន្នន័យទៅកាន់ Server: ' + err.message, 'error');
+         }
+      }
   };
 
   const handleAvatarUpload = (e) => {
@@ -3925,10 +4020,14 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
 
           if (db) {
              const targetId = isAdmin ? 'admin_ramit_fixed_uid' : user.uid;
-             await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetId), {
-                avatar: b64
-             }).catch(()=>{});
-             showToast('បានប្តូររូបភាព Profile ជោគជ័យ');
+             try {
+                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_data', targetId), {
+                    avatar: b64
+                 }, { merge: true });
+                 showToast('បានប្តូររូបភាព Profile និងរក្សាទុកចូល Database ជោគជ័យ ✅');
+             } catch(err) {
+                 showToast('មិនអាចរក្សាទុករូបភាពបានទេ: ' + err.message, 'error');
+             }
           }
        };
        img.src = r.result;
@@ -3937,7 +4036,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-3 pt-1 flex-1 w-full font-khmer animate-in fade-in">
+    <div className="max-w-xl mx-auto space-y-3 pt-1 flex-1 w-full font-khmer">
       <div className="flex items-center gap-1 px-1 border-l-4 border-[#0F2B5C] pl-2 mb-3">
          <h1 className="text-[14.5px] font-black text-[#0F2B5C]">គណនី</h1>
       </div>
@@ -4038,7 +4137,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   );
 };
 
-const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme, customBg, setCustomBg, appLogo, setAppLogo, gatewayBg, setGatewayBg }) => {
+const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme, customBg, setCustomBg, appLogo, setAppLogo, gatewayBg, setGatewayBg, chatFeatureEnabled, setChatFeatureEnabled }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -4052,7 +4151,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           if (docSnap.exists()) {
               setHowToData(docSnap.data());
           }
-      });
+      }, (err) => {});
       return () => unsub();
   }, [db, appId]);
 
@@ -4299,9 +4398,16 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      if(currentData[newCommune]) return showToast('ឃុំនេះមានរួចហើយ!', 'error');
      const updated = { ...dbRegions, "រតនមណ្ឌល": { ...currentData, [newCommune]: [] } };
      if (typeof setDbRegions === 'function') setDbRegions(updated);
-     if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updated }).catch(()=>{});
-     setNewCommune('');
-     showToast('បន្ថែមឃុំជោគជ័យ');
+     
+     if (db) {
+         try {
+             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updated }, { merge: true });
+             showToast('បន្ថែមឃុំ និងរក្សាទុកក្នុង Database ជោគជ័យ ✅');
+             setNewCommune('');
+         } catch(err) {
+             showToast('កំហុសពីប្រព័ន្ធ: ' + err.message, 'error');
+         }
+     }
   };
 
   const handleAddVillage = async (e) => {
@@ -4312,9 +4418,16 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
      if(currentVillages.includes(newVillage)) return showToast('ភូមិនេះមានរួចហើយ!', 'error');
      const updated = { ...dbRegions, "រតនមណ្ឌល": { ...currentData, [selectedCommune]: [...currentVillages, newVillage] } };
      if (typeof setDbRegions === 'function') setDbRegions(updated);
-     if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updated }).catch(()=>{});
-     setNewVillage('');
-     showToast('បន្ថែមភូមិជោគជ័យ');
+     
+     if (db) {
+         try {
+             await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updated }, { merge: true });
+             showToast('បន្ថែមភូមិ និងរក្សាទុកក្នុង Database ជោគជ័យ ✅');
+             setNewVillage('');
+         } catch(err) {
+             showToast('កំហុសពីប្រព័ន្ធ: ' + err.message, 'error');
+         }
+     }
   };
 
   const handleDeleteCommune = (cName) => {
@@ -4323,8 +4436,15 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
          delete currentData[cName];
          const updatedRegions = { ...dbRegions, "រតនមណ្ឌល": currentData };
          if (typeof setDbRegions === 'function') setDbRegions(updatedRegions);
-         if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updatedRegions }, { merge: true }).catch(()=>{});
-         showToast('លុបឃុំបានជោគជ័យ');
+         
+         if (db) {
+             try {
+                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updatedRegions }, { merge: true });
+                 showToast('លុបឃុំចេញពី Database ជោគជ័យ ✅');
+             } catch(err) {
+                 showToast('កំហុសពីប្រព័ន្ធ: ' + err.message, 'error');
+             }
+         }
      });
   };
 
@@ -4335,8 +4455,15 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
          const updatedVillages = currentVillages.filter(v => v !== vName);
          const updatedRegions = { ...dbRegions, "រតនមណ្ឌល": { ...currentData, [cName]: updatedVillages } };
          if (typeof setDbRegions === 'function') setDbRegions(updatedRegions);
-         if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updatedRegions }, { merge: true }).catch(()=>{});
-         showToast('លុបភូមិបានជោគជ័យ');
+         
+         if (db) {
+             try {
+                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'regions'), { data: updatedRegions }, { merge: true });
+                 showToast('លុបភូមិចេញពី Database ជោគជ័យ ✅');
+             } catch(err) {
+                 showToast('កំហុសពីប្រព័ន្ធ: ' + err.message, 'error');
+             }
+         }
      });
   };
 
@@ -4376,6 +4503,13 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       setCosmicTheme(targetState);
       if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { cosmicTheme: targetState }, { merge: true }).catch(()=>{});
       showToast(`បានកំណត់ Theme ថ្មីស្ថាពរ`);
+  };
+
+  const toggleChatFeature = async () => {
+      const targetState = !chatFeatureEnabled;
+      setChatFeatureEnabled(targetState);
+      if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { chatFeatureEnabled: targetState }, { merge: true }).catch(()=>{});
+      showToast(`បាន${targetState ? 'បើក' : 'បិទ'}មុខងារឆាត`);
   };
 
   const handleCustomBgChange = async (colorHex) => {
@@ -4822,20 +4956,16 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                      </label>
                  </div>
 
-                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
                      <div>
-                        <h4 className="font-bold text-[12.5px] text-slate-800">ប្ដូររូបសញ្ញាសាលារៀន (Upload High School Logo)</h4>
-                        <p className="text-[10px] text-slate-500 mt-0.5">រូបភាពនេះនឹងបង្ហាញនៅលើក្បាលទំព័រ និងទំព័រស្វាគមន៍ជំនួសរូបតំណាងចាស់។</p>
+                        <h4 className="font-bold text-[12.5px] text-slate-800">មុខងារឆាត និងផ្ញើសារ</h4>
+                        <p className="text-[10px] text-slate-500 mt-1">បិទបើកការអនុញ្ញាតអោយអ្នកប្រើប្រាស់ទូទៅអាចឆាតគ្នាបាន</p>
                      </div>
-                     <div className="flex items-center gap-3">
-                         <div className="w-14 h-14 rounded-full border border-slate-300 bg-white flex items-center justify-center overflow-hidden">
-                             {appLogo ? <img src={appLogo} alt="School Logo" className="w-full h-full object-cover" /> : <GraduationCap className="w-7 h-7 text-[#0F2B5C]"/>}
-                         </div>
-                         <label className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-[11px] font-bold text-slate-700 rounded-xl cursor-pointer shadow-sm active:scale-95 transition-transform">
-                             Upload Logo សាលា
-                             <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                         </label>
-                     </div>
+                     <label className="relative flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only toggle-checkbox" checked={chatFeatureEnabled} onChange={toggleChatFeature} />
+                        <div className={`w-10 h-6 rounded-full transition-colors duration-300 toggle-label ${chatFeatureEnabled ? 'bg-[#10b981]' : 'bg-slate-300'}`}></div>
+                        <div className={`dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 ${chatFeatureEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                     </label>
                  </div>
 
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
@@ -5356,6 +5486,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
 const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   const displayTitle = safeStr(location.title);
   const contactLines = parseContactsList(location);
+  const theme = getCategoryTheme(location.category);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between group relative">
@@ -5368,26 +5499,28 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
          <div className="w-full aspect-[16/10] bg-slate-100 overflow-hidden relative shrink-0 border-b border-slate-100">
             <img src={location.image} className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" alt="img" />
-            <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-md py-0.5 px-1.5 rounded border border-slate-200 shadow-sm text-[9px] font-black text-[#0F2B5C] uppercase tracking-wider">{safeStr(location.category)}</div>
+            <div className={`absolute bottom-2 left-2 backdrop-blur-md py-1 px-2 rounded-lg shadow-md text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${theme.solid}`}>
+               <span className="text-[12px] leading-none drop-shadow-sm">{theme.emoji}</span> <span>{safeStr(location.category)}</span>
+            </div>
          </div>
-         <div className="p-2.5 flex flex-col justify-between flex-1">
+         <div className="p-3 flex flex-col justify-between flex-1">
             <div>
-               <h3 className="font-black text-[13px] text-[#0F2B5C] leading-tight line-clamp-1 mb-0.5">{displayTitle}</h3>
-               <p className="text-[10px] text-slate-500 font-bold mb-1.5 flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 text-slate-400"/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
+               <h3 className={`font-black text-[13.5px] leading-tight line-clamp-1 mb-1 ${theme.title}`}>{displayTitle}</h3>
+               <p className={`text-[10.5px] font-bold mb-2 flex items-center gap-1 ${theme.locText}`}><MapPin className={`w-3 h-3 ${theme.icon}`}/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
                
-               <div className="mb-2 space-y-0.5">
+               <div className="mb-2 space-y-1">
                  {contactLines.slice(0, 1).map((c, i) => (
-                    <div key={i} className="text-[11px] font-black text-slate-600 truncate bg-slate-50 p-1 rounded border border-slate-100">
-                       👤 {safeStr(c.name)}: <span className="text-slate-500 font-bold">{safeStr(c.phone)}</span>
+                    <div key={i} className={`text-[11px] font-black truncate p-1.5 rounded-lg border ${theme.contactBox} ${theme.contactName}`}>
+                       👤 {safeStr(c.name)}: <span className={`font-bold ml-1 ${theme.contactPhone}`}>{safeStr(c.phone)}</span>
                     </div>
                  ))}
                </div>
 
-               <p className="text-[11.5px] text-slate-500 leading-normal line-clamp-2 mb-1.5 font-medium">{safeStr(location.desc)}</p>
+               <p className="text-[11.5px] text-slate-500 leading-relaxed line-clamp-2 mb-2 font-medium">{safeStr(location.desc)}</p>
             </div>
-            <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 mt-auto">
-               <span className="text-[10px] font-bold text-[#38BDF8] flex items-center gap-0.5 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100"><Pin className="w-2.5 h-2.5 fill-current"/> {location.likes || 0} Pins</span>
-               <span className="text-[10px] font-bold text-slate-500 flex items-center gap-0.5">មើលបន្ថែម <ArrowRight className="w-2.5 h-2.5"/></span>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
+               <span className={`text-[10px] font-black flex items-center gap-1 px-2 py-0.5 rounded-md border ${theme.views}`}><Eye className="w-3.5 h-3.5"/> {location.views || 0} ដង</span>
+               <span className="text-[10px] font-bold text-slate-400 flex items-center gap-0.5">លម្អិត <ArrowRight className="w-3 h-3"/></span>
             </div>
          </div>
       </div>
@@ -5395,63 +5528,66 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   );
 };
 
-const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite, gpsCoords, onCallTrigger }) => {
+const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite, gpsCoords, onCallTrigger, onChatTrigger, chatFeatureEnabled, isAdmin }) => {
   const isFav = favorites && location && favorites[location.id];
   const displayTitle = safeStr(location.title);
   const calculatedDistanceVal = gpsCoords && location.coords ? calculateDistance(gpsCoords.lat, gpsCoords.lng, location.coords.lat, location.coords.lng) : 0;
   const contactLines = parseContactsList(location);
+  const theme = getCategoryTheme(location.category);
 
   return (
     <div className="fixed inset-0 z-[150] bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-4 pointer-events-auto font-khmer">
        <div className="bg-white w-full max-w-lg rounded-[20px] overflow-hidden shadow-2xl flex flex-col max-h-[85vh] border border-slate-200 animate-in zoom-in-95 duration-300">
           <div className="relative w-full aspect-[16/10] bg-slate-100 shrink-0">
              <img src={location.image} className="w-full h-full object-cover object-center" alt="loc"/>
-             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 flex items-end justify-between">
+             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3.5 flex items-end justify-between">
                 <div>
-                   <span className="bg-[#38BDF8] text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm border border-sky-400 uppercase tracking-wider">{safeStr(location.category)}</span>
-                   <h2 className="text-white font-black text-[14.5px] mt-1 leading-tight">{displayTitle}</h2>
+                   <span className={`text-[10.5px] font-black px-2 py-1 rounded-lg shadow-md border uppercase tracking-wider flex items-center gap-1.5 w-fit ${theme.solid}`}>
+                      <span className="text-[12px] leading-none drop-shadow-sm">{theme.emoji}</span> <span>{safeStr(location.category)}</span>
+                   </span>
+                   <h2 className="text-white font-black text-[15px] mt-1.5 leading-tight drop-shadow-lg">{displayTitle}</h2>
                 </div>
-                <button onClick={() => toggleFavorite(location.id)} className={`p-2 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-emerald-500 text-white shadow-lg border border-emerald-400' : 'bg-white text-slate-500 border border-transparent'}`}>
-                   <Pin className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`}/>
+                <button onClick={() => toggleFavorite(location.id)} className={`p-2.5 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-emerald-500 text-white shadow-lg border border-emerald-400' : 'bg-white/90 text-slate-500 border border-slate-200/50'}`}>
+                   <Pin className={`w-4 h-4 ${isFav ? 'fill-current' : ''}`}/>
                 </button>
              </div>
-             <button onClick={onClose} className="absolute top-2.5 right-2.5 p-1.5 bg-white/80 rounded-full text-slate-700 shadow-sm backdrop-blur-sm"><X className="w-3.5 h-3.5"/></button>
+             <button onClick={onClose} className="absolute top-2.5 right-2.5 p-1.5 bg-white/80 rounded-full text-slate-700 shadow-sm backdrop-blur-sm hover:bg-white"><X className="w-4 h-4"/></button>
           </div>
-          <div className="p-3.5 overflow-y-auto flex-1 space-y-3 hide-scrollbar">
+          <div className="p-3.5 overflow-y-auto flex-1 space-y-3.5 hide-scrollbar">
              
-             <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-2">
-                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block">បញ្ជីខ្សែទូរស័ព្ទទាក់ទង ({contactLines.length})</span>
-                <div className="space-y-1.5">
+             <div className={`p-3 rounded-xl border space-y-2.5 shadow-sm ${theme.contactBox}`}>
+                <span className={`text-[10px] font-black uppercase tracking-widest block ${theme.icon}`}>បញ្ជីខ្សែទូរស័ព្ទទាក់ទង ({contactLines.length})</span>
+                <div className="space-y-2">
                    {contactLines.map((c, i) => (
-                      <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
+                      <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
                          <div>
-                            <span className="text-[13px] font-black text-[#0F2B5C] block">{safeStr(c.name)}</span>
-                            <span className="text-[11.5px] text-slate-500 font-bold tracking-wider">{safeStr(c.phone)}</span>
+                            <span className={`text-[13.5px] font-black block leading-none ${theme.contactName}`}>{safeStr(c.name)}</span>
+                            <span className={`text-[11.5px] font-bold tracking-wider mt-1 block ${theme.contactPhone}`}>{safeStr(c.phone)}</span>
                          </div>
                          <a 
                            href={`tel:${c.phone}`}
-                           className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shadow-sm"
+                           className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm border active:scale-90 transition-transform ${theme.solid}`}
                          >
-                            <Phone className="w-3.5 h-3.5"/>
+                            <Phone className="w-4 h-4"/>
                          </a>
                       </div>
                    ))}
                 </div>
              </div>
 
-             <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
-                <span className="text-[9px] text-slate-400 font-bold uppercase block">អាសយដ្ឋាន</span>
-                <p className="font-bold text-[13px] text-slate-800 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-rose-500"/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
+             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
+                <span className={`text-[10px] font-bold uppercase block ${theme.icon}`}>អាសយដ្ឋាន</span>
+                <p className={`font-black text-[13px] flex items-center gap-1.5 ${theme.title}`}><MapPin className={`w-4 h-4 ${theme.icon}`}/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
                 {calculatedDistanceVal > 0 && (
-                   <span className="inline-block bg-emerald-50 text-emerald-600 text-[10px] font-black border border-emerald-100 px-2 py-0.5 rounded mt-1">
-                      📍 ចម្ងាយពីអ្នក: {calculatedDistanceVal < 1 ? `${Math.round(calculatedDistanceVal * 1000)} m` : `${calculatedDistanceVal} KM`}
+                   <span className="inline-block bg-emerald-50 text-emerald-700 text-[10.5px] font-black border border-emerald-200 px-2.5 py-1 rounded-lg mt-1 shadow-sm">
+                      📍 ចម្ងាយពីអ្នក: {calculatedDistanceVal < 1 ? `${Math.round(calculatedDistanceVal * 1000)} ម៉ែត្រ (m)` : `${calculatedDistanceVal} គីឡូម៉ែត្រ (KM)`}
                    </span>
                 )}
              </div>
 
-             <div className="space-y-1">
-                <span className="text-[9px] text-slate-400 font-bold uppercase block">ព័ត៌មានលម្អិត</span>
-                <p className="text-[13px] text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">{safeStr(location.desc || 'គ្មានការពណ៌នាព័ត៌មានបន្ថែមទេ។')}</p>
+             <div className="space-y-1.5">
+                <span className={`text-[10px] font-bold uppercase block ${theme.icon}`}>ព័ត៌មានលម្អិត</span>
+                <p className="text-[13.5px] text-slate-700 leading-relaxed font-medium bg-slate-50 p-3.5 rounded-xl border border-slate-200">{safeStr(location.desc || 'គ្មានការពណ៌នាព័ត៌មានបន្ថែមទេ។')}</p>
              </div>
           </div>
           
@@ -5459,20 +5595,20 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              <button 
                 type="button"
                 onClick={() => onCallTrigger(location)} 
-                className="flex-1 py-3 rounded-lg font-black text-[13px] flex items-center justify-center gap-1 bg-emerald-500 border border-emerald-600 text-white shadow-sm"
+                className="flex-1 py-3 rounded-lg font-black text-[12px] flex items-center justify-center gap-1 bg-emerald-500 border border-emerald-600 text-white shadow-sm"
              >
                 <Phone className="w-3.5 h-3.5" />
-                <span>ទូរស័ព្ទ (Call Contact)</span>
+                <span>ទូរស័ព្ទ</span>
              </button>
 
              <a 
                 href={location.mapUrl || (location.coords ? `https://www.google.com/maps?q=${location.coords.lat},${location.coords.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayTitle)}`)} 
                 target="_blank" 
                 rel="noreferrer"
-                className="flex-1 py-3 bg-[#0F2B5C] text-white border border-[#0F2B5C] rounded-lg font-black text-[13px] flex items-center justify-center gap-1 shadow-sm"
+                className="flex-1 py-3 bg-[#0F2B5C] text-white border border-[#0F2B5C] rounded-lg font-black text-[12px] flex items-center justify-center gap-1 shadow-sm"
               >
                 <MapSvgIcon className="text-[#38BDF8]"/>
-                <span>ផែនទី (Location)</span>
+                <span>ផែនទី</span>
              </a>
           </div>
        </div>
