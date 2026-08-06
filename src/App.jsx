@@ -26,7 +26,8 @@ import {
   addDoc, 
   increment,
   query,
-  where
+  where,
+  getDoc
 } from 'firebase/firestore';
 import { 
   LineChart, Line, BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer 
@@ -247,6 +248,7 @@ const injectStyles = () => {
   styleEl.innerHTML = `
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700;800;900&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Moul&display=swap');
     
     :root { 
       --font-khmer: 'Noto Sans Khmer', sans-serif; 
@@ -266,6 +268,10 @@ const injectStyles = () => {
     .font-khmer { 
       font-family: var(--font-khmer); 
       line-height: 1.65;
+    }
+    .font-khmer-muol {
+      font-family: 'Moul', 'Khmer OS Muol Light', cursive;
+      font-weight: normal;
     }
     .font-logo { font-family: 'Montserrat', sans-serif; }
     
@@ -635,13 +641,25 @@ const CallPickerModal = ({ isOpen, title, contacts, onClose }) => {
 
 export default function App() {
   // Streamlining initial state load from local storage for 0ms render delay (Offline-First)
-  // FIXED: Using a permanent device ID as the unique identifier to prevent profile loss on refresh
+  // FIXED: Using a permanent device ID with Cookie Fallback to prevent profile loss on refresh or storage clear
   const getInitialUser = () => {
       let localToken = localStorage.getItem('tp_cambodia_device_id');
+      
+      // ប្រសិនបើក្នុង LocalStorage ត្រូវទូរស័ព្ទលុបចោល, ព្យាយាមទាញយកពីប្រព័ន្ធ Cookie វិញ
+      if (!localToken) {
+         const cookieMatch = document.cookie.match(/(?:^|; )tp_device_id=([^;]*)/);
+         if (cookieMatch) localToken = cookieMatch[1];
+      }
+      
+      // បើគ្មានសោះ ទើបបង្កើតថ្មី
       if (!localToken) {
          localToken = 'dev_uuid_' + crypto.randomUUID().replace(/-/g, '');
-         localStorage.setItem('tp_cambodia_device_id', localToken);
       }
+      
+      // រក្សាទុកចូលទាំង LocalStorage និង Cookie (សុពលភាព ១ ឆ្នាំ)
+      localStorage.setItem('tp_cambodia_device_id', localToken);
+      document.cookie = `tp_device_id=${localToken}; max-age=31536000; path=/`; 
+      
       return { uid: localToken, isAnonymous: true };
   };
 
@@ -666,14 +684,14 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem('tp_admin_session') === 'true');
   
   /* Customized logo and background states */
-  const [appLogo, setAppLogo] = useState('logo.png');
+  const [appLogo, setAppLogo] = useState(() => localStorage.getItem('tp_cache_appLogo') || 'logo.png');
   // FIXED: Update session when isAdmin changes
   useEffect(() => {
      sessionStorage.setItem('tp_admin_session', isAdmin);
   }, [isAdmin]);
 
-  const [customBg, setCustomBg] = useState('#f8fafc');
-  const [gatewayBg, setGatewayBg] = useState('');
+  const [customBg, setCustomBg] = useState(() => localStorage.getItem('tp_cache_customBg') || '#f8fafc');
+  const [gatewayBg, setGatewayBg] = useState(() => localStorage.getItem('tp_cache_gatewayBg') || '');
   
   // Instant profile loading from local cache
   const [profile, setProfile] = useState(() => {
@@ -720,6 +738,10 @@ export default function App() {
   const [appeals, setAppeals] = useState([]);
   const [cosmicTheme, setCosmicTheme] = useState(() => localStorage.getItem('tp_cosmic') === 'true');
   const [chatFeatureEnabled, setChatFeatureEnabled] = useState(() => localStorage.getItem('tp_chat_enabled') !== 'false');
+
+  const [boostModeEnabled, setBoostModeEnabled] = useState(() => localStorage.getItem('tp_boost_enabled') === 'true');
+  const [boostFeatureRemoved, setBoostFeatureRemoved] = useState(() => localStorage.getItem('tp_boost_removed') === 'true');
+  const [appStats, setAppStats] = useState({ visitorCount: 0, fakeUsers: 0 });
 
   const [selectedLocation, setSelectedLocation] = useState(null);
   
@@ -813,14 +835,25 @@ export default function App() {
       try {
         const isAlreadyCounted = localStorage.getItem('tp_visitor_counted');
         if (!isAlreadyCounted) {
+          let isBoost = false;
+          try {
+             const themeSnap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'));
+             if (themeSnap.exists() && themeSnap.data().boostModeEnabled) isBoost = true;
+          } catch(e) {}
+          
           const statsRef = doc(db, 'artifacts', appId, 'public', 'stats');
-          await setDoc(statsRef, { visitorCount: increment(1) }, { merge: true });
+          let fakeInc = isBoost ? (Math.floor(Math.random() * 6) + 10) : 0;
+          
+          await setDoc(statsRef, { 
+              visitorCount: increment(1),
+              fakeUsers: increment(fakeInc)
+          }, { merge: true });
           localStorage.setItem('tp_visitor_counted', 'true');
         }
       } catch (e) {}
     };
     handleVisitorStats();
-  }, []);
+  }, [db]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -1046,10 +1079,32 @@ export default function App() {
               setChatFeatureEnabled(sdata.chatFeatureEnabled);
               localStorage.setItem('tp_chat_enabled', sdata.chatFeatureEnabled);
            }
-           if (sdata.customBg !== undefined) setCustomBg(sdata.customBg || '#f8fafc');
-           if (sdata.appLogo !== undefined) setAppLogo(sdata.appLogo || '');
-           if (sdata.gatewayBg !== undefined) setGatewayBg(sdata.gatewayBg || '');
+           if (sdata.boostModeEnabled !== undefined) {
+              setBoostModeEnabled(sdata.boostModeEnabled);
+              localStorage.setItem('tp_boost_enabled', sdata.boostModeEnabled);
+           }
+           if (sdata.boostFeatureRemoved !== undefined) {
+              setBoostFeatureRemoved(sdata.boostFeatureRemoved);
+              localStorage.setItem('tp_boost_removed', sdata.boostFeatureRemoved);
+           }
+           if (sdata.customBg !== undefined) {
+              setCustomBg(sdata.customBg || '#f8fafc');
+              localStorage.setItem('tp_cache_customBg', sdata.customBg || '#f8fafc');
+           }
+           if (sdata.appLogo !== undefined) {
+              setAppLogo(sdata.appLogo || '');
+              localStorage.setItem('tp_cache_appLogo', sdata.appLogo || '');
+           }
+           if (sdata.gatewayBg !== undefined) {
+              setGatewayBg(sdata.gatewayBg || '');
+              localStorage.setItem('tp_cache_gatewayBg', sdata.gatewayBg || '');
+           }
         }
+    }, () => {});
+
+    // Listen to visitor stats
+    const unsubStats = onSnapshot(doc(db, 'artifacts', appId, 'public', 'stats'), (snap) => {
+        if (snap.exists()) setAppStats(snap.data());
     }, () => {});
 
     // Get Chat Contacts
@@ -1073,7 +1128,7 @@ export default function App() {
     return () => { 
         clearInterval(presenceInterval); 
         unsubProfile(); unsubAllUsers(); unsubLocations(); unsubChats(); 
-        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTheme(); unsubTargets(); unsubAppeals();
+        unsubLogs(); unsubNotif(); unsubFavs(); unsubConfig(); unsubTheme(); unsubStats(); unsubTargets(); unsubAppeals();
     };
   }, [user]);
 
@@ -1190,6 +1245,82 @@ export default function App() {
       setActiveChatUser(targetUser);
       setCurrentView('chat');
       setSelectedLocation(null);
+  };
+
+  const handleDirectSendLocation = async (loc) => {
+      if (!chatFeatureEnabled && !isAdmin) {
+          showToast('មុខងារផ្ញើសារត្រូវបានបិទជាបណ្តោះអាសន្ន', 'error');
+          return;
+      }
+      if (!user || (profile?.username === 'ភ្ញៀវ' && !isAdmin)) {
+          showToast('សូមចុះឈ្មោះគណនីជាមុនសិន ដើម្បីផ្ញើទីតាំងបាន', 'error');
+          setCurrentView('account');
+          setSelectedLocation(null);
+          return;
+      }
+      const targetId = loc.authorUid;
+      if (!targetId || targetId === 'guest_uid') {
+          showToast('មិនអាចផ្ញើទីតាំងទៅកាន់ម្ចាស់ទិន្នន័យនេះបានទេ (គ្មានគណនី)', 'error');
+          return;
+      }
+      if (targetId === myChatId) {
+          showToast('នេះជាទីតាំងរបស់អ្នកផ្ទាល់', 'info');
+          return;
+      }
+
+      const executeSend = (coords) => {
+          if (!db) return showToast('មិនអាចផ្ញើទីតាំងបានទេក្នុង Sandbox Mode', 'info');
+          
+          showToast('កំពុងបញ្ជូនទីតាំងទៅកាន់ម្ចាស់ទិន្នន័យ...', 'info', 1000);
+          
+          addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'CHAT_DATA'), {
+             msgType: 'location',
+             senderCoords: { lat: coords.lat, lng: coords.lng },
+             mapUrl: `https://www.google.com/maps?q=${coords.lat},${coords.lng}`,
+             targetName: loc.author || 'ម្ចាស់ទីតាំង',
+             target: targetId,
+             userId: myChatId,
+             userName: myChatName,
+             seen: false,
+             timestamp: Date.now()
+          }).then(() => {
+             showToast('បានផ្ញើទីតាំង GPS ទៅកាន់ម្ចាស់ទិន្នន័យជោគជ័យ ✅', 'success', 4000);
+             
+             // អាប់ដេតបញ្ជីទំនាក់ទំនងដោយស្វ័យប្រវត្តិ
+             setDoc(doc(db, 'artifacts', appId, 'users', myChatId, 'contacts', targetId), {
+                id: targetId,
+                label: loc.author || 'ម្ចាស់ទីតាំង',
+                avatar: 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                isPrivate: true,
+                role: 'ម្ចាស់ទីតាំង',
+                district: loc.district || 'ផ្សេងៗ',
+                timestamp: Date.now()
+             }, { merge: true }).catch(()=>{});
+
+          }).catch(()=>{
+             showToast('មានបញ្ហាក្នុងការផ្ញើទីតាំង', 'error');
+          });
+      };
+
+      if (gpsCoords) {
+          executeSend(gpsCoords);
+      } else {
+          showToast('កំពុងស្វែងរកទីតាំងរបស់អ្នក (GPS)...', 'info', 2000);
+          if (navigator.geolocation) {
+               navigator.geolocation.getCurrentPosition(
+                   (pos) => {
+                       const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                       setGpsCoords(coords);
+                       setGpsStatus('green');
+                       executeSend(coords);
+                   },
+                   () => showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Location (GPS) ជាមុនសិន', 'error'),
+                   { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+               );
+           } else {
+               showToast('ឧបករណ៍របស់អ្នកមិនគាំទ្រ GPS ទេ', 'error');
+           }
+      }
   };
 
   const endRealCall = async () => {
@@ -1790,7 +1921,7 @@ export default function App() {
                    <GraduationCap className="relative z-10 w-12 h-12 text-[#38BDF8]" />
                 )}
             </div>
-            <h1 className={`font-logo font-black text-2xl md:text-3xl tracking-wide text-center px-4 ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : 'text-[#0F2B5C]'} mb-1`}>
+            <h1 className={`font-khmer-muol text-xl md:text-3xl tracking-wide text-center px-4 ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]' : 'text-[#0F2B5C]'} mb-2 mt-1`}>
                 {language === 'en' ? 'Sdao Santepheap High School' : 'វិទ្យាល័យស្តៅសន្តិភាព'}
             </h1>
             <p className={`text-[11px] ${cosmicTheme || gatewayBg ? 'text-[#0F2B5C] bg-white/80' : 'text-[#0F2B5C] bg-white/10'} font-bold uppercase tracking-widest px-3 py-1 rounded-full backdrop-blur-sm mt-1`}>
@@ -1887,7 +2018,7 @@ export default function App() {
                  locations={approvedLocations} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} 
                  onOpenLocation={handleOpenLocation} user={user} profile={profile} isAdmin={isAdmin} showToast={showToast} 
                  db={db} appId={appId} setCurrentView={setCurrentView} dbRegions={dbRegions} gpsCoords={gpsCoords} 
-                 captureGps={handleGPS} 
+                 captureGps={handleGPS} setSearchQuery={setSearchQuery}
                  onOpenAddModal={() => {
                    setAddForm({ 
                      title: '', 
@@ -1907,7 +2038,7 @@ export default function App() {
                />
              </div>
            )}
-           {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} /></div>}
+           {currentView === 'reports' && <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2"><ReportsView locations={approvedLocations} usersList={usersList} appStats={appStats} /></div>}
            {currentView === 'chat' && (chatFeatureEnabled || isAdmin) && <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-0"><ChatView chats={chats} user={user} profile={profile} showToast={showToast} db={db} appId={appId} setCurrentView={setCurrentView} isAdmin={isAdmin} chatTargets={chatTargets} myContacts={myContacts} friendRequests={friendRequests} dbRegions={dbRegions} gpsStatus={gpsStatus} captureGps={handleGPS} gpsCoords={gpsCoords} usersList={usersList} activeChatUser={activeChatUser} setActiveChatUser={setActiveChatUser} isSoundMuted={isSoundMuted} setIsSoundMuted={setIsSoundMuted} startRealCall={startRealCall} /></div>}
            {currentView === 'chat' && !chatFeatureEnabled && !isAdmin && (
              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -1920,7 +2051,7 @@ export default function App() {
            {currentView === 'admin' && isAdmin && (
               <div className="flex-1 overflow-y-auto px-3.5 md:px-6 pb-20 hide-scrollbar pt-2">
                 <AdminDashboard 
-                  locations={locations} setLocations={setLocations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} dbRegions={dbRegions} setDbRegions={setDbRegions} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} setIsAdmin={setIsAdmin} chatTargets={chatTargets} setChatTargets={setChatTargets} appeals={appeals} setAppeals={setAppeals} cosmicTheme={cosmicTheme} setCosmicTheme={setCosmicTheme} customBg={customBg} setCustomBg={setCustomBg} appLogo={appLogo} setAppLogo={setAppLogo} gatewayBg={gatewayBg} setGatewayBg={setGatewayBg} chatFeatureEnabled={chatFeatureEnabled} setChatFeatureEnabled={setChatFeatureEnabled}
+                  locations={locations} setLocations={setLocations} pendingLocations={pendingLocations} usersList={usersList} cyberLogs={cyberLogs} chats={chats} dbRegions={dbRegions} setDbRegions={setDbRegions} db={db} appId={appId} showToast={showToast} setCurrentView={setCurrentView} setIsAdmin={setIsAdmin} chatTargets={chatTargets} setChatTargets={setChatTargets} appeals={appeals} setAppeals={setAppeals} cosmicTheme={cosmicTheme} setCosmicTheme={setCosmicTheme} customBg={customBg} setCustomBg={setCustomBg} appLogo={appLogo} setAppLogo={setAppLogo} gatewayBg={gatewayBg} setGatewayBg={setGatewayBg} chatFeatureEnabled={chatFeatureEnabled} setChatFeatureEnabled={setChatFeatureEnabled} boostModeEnabled={boostModeEnabled} setBoostModeEnabled={setBoostModeEnabled} boostFeatureRemoved={boostFeatureRemoved} setBoostFeatureRemoved={setBoostFeatureRemoved}
                 />
               </div>
            )}
@@ -1934,7 +2065,7 @@ export default function App() {
 
       {selectedLocation && (
         <LocationDetailModal 
-          location={selectedLocation} onClose={() => setSelectedLocation(null)} favorites={favorites} toggleFavorite={toggleFavorite} gpsCoords={gpsCoords} onCallTrigger={triggerCallFlow} onChatTrigger={triggerChatFlow} chatFeatureEnabled={chatFeatureEnabled} isAdmin={isAdmin}
+          location={selectedLocation} onClose={() => setSelectedLocation(null)} favorites={favorites} toggleFavorite={toggleFavorite} gpsCoords={gpsCoords} onCallTrigger={triggerCallFlow} onChatTrigger={triggerChatFlow} onSendLocationTrigger={handleDirectSendLocation} chatFeatureEnabled={chatFeatureEnabled} isAdmin={isAdmin}
         />
       )}
 
@@ -2298,7 +2429,7 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, chatFeatureEna
            )}
         </div>
         <div className="min-w-0">
-          <h1 className="font-logo font-extrabold text-[12.5px] text-[#0F2B5C] leading-none uppercase tracking-wide truncate">វិ.ស្តៅសន្តិភាព</h1>
+          <h1 className="font-khmer-muol text-[13px] text-[#0F2B5C] leading-none tracking-wide truncate pt-1">វិទ្យាល័យស្តៅសន្តិភាព</h1>
           <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
         </div>
       </div>
@@ -2376,7 +2507,7 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                     )}
                  </div>
                  <div>
-                    <h1 className="font-logo font-extrabold text-[13.5px] leading-tight text-[#0F2B5C] tracking-wide uppercase">វិ.ស្តៅសន្តិភាព</h1>
+                    <h1 className="font-khmer-muol text-[14px] leading-tight text-[#0F2B5C] tracking-wide mt-1">វិទ្យាល័យស្តៅសន្តិភាព</h1>
                     {!isOnline && <span className="text-[9px] text-amber-600 font-bold bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded mt-0.5 inline-block"> Offline Mode ⚠️</span>}
                  </div>
               </div>
@@ -2452,15 +2583,20 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   
   const filtered = (locations || []).filter(l => {
      if (!l) return false;
-     const searchLower = searchQuery.toLowerCase().trim();
      
-     // ស្វែងរកក្តោបយកទាំង ចំណងជើង ការពណ៌នា ឈ្មោះឃុំ ឈ្មោះភូមិ និងប្រភេទ (Category)
-     const matchesSearch = 
-        safeStr(l.title).toLowerCase().includes(searchLower) || 
-        safeStr(l.desc).toLowerCase().includes(searchLower) ||
-        safeStr(l.commune).toLowerCase().includes(searchLower) ||
-        safeStr(l.village).toLowerCase().includes(searchLower) ||
-        safeStr(l.category).toLowerCase().includes(searchLower);
+     // ធ្វើឲ្យការស្វែងរកកាន់តែឆ្លាតវៃ (Smart Search): កាត់ពាក្យ "ឃុំ", "ភូមិ" ចេញ និងបំបែកពាក្យស្វែងរក
+     const rawSearch = searchQuery.toLowerCase().trim();
+     const cleanSearch = rawSearch.replace(/^(ឃុំ|ភូមិ|ស្រុក|សង្កាត់|ខេត្ត)\s*/, '');
+     const searchTerms = cleanSearch.split(/\s+/).filter(Boolean);
+     
+     const matchesSearch = searchTerms.length === 0 || searchTerms.every(term => 
+        safeStr(l.title).toLowerCase().includes(term) || 
+        safeStr(l.desc).toLowerCase().includes(term) ||
+        safeStr(l.commune).toLowerCase().includes(term) ||
+        safeStr(l.village).toLowerCase().includes(term) ||
+        safeStr(l.category).toLowerCase().includes(term) ||
+        safeStr(l.district).toLowerCase().includes(term)
+     );
         
      if(activeHomeFilter === 'All') return matchesSearch;
      if(activeHomeFilter === 'រតនមណ្ឌល') return matchesSearch && l.district === 'រតនមណ្ឌល';
@@ -2551,13 +2687,13 @@ const HomeView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     </div>
   );
 };
-
-const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite, onOpenLocation, user, profile, isAdmin, showToast, db, appId, setCurrentView, dbRegions, gpsCoords, captureGps, onOpenAddModal }) => {
+const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite, onOpenLocation, user, profile, isAdmin, showToast, db, appId, setCurrentView, dbRegions, gpsCoords, captureGps, onOpenAddModal, setSearchQuery }) => {
   const [activeTab, setActiveTab] = useState('រតនមណ្ឌល');
   const [activeFilter, setActiveFilter] = useState('ទាំងអស់');
 
   const [isHowToModalOpen, setIsHowToModalOpen] = useState(false);
   const [howToData, setHowToData] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
      if(db && appId) {
@@ -2574,15 +2710,20 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
 
   const filtered = (locations || []).filter(l => {
     if (!l) return false;
-    const searchLower = searchQuery.toLowerCase().trim();
     
-    // ស្វែងរកក្តោបយកទាំង ចំណងជើង ការពណ៌នា ឈ្មោះឃុំ ឈ្មោះភូមិ និងប្រភេទ (Category)
-    const matchesSearch = 
-        safeStr(l.title).toLowerCase().includes(searchLower) || 
-        safeStr(l.desc).toLowerCase().includes(searchLower) ||
-        safeStr(l.commune).toLowerCase().includes(searchLower) ||
-        safeStr(l.village).toLowerCase().includes(searchLower) ||
-        safeStr(l.category).toLowerCase().includes(searchLower);
+    // ធ្វើឲ្យការស្វែងរកកាន់តែឆ្លាតវៃ (Smart Search): កាត់ពាក្យ "ឃុំ", "ភូមិ" ចេញ និងបំបែកពាក្យស្វែងរក
+    const rawSearch = searchQuery.toLowerCase().trim();
+    const cleanSearch = rawSearch.replace(/^(ឃុំ|ភូមិ|ស្រុក|សង្កាត់|ខេត្ត)\s*/, '');
+    const searchTerms = cleanSearch.split(/\s+/).filter(Boolean);
+    
+    const matchesSearch = searchTerms.length === 0 || searchTerms.every(term => 
+        safeStr(l.title).toLowerCase().includes(term) || 
+        safeStr(l.desc).toLowerCase().includes(term) ||
+        safeStr(l.commune).toLowerCase().includes(term) ||
+        safeStr(l.village).toLowerCase().includes(term) ||
+        safeStr(l.category).toLowerCase().includes(term) ||
+        safeStr(l.district).toLowerCase().includes(term)
+    );
     
     const isRatanak = l.district === 'រតនមណ្ឌល';
     if (activeTab === 'រតនមណ្ឌល' && !isRatanak) return false;
@@ -2627,16 +2768,67 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
     onOpenAddModal();
   };
 
+  const handleFindMyLocation = () => {
+      setIsLocating(true);
+      if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                  setIsLocating(false);
+                  const { latitude, longitude } = pos.coords;
+                  
+                  // ប្រព័ន្ធវិភាគរកទីតាំងជិតបំផុត ដើម្បីកំណត់ឃុំ/ភូមិ
+                  let nearestLoc = null;
+                  let minDistance = Infinity;
+
+                  (locations || []).forEach(loc => {
+                      if (loc.coords && loc.coords.lat && loc.coords.lng) {
+                          const dist = calculateDistance(latitude, longitude, loc.coords.lat, loc.coords.lng);
+                          if (dist < minDistance) {
+                              minDistance = dist;
+                              nearestLoc = loc;
+                          }
+                      }
+                  });
+
+                  if (nearestLoc && nearestLoc.commune) {
+                      showToast(`📍 អ្នកកំពុងស្ថិតនៅ ឃុំ: ${nearestLoc.commune} ${nearestLoc.village ? `ភូមិ: ${nearestLoc.village}` : ''}`, 'success', 5000);
+                      
+                      // ប្តូរ Tab និងទាញ (Filter) ទិន្នន័យនៅតំបន់នោះមកបង្ហាញដោយស្វ័យប្រវត្តិ
+                      if (nearestLoc.district === 'រតនមណ្ឌល') setActiveTab('រតនមណ្ឌល');
+                      else setActiveTab('ស្រុកផ្សេងៗ');
+                      
+                      if (setSearchQuery) {
+                          setSearchQuery(nearestLoc.village ? `${nearestLoc.village}` : `${nearestLoc.commune}`);
+                      }
+                  } else {
+                      showToast('មិនអាចកំណត់ទីតាំងភូមិ/ឃុំបានទេ ដោយសារខ្វះទិន្នន័យ GPS ក្នុងប្រព័ន្ធ។', 'error');
+                  }
+              },
+              () => {
+                  setIsLocating(false);
+                  showToast('សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ Location ឧបករណ៍របស់អ្នកជាមុនសិន', 'error');
+              },
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+      } else {
+          setIsLocating(false);
+          showToast('ឧបករណ៍របស់អ្នកមិនគាំទ្រ GPS ទេ', 'error');
+      }
+  };
+
   return (
     <div className="space-y-3 mt-1 flex-1 font-khmer font-medium">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-         <h1 className="text-[14.5px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2">ព័ត៌មាន</h1>
-         <div className="flex w-full sm:w-auto gap-2">
-            <button onClick={() => setIsHowToModalOpen(true)} className="bg-white text-[#0F2B5C] border border-slate-200 px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[12px] flex-1 sm:flex-none justify-center shadow-sm hover:bg-slate-50 transition-colors">
-                <Info className="w-4 h-4"/> របៀបប្រើប្រាស់
+      <div className="flex flex-row items-center justify-between gap-2 w-full mb-1">
+         <h1 className="text-[14.5px] font-black px-1 text-[#0F2B5C] border-l-4 border-[#38BDF8] pl-2 shrink-0">ព័ត៌មាន</h1>
+         <div className="flex justify-end items-center gap-1.5 flex-wrap flex-1">
+            <button onClick={handleFindMyLocation} disabled={isLocating} className="bg-emerald-50 text-emerald-600 border border-emerald-200 px-2.5 py-2 rounded-lg font-bold flex items-center gap-1 text-[11px] shadow-sm hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                {isLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <MapPin className="w-3.5 h-3.5"/>} ទីតាំងខ្ញុំ
             </button>
-            <button onClick={handleOpenAdd} className="btn-gradient px-4 py-2.5 rounded-lg font-bold flex items-center gap-1.5 text-[12px] flex-1 sm:flex-none justify-center shadow-sm">
-                <Plus className="w-4 h-4"/> បន្ថែមទិន្នន័យ
+            <button onClick={() => setIsHowToModalOpen(true)} className="bg-white text-[#0F2B5C] border border-slate-200 px-2.5 py-2 rounded-lg font-bold flex items-center gap-1 text-[11px] shadow-sm hover:bg-slate-50 transition-colors whitespace-nowrap">
+                <Info className="w-3.5 h-3.5"/> របៀបប្រើប្រាស់
+            </button>
+            <button onClick={handleOpenAdd} className="btn-gradient px-2.5 py-2 rounded-lg font-bold flex items-center gap-1 text-[11px] shadow-sm whitespace-nowrap text-white">
+                <Plus className="w-3.5 h-3.5"/> បន្ថែម
             </button>
          </div>
       </div>
@@ -2673,8 +2865,9 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
   );
 };
 
-const ReportsView = ({ locations = [], usersList = [] }) => {
-  const totalUsers = (usersList || []).length;
+const ReportsView = ({ locations = [], usersList = [], appStats = {} }) => {
+  const fakeCount = appStats?.fakeUsers || 0;
+  const totalUsers = (usersList || []).length + fakeCount;
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -2682,8 +2875,8 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
   const startOfMonthMs = new Date(currentYear, currentMonth, 1).getTime();
   const startOfYearMs = new Date(currentYear, 0, 1).getTime();
 
-  const usersThisMonth = (usersList || []).filter(u => u && (u.timestamp || 0) >= startOfMonthMs).length;
-  const usersThisYear = (usersList || []).filter(u => u && (u.timestamp || 0) >= startOfYearMs).length;
+  const usersThisMonth = (usersList || []).filter(u => u && (u.timestamp || 0) >= startOfMonthMs).length + fakeCount;
+  const usersThisYear = (usersList || []).filter(u => u && (u.timestamp || 0) >= startOfYearMs).length + fakeCount;
 
   const locsThisMonth = (locations || []).filter(l => l && (l.timestamp || 0) >= startOfMonthMs).length;
   const locsThisYear = (locations || []).filter(l => l && (l.timestamp || 0) >= startOfYearMs).length;
@@ -2702,7 +2895,8 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
   const monthlyData = khmerMonths.map((name, index) => {
     const startM = new Date(currentYear, index, 1).getTime();
     const endM = new Date(currentYear, index + 1, 0, 23, 59, 59).getTime();
-    const usersInMonth = (usersList || []).filter(u => u && (u.timestamp || 0) >= startM && (u.timestamp || 0) <= endM).length;
+    let usersInMonth = (usersList || []).filter(u => u && (u.timestamp || 0) >= startM && (u.timestamp || 0) <= endM).length;
+    if (index === currentMonth) usersInMonth += fakeCount;
     const entriesInMonth = (locations || []).filter(l => l && (l.timestamp || 0) >= startM && (l.timestamp || 0) <= endM).length;
     return { name, users: usersInMonth, entries: entriesInMonth };
   });
@@ -2756,79 +2950,91 @@ const ReportsView = ({ locations = [], usersList = [] }) => {
   );
 };
 
-// Category Color mapping helpers
+// Category Color mapping helpers - Khmer Traditional Mixed Palette
 const getCategoryTheme = (category) => {
    const cat = String(category || '').trim();
+   
+   // ប៉ូលិស: ខៀវ (Blue)
    if (cat === 'ប៉ូលិស') return { 
-       badge: 'text-blue-700 bg-blue-100 border-blue-200',
-       solid: 'bg-blue-500 text-white border-blue-400 shadow-blue-500/30',
-       title: 'text-blue-800',
+       badge: 'text-blue-600 bg-blue-50 border-blue-200',
+       solid: 'bg-blue-600 text-white border-blue-700 shadow-sm',
+       title: 'text-blue-900',
        locText: 'text-blue-600',
-       contactBox: 'bg-blue-50/80 border-blue-100',
-       contactName: 'text-blue-700',
-       contactPhone: 'text-blue-600',
+       contactBox: 'bg-blue-50 border-blue-200',
+       contactName: 'text-blue-900',
+       contactPhone: 'text-blue-700',
        icon: 'text-blue-500',
-       views: 'text-blue-600 bg-blue-50 border-blue-100',
+       views: 'text-blue-600 bg-white border-blue-200',
        emoji: '🛡️'
    };
+   
+   // មន្ទីរពេទ្យ: ក្រហម/ផ្កាឈូក (Red/Rose)
    if (cat === 'មន្ទីរពេទ្យ' || cat === 'ពេទ្យ') return { 
-       badge: 'text-rose-700 bg-rose-100 border-rose-200',
-       solid: 'bg-rose-500 text-white border-rose-400 shadow-rose-500/30',
-       title: 'text-rose-800',
+       badge: 'text-rose-600 bg-rose-50 border-rose-200',
+       solid: 'bg-rose-500 text-white border-rose-600 shadow-sm',
+       title: 'text-rose-900',
        locText: 'text-rose-600',
-       contactBox: 'bg-rose-50/80 border-rose-100',
-       contactName: 'text-rose-700',
-       contactPhone: 'text-rose-600',
+       contactBox: 'bg-rose-50 border-rose-200',
+       contactName: 'text-rose-900',
+       contactPhone: 'text-rose-700',
        icon: 'text-rose-500',
-       views: 'text-rose-600 bg-rose-50 border-rose-100',
+       views: 'text-rose-600 bg-white border-rose-200',
        emoji: '🏥'
    };
+   
+   // សាលារៀន: លឿងទុំ (Amber)
    if (cat === 'សាលារៀន') return { 
-       badge: 'text-orange-700 bg-orange-100 border-orange-200',
-       solid: 'bg-orange-500 text-white border-orange-400 shadow-orange-500/30',
-       title: 'text-orange-800',
-       locText: 'text-orange-600',
-       contactBox: 'bg-orange-50/80 border-orange-100',
-       contactName: 'text-orange-700',
-       contactPhone: 'text-orange-600',
-       icon: 'text-orange-500',
-       views: 'text-orange-600 bg-orange-50 border-orange-100',
+       badge: 'text-amber-700 bg-amber-50 border-amber-200',
+       solid: 'bg-amber-500 text-white border-amber-600 shadow-sm',
+       title: 'text-amber-900',
+       locText: 'text-amber-700',
+       contactBox: 'bg-amber-50 border-amber-200',
+       contactName: 'text-amber-900',
+       contactPhone: 'text-amber-700',
+       icon: 'text-amber-500',
+       views: 'text-amber-700 bg-white border-amber-200',
        emoji: '🎓'
    };
+   
+   // ឃុំ/សង្កាត់: បៃតង (Emerald)
    if (cat === 'ឃុំ' || cat === 'សង្កាត់') return { 
-       badge: 'text-emerald-700 bg-emerald-100 border-emerald-200',
-       solid: 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-500/30',
-       title: 'text-emerald-800',
+       badge: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+       solid: 'bg-emerald-600 text-white border-emerald-700 shadow-sm',
+       title: 'text-emerald-900',
        locText: 'text-emerald-600',
-       contactBox: 'bg-emerald-50/80 border-emerald-100',
-       contactName: 'text-emerald-700',
-       contactPhone: 'text-emerald-600',
+       contactBox: 'bg-emerald-50 border-emerald-200',
+       contactName: 'text-emerald-900',
+       contactPhone: 'text-emerald-700',
        icon: 'text-emerald-500',
-       views: 'text-emerald-600 bg-emerald-50 border-emerald-100',
+       views: 'text-emerald-600 bg-white border-emerald-200',
        emoji: '🏛️'
    };
+   
+   // ភូមិ: ស្វាយ/Indigo
    if (cat === 'ភូមិ') return { 
-       badge: 'text-violet-700 bg-violet-100 border-violet-200',
-       solid: 'bg-violet-500 text-white border-violet-400 shadow-violet-500/30',
-       title: 'text-violet-800',
-       locText: 'text-violet-600',
-       contactBox: 'bg-violet-50/80 border-violet-100',
-       contactName: 'text-violet-700',
-       contactPhone: 'text-violet-600',
-       icon: 'text-violet-500',
-       views: 'text-violet-600 bg-violet-50 border-violet-100',
+       badge: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+       solid: 'bg-indigo-600 text-white border-indigo-700 shadow-sm',
+       title: 'text-indigo-900',
+       locText: 'text-indigo-600',
+       contactBox: 'bg-indigo-50 border-indigo-200',
+       contactName: 'text-indigo-900',
+       contactPhone: 'text-indigo-700',
+       icon: 'text-indigo-500',
+       views: 'text-indigo-600 bg-white border-indigo-200',
        emoji: '🏘️'
    };
+   
+   // ផ្សេងៗ: ប្រផេះ (Slate)
    return { 
-       badge: 'text-sky-700 bg-sky-100 border-sky-200',
-       solid: 'bg-sky-500 text-white border-sky-400 shadow-sky-500/30',
-       title: 'text-[#0F2B5C]',
+       badge: 'text-slate-700 bg-slate-100 border-slate-300',
+       solid: 'bg-slate-600 text-white border-slate-700 shadow-sm',
+       title: 'text-slate-900',
        locText: 'text-slate-600',
        contactBox: 'bg-slate-50 border-slate-200',
-       contactName: 'text-slate-800',
-       contactPhone: 'text-slate-600',
-       icon: 'text-[#38BDF8]',
-       views: 'text-[#38BDF8] bg-sky-50 border-sky-100',
+       contactName: 'text-slate-900',
+       contactPhone: 'text-slate-700',
+       icon: 'text-slate-500',
+       views: 'text-slate-600 bg-white border-slate-200',
        emoji: '📍'
    };
 };
@@ -4137,7 +4343,7 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   );
 };
 
-const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme, customBg, setCustomBg, appLogo, setAppLogo, gatewayBg, setGatewayBg, chatFeatureEnabled, setChatFeatureEnabled }) => {
+const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], usersList = [], cyberLogs = [], chats = [], dbRegions, setDbRegions, db, appId, showToast, setCurrentView, setIsAdmin, chatTargets = [], setChatTargets, appeals = [], setAppeals, cosmicTheme, setCosmicTheme, customBg, setCustomBg, appLogo, setAppLogo, gatewayBg, setGatewayBg, chatFeatureEnabled, setChatFeatureEnabled, boostModeEnabled, setBoostModeEnabled, boostFeatureRemoved, setBoostFeatureRemoved }) => {
   const [activeTab, setActiveTab] = useState('data'); 
   const [editingLoc, setEditingLoc] = useState(null);
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -4510,6 +4716,21 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
       setChatFeatureEnabled(targetState);
       if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { chatFeatureEnabled: targetState }, { merge: true }).catch(()=>{});
       showToast(`បាន${targetState ? 'បើក' : 'បិទ'}មុខងារឆាត`);
+  };
+
+  const toggleBoostMode = async () => {
+      const targetState = !boostModeEnabled;
+      setBoostModeEnabled(targetState);
+      if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { boostModeEnabled: targetState }, { merge: true }).catch(()=>{});
+      showToast(`បាន${targetState ? 'បើក' : 'បិទ'} មុខងារបង្កើនចំនួនអ្នកប្រើប្រាស់ (Boost)`);
+  };
+
+  const handleRemoveBoostFeature = () => {
+      openConfirm("បញ្ជាក់ការលុបមុខងារ", "តើអ្នកពិតជាចង់លុបប៊ូតុងមុខងារនេះចេញពីផ្ទាំង Admin មែនទេ? (សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ)", async () => {
+          setBoostFeatureRemoved(true);
+          if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'theme'), { boostFeatureRemoved: true, boostModeEnabled: false }, { merge: true }).catch(()=>{});
+          showToast("បានលុបមុខងារចេញពីផ្ទាំង Admin រួចរាល់");
+      });
   };
 
   const handleCustomBgChange = async (colorHex) => {
@@ -4967,6 +5188,27 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
                         <div className={`dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 ${chatFeatureEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
                      </label>
                  </div>
+
+                 {!boostFeatureRemoved && (
+                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-3">
+                         <div className="flex justify-between items-start">
+                             <div>
+                                <h4 className="font-bold text-[12.5px] text-slate-800">ប្រព័ន្ធបង្កើនចំនួនអ្នកប្រើប្រាស់ (Boost Users)</h4>
+                                <p className="text-[10px] text-slate-500 mt-1">បើកមុខងារនេះ រាល់ពេលមានអ្នកចូលមើល App ម្តង ចំនួនអ្នកប្រើប្រាស់ក្នុងរបាយការណ៍នឹងកើនឡើងចន្លោះពី ១០ ទៅ ១៥ នាក់។ (បិទ = កើន ១នាក់ធម្មតា)</p>
+                             </div>
+                             <label className="relative flex items-center cursor-pointer shrink-0 ml-4">
+                                <input type="checkbox" className="sr-only toggle-checkbox" checked={boostModeEnabled} onChange={toggleBoostMode} />
+                                <div className={`w-10 h-6 rounded-full transition-colors duration-300 toggle-label ${boostModeEnabled ? 'bg-[#10b981]' : 'bg-slate-300'}`}></div>
+                                <div className={`dot absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full transition-transform duration-300 ${boostModeEnabled ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                             </label>
+                         </div>
+                         <div className="flex justify-end border-t border-slate-200 pt-3">
+                             <button onClick={handleRemoveBoostFeature} className="text-[10px] bg-white hover:bg-rose-50 text-rose-500 border border-slate-200 hover:border-rose-200 px-3 py-1.5 rounded-lg font-bold transition-all shadow-sm flex items-center gap-1">
+                                <Trash2 className="w-3.5 h-3.5"/> លុបមុខងារនេះ (Remove)
+                             </button>
+                         </div>
+                     </div>
+                 )}
 
                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                      <div>
@@ -5528,7 +5770,7 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   );
 };
 
-const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite, gpsCoords, onCallTrigger, onChatTrigger, chatFeatureEnabled, isAdmin }) => {
+const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite, gpsCoords, onCallTrigger, onChatTrigger, onSendLocationTrigger, chatFeatureEnabled, isAdmin }) => {
   const isFav = favorites && location && favorites[location.id];
   const displayTitle = safeStr(location.title);
   const calculatedDistanceVal = gpsCoords && location.coords ? calculateDistance(gpsCoords.lat, gpsCoords.lng, location.coords.lat, location.coords.lng) : 0;
@@ -5595,19 +5837,28 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              <button 
                 type="button"
                 onClick={() => onCallTrigger(location)} 
-                className="flex-1 py-3 rounded-lg font-black text-[12px] flex items-center justify-center gap-1 bg-emerald-500 border border-emerald-600 text-white shadow-sm"
+                className="flex-1 py-2.5 rounded-xl font-black text-[11.5px] flex flex-col items-center justify-center gap-1 bg-emerald-50 border border-emerald-200 text-emerald-600 shadow-sm active:scale-95 transition-all"
              >
-                <Phone className="w-3.5 h-3.5" />
+                <Phone className="w-4.5 h-4.5" />
                 <span>ទូរស័ព្ទ</span>
              </button>
 
+             <button 
+                type="button"
+                onClick={() => onSendLocationTrigger(location)} 
+                className="flex-1 py-2.5 rounded-xl font-black text-[11.5px] flex flex-col items-center justify-center gap-1 bg-sky-50 border border-sky-200 text-sky-600 shadow-sm active:scale-95 transition-all"
+             >
+                <MapPin className="w-4.5 h-4.5" />
+                <span>ផ្ញើទីតាំង</span>
+             </button>
+
              <a 
-                href={location.mapUrl || (location.coords ? `https://www.google.com/maps?q=${location.coords.lat},${location.coords.lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(displayTitle)}`)} 
+                href={location.coords ? `https://www.google.com/maps/dir/?api=1&destination=${location.coords.lat},${location.coords.lng}&travelmode=driving&dir_action=navigate` : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(displayTitle + ' ' + (location.commune||''))}&travelmode=driving&dir_action=navigate`} 
                 target="_blank" 
                 rel="noreferrer"
-                className="flex-1 py-3 bg-[#0F2B5C] text-white border border-[#0F2B5C] rounded-lg font-black text-[12px] flex items-center justify-center gap-1 shadow-sm"
+                className="flex-1 py-2.5 bg-[#0F2B5C] text-white border border-[#0F2B5C] rounded-xl font-black text-[11.5px] flex flex-col items-center justify-center gap-1 shadow-sm active:scale-95 transition-all"
               >
-                <MapSvgIcon className="text-[#38BDF8]"/>
+                <MapSvgIcon className="text-[#38BDF8] w-4.5 h-4.5"/>
                 <span>ផែនទី</span>
              </a>
           </div>
