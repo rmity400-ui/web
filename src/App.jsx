@@ -2429,7 +2429,7 @@ const Sidebar = ({ currentView, setCurrentView, isAdmin, appLogo, chatFeatureEna
            )}
         </div>
         <div className="min-w-0">
-          <h1 className="font-khmer-muol text-[13px] text-[#0F2B5C] leading-none tracking-wide truncate pt-1">វិទ្យាល័យស្តៅសន្តិភាព</h1>
+          <h1 className="font-khmer-muol text-[13px] text-[#0F2B5C] leading-none tracking-wide truncate pt-1">វិ.ស្តៅសន្តិភាព</h1>
           <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Admin Portal</p>
         </div>
       </div>
@@ -2451,6 +2451,7 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin, chatFeatureEnabled })
   const navItems = [
     { id: 'home', icon: Home, label: 'ទំព័រដើម' },
     { id: 'info', icon: Info, label: 'ព័ត៌មាន' },
+    { id: 'reports', icon: TrendingUp, label: 'របាយការណ៍' },
   ];
   if (chatFeatureEnabled || isAdmin) navItems.push({ id: 'chat', icon: MessageCircle, label: 'សារ' });
   navItems.push({ id: 'account', icon: User, label: 'គណនី' });
@@ -2458,7 +2459,7 @@ const BottomNav = ({ currentView, setCurrentView, isAdmin, chatFeatureEnabled })
 
   return (
     <div 
-      className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-safe"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] pb-1"
     >
       <div className="flex justify-around items-center pt-2 pb-1 px-1">
       {navItems.map(item => {
@@ -2507,7 +2508,7 @@ const TopHeader = ({ setCurrentPage, notifications, notificationsOpen, setNotifi
                     )}
                  </div>
                  <div>
-                    <h1 className="font-khmer-muol text-[14px] leading-tight text-[#0F2B5C] tracking-wide mt-1">វិទ្យាល័យស្តៅសន្តិភាព</h1>
+                    <h1 className="font-khmer-muol text-[14px] leading-tight text-[#0F2B5C] tracking-wide mt-1">វិ.ស្តៅសន្តិភាព</h1>
                     {!isOnline && <span className="text-[9px] text-amber-600 font-bold bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded mt-0.5 inline-block"> Offline Mode ⚠️</span>}
                  </div>
               </div>
@@ -2797,6 +2798,9 @@ const InfoView = ({ locations = [], searchQuery, favorites = {}, toggleFavorite,
                       if (nearestLoc.district === 'រតនមណ្ឌល') setActiveTab('រតនមណ្ឌល');
                       else setActiveTab('ស្រុកផ្សេងៗ');
                       
+                      // លុប Filter ចាស់ចោល ដើម្បីបង្ហាញគ្រប់ទីតាំង (ពេទ្យ ប៉ូលិស សាលា) ទាំងអស់នៅក្នុងភូមិនោះ
+                      setActiveFilter('ទាំងអស់');
+                      
                       if (setSearchQuery) {
                           setSearchQuery(nearestLoc.village ? `${nearestLoc.village}` : `${nearestLoc.commune}`);
                       }
@@ -2956,85 +2960,43 @@ const getCategoryTheme = (category) => {
    
    // ប៉ូលិស: ខៀវ (Blue)
    if (cat === 'ប៉ូលិស') return { 
-       badge: 'text-blue-600 bg-blue-50 border-blue-200',
-       solid: 'bg-blue-600 text-white border-blue-700 shadow-sm',
-       title: 'text-blue-900',
-       locText: 'text-blue-600',
-       contactBox: 'bg-blue-50 border-blue-200',
-       contactName: 'text-blue-900',
-       contactPhone: 'text-blue-700',
+       solid: 'bg-blue-500 text-white border-blue-600 shadow-sm',
        icon: 'text-blue-500',
-       views: 'text-blue-600 bg-white border-blue-200',
        emoji: '🛡️'
    };
    
    // មន្ទីរពេទ្យ: ក្រហម/ផ្កាឈូក (Red/Rose)
    if (cat === 'មន្ទីរពេទ្យ' || cat === 'ពេទ្យ') return { 
-       badge: 'text-rose-600 bg-rose-50 border-rose-200',
        solid: 'bg-rose-500 text-white border-rose-600 shadow-sm',
-       title: 'text-rose-900',
-       locText: 'text-rose-600',
-       contactBox: 'bg-rose-50 border-rose-200',
-       contactName: 'text-rose-900',
-       contactPhone: 'text-rose-700',
        icon: 'text-rose-500',
-       views: 'text-rose-600 bg-white border-rose-200',
        emoji: '🏥'
    };
    
    // សាលារៀន: លឿងទុំ (Amber)
    if (cat === 'សាលារៀន') return { 
-       badge: 'text-amber-700 bg-amber-50 border-amber-200',
        solid: 'bg-amber-500 text-white border-amber-600 shadow-sm',
-       title: 'text-amber-900',
-       locText: 'text-amber-700',
-       contactBox: 'bg-amber-50 border-amber-200',
-       contactName: 'text-amber-900',
-       contactPhone: 'text-amber-700',
        icon: 'text-amber-500',
-       views: 'text-amber-700 bg-white border-amber-200',
        emoji: '🎓'
    };
    
    // ឃុំ/សង្កាត់: បៃតង (Emerald)
    if (cat === 'ឃុំ' || cat === 'សង្កាត់') return { 
-       badge: 'text-emerald-700 bg-emerald-50 border-emerald-200',
-       solid: 'bg-emerald-600 text-white border-emerald-700 shadow-sm',
-       title: 'text-emerald-900',
-       locText: 'text-emerald-600',
-       contactBox: 'bg-emerald-50 border-emerald-200',
-       contactName: 'text-emerald-900',
-       contactPhone: 'text-emerald-700',
+       solid: 'bg-emerald-500 text-white border-emerald-600 shadow-sm',
        icon: 'text-emerald-500',
-       views: 'text-emerald-600 bg-white border-emerald-200',
        emoji: '🏛️'
    };
    
    // ភូមិ: ស្វាយ/Indigo
    if (cat === 'ភូមិ') return { 
-       badge: 'text-indigo-700 bg-indigo-50 border-indigo-200',
-       solid: 'bg-indigo-600 text-white border-indigo-700 shadow-sm',
-       title: 'text-indigo-900',
-       locText: 'text-indigo-600',
-       contactBox: 'bg-indigo-50 border-indigo-200',
-       contactName: 'text-indigo-900',
-       contactPhone: 'text-indigo-700',
+       solid: 'bg-indigo-500 text-white border-indigo-600 shadow-sm',
        icon: 'text-indigo-500',
-       views: 'text-indigo-600 bg-white border-indigo-200',
        emoji: '🏘️'
    };
    
    // ផ្សេងៗ: ប្រផេះ (Slate)
    return { 
-       badge: 'text-slate-700 bg-slate-100 border-slate-300',
-       solid: 'bg-slate-600 text-white border-slate-700 shadow-sm',
-       title: 'text-slate-900',
-       locText: 'text-slate-600',
-       contactBox: 'bg-slate-50 border-slate-200',
-       contactName: 'text-slate-900',
-       contactPhone: 'text-slate-700',
+       solid: 'bg-slate-500 text-white border-slate-600 shadow-sm',
        icon: 'text-slate-500',
-       views: 'text-slate-600 bg-white border-slate-200',
        emoji: '📍'
    };
 };
@@ -4072,12 +4034,34 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
   const [pwdInput, setPwdInput] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [localName, setLocalName] = useState(displayProfile?.username || '');
+  
+  // FIXED: Ensure local state immediately picks up the stored username to avoid blank inputs
+  const [localName, setLocalName] = useState(() => {
+     if (isAdmin) return 'ADMIN-SUPPORT';
+     if (displayProfile?.username) return displayProfile.username;
+     if (user?.uid) return localStorage.getItem(`tp_username_${user.uid}`) || '';
+     return '';
+  });
+  
   const [localBio, setLocalBio] = useState(displayProfile?.bio || '');
-  const [isEditingName, setIsEditingName] = useState(!displayProfile?.username || displayProfile?.username === 'ភ្ញៀវ' ? true : false);
+  
+  // FIXED: Determine if we should show the edit field based on stored cache as well
+  const [isEditingName, setIsEditingName] = useState(() => {
+     if (isAdmin) return false;
+     const currentName = displayProfile?.username || (user?.uid ? localStorage.getItem(`tp_username_${user.uid}`) : '');
+     return !currentName || currentName === 'ភ្ញៀវ';
+  });
 
   const [lockoutTime, setLockoutTime] = useState(Number(localStorage.getItem('admin_lockout')) || 0);
   const [attempts, setAttempts] = useState(Number(localStorage.getItem('admin_attempts')) || 0);
+
+  // Sync state if profile changes remotely
+  useEffect(() => {
+     if (!isEditingName && !isAdmin) {
+         setLocalName(displayProfile?.username || '');
+         setLocalBio(displayProfile?.bio || '');
+     }
+  }, [displayProfile, isEditingName, isAdmin]);
 
   const toggleSound = () => {
     const newState = !isSoundMuted;
@@ -4179,11 +4163,11 @@ const AccountView = ({ user, profile, db, appId, showToast, setCurrentPage, isAd
          return showToast('ហាមឃាត់! ឈ្មោះ "ADMIN" ត្រូវបានរក្សាទុកសម្រាប់អភិបាលប្រព័ន្ធតែប៉ុណ្ណោះ។', 'error');
       }
 
+      // FIXED: Hard save to localStorage immediately to prevent reload bugs
       sessionStorage.removeItem('tp_is_guest');
       localStorage.setItem(`tp_username_${user?.uid}`, trimmedName);
       
-      // Optimistic update so it reflects instantly and doesn't disappear
-      setProfile(prev => ({ ...prev, username: trimmedName, bio: localBio.trim() }));
+      // Force UI to hide the input box
       setIsEditingName(false);
 
       if (db && user) {
@@ -5731,9 +5715,9 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
   const theme = getCategoryTheme(location.category);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between group relative">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between group relative transition-all hover:shadow-md">
       <div className="absolute top-2 right-2 z-10">
-         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition active:scale-95 ${isFavorite ? 'bg-emerald-50 border border-emerald-200 text-emerald-500' : 'bg-white/90 border border-slate-200 text-slate-400'}`}>
+         <button onClick={(e)=>{ e.stopPropagation(); onToggleFavorite(); }} className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition active:scale-95 ${isFavorite ? 'bg-emerald-50 border border-emerald-200 text-emerald-500' : 'bg-white/90 border border-slate-200 text-slate-400 hover:text-slate-600'}`}>
             <Pin className={`w-3.5 h-3.5 ${isFavorite ? 'fill-emerald-500 text-emerald-500' : ''}`} />
          </button>
       </div>
@@ -5741,28 +5725,28 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
          <div className="w-full aspect-[16/10] bg-slate-100 overflow-hidden relative shrink-0 border-b border-slate-100">
             <img src={location.image} className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" alt="img" />
-            <div className={`absolute bottom-2 left-2 backdrop-blur-md py-1 px-2 rounded-lg shadow-md text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${theme.solid}`}>
+            <div className={`absolute bottom-2 left-2 backdrop-blur-md py-1 px-2.5 rounded-lg shadow-md text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${theme.solid}`}>
                <span className="text-[12px] leading-none drop-shadow-sm">{theme.emoji}</span> <span>{safeStr(location.category)}</span>
             </div>
          </div>
-         <div className="p-3 flex flex-col justify-between flex-1">
+         <div className="p-3 flex flex-col justify-between flex-1 bg-white">
             <div>
-               <h3 className={`font-black text-[13.5px] leading-tight line-clamp-1 mb-1 ${theme.title}`}>{displayTitle}</h3>
-               <p className={`text-[10.5px] font-bold mb-2 flex items-center gap-1 ${theme.locText}`}><MapPin className={`w-3 h-3 ${theme.icon}`}/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
+               <h3 className="font-bold text-[14px] leading-tight line-clamp-1 mb-1 text-slate-900">{displayTitle}</h3>
+               <p className="text-[11px] font-medium mb-2 flex items-center gap-1 text-slate-600"><MapPin className={`w-3.5 h-3.5 ${theme.icon}`}/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
                
                <div className="mb-2 space-y-1">
                  {contactLines.slice(0, 1).map((c, i) => (
-                    <div key={i} className={`text-[11px] font-black truncate p-1.5 rounded-lg border ${theme.contactBox} ${theme.contactName}`}>
-                       👤 {safeStr(c.name)}: <span className={`font-bold ml-1 ${theme.contactPhone}`}>{safeStr(c.phone)}</span>
+                    <div key={i} className="text-[11.5px] font-medium truncate text-slate-800">
+                       👤 {safeStr(c.name)}: <span className="font-bold ml-1 text-sky-600">{safeStr(c.phone)}</span>
                     </div>
                  ))}
                </div>
 
-               <p className="text-[11.5px] text-slate-500 leading-relaxed line-clamp-2 mb-2 font-medium">{safeStr(location.desc)}</p>
+               <p className="text-[11.5px] text-slate-700 leading-relaxed line-clamp-2 mb-2 font-medium">{safeStr(location.desc)}</p>
             </div>
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
-               <span className={`text-[10px] font-black flex items-center gap-1 px-2 py-0.5 rounded-md border ${theme.views}`}><Eye className="w-3.5 h-3.5"/> {location.views || 0} ដង</span>
-               <span className="text-[10px] font-bold text-slate-400 flex items-center gap-0.5">លម្អិត <ArrowRight className="w-3 h-3"/></span>
+               <span className="text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-md border text-slate-500 bg-slate-50 border-slate-200"><Eye className="w-3.5 h-3.5 text-slate-400"/> {location.views || 0} ដង</span>
+               <span className="text-[10px] font-bold text-[#38BDF8] flex items-center gap-0.5">លម្អិត <ArrowRight className="w-3 h-3"/></span>
             </div>
          </div>
       </div>
@@ -5797,14 +5781,14 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
           </div>
           <div className="p-3.5 overflow-y-auto flex-1 space-y-3.5 hide-scrollbar">
              
-             <div className={`p-3 rounded-xl border space-y-2.5 shadow-sm ${theme.contactBox}`}>
+             <div className="p-3 rounded-xl border space-y-2.5 shadow-sm bg-slate-50 border-slate-200">
                 <span className={`text-[10px] font-black uppercase tracking-widest block ${theme.icon}`}>បញ្ជីខ្សែទូរស័ព្ទទាក់ទង ({contactLines.length})</span>
                 <div className="space-y-2">
                    {contactLines.map((c, i) => (
                       <div key={i} className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-slate-200 shadow-[0_2px_4px_rgba(0,0,0,0.02)]">
                          <div>
-                            <span className={`text-[13.5px] font-black block leading-none ${theme.contactName}`}>{safeStr(c.name)}</span>
-                            <span className={`text-[11.5px] font-bold tracking-wider mt-1 block ${theme.contactPhone}`}>{safeStr(c.phone)}</span>
+                            <span className="text-[13.5px] font-bold block leading-none text-slate-800">{safeStr(c.name)}</span>
+                            <span className="text-[11.5px] font-bold tracking-wider mt-1 block text-sky-600">{safeStr(c.phone)}</span>
                          </div>
                          <a 
                            href={`tel:${c.phone}`}
@@ -5819,9 +5803,9 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
 
              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
                 <span className={`text-[10px] font-bold uppercase block ${theme.icon}`}>អាសយដ្ឋាន</span>
-                <p className={`font-black text-[13px] flex items-center gap-1.5 ${theme.title}`}><MapPin className={`w-4 h-4 ${theme.icon}`}/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
+                <p className="font-bold text-[13px] flex items-center gap-1.5 text-slate-800"><MapPin className={`w-4 h-4 ${theme.icon}`}/> {safeStr(location.district)} • {safeStr(location.commune)} • {safeStr(location.village)}</p>
                 {calculatedDistanceVal > 0 && (
-                   <span className="inline-block bg-emerald-50 text-emerald-700 text-[10.5px] font-black border border-emerald-200 px-2.5 py-1 rounded-lg mt-1 shadow-sm">
+                   <span className="inline-block bg-emerald-50 text-emerald-700 text-[10.5px] font-bold border border-emerald-200 px-2.5 py-1 rounded-lg mt-1 shadow-sm">
                       📍 ចម្ងាយពីអ្នក: {calculatedDistanceVal < 1 ? `${Math.round(calculatedDistanceVal * 1000)} ម៉ែត្រ (m)` : `${calculatedDistanceVal} គីឡូម៉ែត្រ (KM)`}
                    </span>
                 )}
