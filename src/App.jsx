@@ -2960,6 +2960,7 @@ const getCategoryTheme = (category) => {
    
    // ប៉ូលិស: ខៀវ (Blue)
    if (cat === 'ប៉ូលិស') return { 
+       badge: 'bg-blue-50 text-blue-600 border-blue-100',
        solid: 'bg-blue-500 text-white border-blue-600 shadow-sm',
        icon: 'text-blue-500',
        emoji: '🛡️'
@@ -2967,6 +2968,7 @@ const getCategoryTheme = (category) => {
    
    // មន្ទីរពេទ្យ: ក្រហម/ផ្កាឈូក (Red/Rose)
    if (cat === 'មន្ទីរពេទ្យ' || cat === 'ពេទ្យ') return { 
+       badge: 'bg-rose-50 text-rose-600 border-rose-100',
        solid: 'bg-rose-500 text-white border-rose-600 shadow-sm',
        icon: 'text-rose-500',
        emoji: '🏥'
@@ -2974,6 +2976,7 @@ const getCategoryTheme = (category) => {
    
    // សាលារៀន: លឿងទុំ (Amber)
    if (cat === 'សាលារៀន') return { 
+       badge: 'bg-amber-50 text-amber-600 border-amber-100',
        solid: 'bg-amber-500 text-white border-amber-600 shadow-sm',
        icon: 'text-amber-500',
        emoji: '🎓'
@@ -2981,6 +2984,7 @@ const getCategoryTheme = (category) => {
    
    // ឃុំ/សង្កាត់: បៃតង (Emerald)
    if (cat === 'ឃុំ' || cat === 'សង្កាត់') return { 
+       badge: 'bg-emerald-50 text-emerald-600 border-emerald-100',
        solid: 'bg-emerald-500 text-white border-emerald-600 shadow-sm',
        icon: 'text-emerald-500',
        emoji: '🏛️'
@@ -2988,6 +2992,7 @@ const getCategoryTheme = (category) => {
    
    // ភូមិ: ស្វាយ/Indigo
    if (cat === 'ភូមិ') return { 
+       badge: 'bg-indigo-50 text-indigo-600 border-indigo-100',
        solid: 'bg-indigo-500 text-white border-indigo-600 shadow-sm',
        icon: 'text-indigo-500',
        emoji: '🏘️'
@@ -2995,6 +3000,7 @@ const getCategoryTheme = (category) => {
    
    // ផ្សេងៗ: ប្រផេះ (Slate)
    return { 
+       badge: 'bg-slate-50 text-slate-600 border-slate-100',
        solid: 'bg-slate-500 text-white border-slate-600 shadow-sm',
        icon: 'text-slate-500',
        emoji: '📍'
@@ -4333,6 +4339,78 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [selectedUsersForDelete, setSelectedUsersForDelete] = useState([]);
 
+  // States for Image Blur Drawing Feature
+  const [blurModeActive, setBlurModeActive] = useState(false);
+  const editorCanvasRef = useRef(null);
+  const blurredOffscreenCanvasRef = useRef(null);
+  const [isDrawingBlur, setIsDrawingBlur] = useState(false);
+
+  const initBlurEditor = (e) => {
+      e.stopPropagation();
+      setBlurModeActive(true);
+      setTimeout(() => {
+          const img = new Image();
+          img.onload = () => {
+              const canvas = editorCanvasRef.current;
+              if (!canvas) return;
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+
+              const offCanvas = document.createElement('canvas');
+              offCanvas.width = img.width;
+              offCanvas.height = img.height;
+              const oCtx = offCanvas.getContext('2d');
+              oCtx.filter = 'blur(20px)'; // កម្រិតភាពព្រិល (Blur Radius)
+              oCtx.drawImage(img, 0, 0);
+              blurredOffscreenCanvasRef.current = offCanvas;
+          };
+          img.src = editingLoc.image;
+      }, 50);
+  };
+
+  const handleBlurPointerMove = (e) => {
+      if (!isDrawingBlur || !blurModeActive) return;
+      const canvas = editorCanvasRef.current;
+      const blurCanvas = blurredOffscreenCanvasRef.current;
+      if (!canvas || !blurCanvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+      if (e.touches && e.touches.length > 0) {
+         clientX = e.touches[0].clientX;
+         clientY = e.touches[0].clientY;
+      } else if (clientX === undefined) {
+         return;
+      }
+
+      const x = (clientX - rect.left) * scaleX;
+      const y = (clientY - rect.top) * scaleY;
+
+      const ctx = canvas.getContext('2d');
+      const brushSize = Math.max(canvas.width, canvas.height) * 0.04; // ទំហំជក់គូស Blur
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, brushSize, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(blurCanvas, 0, 0);
+      ctx.restore();
+  };
+
+  const saveBlurEdit = () => {
+      const canvas = editorCanvasRef.current;
+      if (canvas) {
+         setEditingLoc({...editingLoc, image: canvas.toDataURL('image/jpeg', 0.9)});
+      }
+      setBlurModeActive(false);
+  };
+
   const [howToData, setHowToData] = useState({ guides: [], videoUrl: '' });
 
   useEffect(() => {
@@ -4793,7 +4871,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
           <div className="relative w-full max-w-lg bg-white rounded-[20px] overflow-hidden shadow-2xl flex flex-col max-h-[90dvh] border border-slate-200 animate-in zoom-in-95 duration-300">
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h2 className="text-[14px] font-black text-[#0F2B5C] flex items-center gap-1.5"><Edit3 className="w-4.5 h-4.5 text-[#38BDF8]" /> កែប្រែទិន្នន័យទីតាំង</h2>
-              <button type="button" onClick={() => setEditingLoc(null)} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500">
+              <button type="button" onClick={() => { setEditingLoc(null); setBlurModeActive(false); }} className="p-1.5 bg-white shadow-sm border border-slate-200 rounded-full text-slate-500 hover:text-rose-500">
                 <X className="w-4.5 h-4.5" />
               </button>
             </div>
@@ -4826,50 +4904,87 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">រូបភាព (ចុចលើរូបដើម្បីប្តូរ) *</label>
-                <label className="relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 overflow-hidden group">
-                   {editingLoc.image ? (
-                      <React.Fragment>
-                         <img src={editingLoc.image} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
-                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <span className="text-white font-bold px-3 py-1.5 rounded-lg text-[12px] flex gap-1 items-center bg-[#0F2B5C] border border-white/20 shadow-lg">
-                               <Edit3 className="w-4 h-4"/> ជ្រើសរើសរូបភាពថ្មី
-                            </span>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1 uppercase">រូបភាព (ចុចលើរូបដើម្បីប្តូរ / គូស Blur) *</label>
+                
+                {blurModeActive ? (
+                   <div className="flex flex-col gap-2 animate-in fade-in">
+                      <div className="relative w-full bg-slate-100 rounded-xl overflow-hidden shadow-inner flex justify-center items-center h-48 touch-none border-2 border-[#0F2B5C]">
+                         <canvas
+                            ref={editorCanvasRef}
+                            onMouseDown={(e) => { setIsDrawingBlur(true); handleBlurPointerMove(e); }}
+                            onMouseMove={handleBlurPointerMove}
+                            onMouseUp={() => setIsDrawingBlur(false)}
+                            onMouseLeave={() => setIsDrawingBlur(false)}
+                            onTouchStart={(e) => { setIsDrawingBlur(true); handleBlurPointerMove(e); }}
+                            onTouchMove={(e) => { e.preventDefault(); handleBlurPointerMove(e); }}
+                            onTouchEnd={() => setIsDrawingBlur(false)}
+                            className="max-w-full max-h-full object-contain cursor-crosshair touch-none"
+                         />
+                         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-sm pointer-events-none font-bold shadow-lg flex items-center gap-1.5">
+                            👆 អូសដៃគូសលើរូបដើម្បីធ្វើឲ្យព្រិល
                          </div>
-                      </React.Fragment>
-                   ) : (
-                      <div className="text-slate-400 flex flex-col items-center"><ImageSvgIcon className="mb-1"/><span className="text-[11px] font-bold">Upload រូបភាព</span></div>
-                   )}
-                   <input
-                     type="file"
-                     accept="image/*"
-                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                     onChange={e => {
-                        if (e.target.files && e.target.files[0]) {
-                           const file = e.target.files[0];
-                           const reader = new FileReader();
-                           reader.onload = (event) => {
-                              const img = new Image();
-                              img.onload = () => {
-                                 const canvas = document.createElement('canvas');
-                                 let width = img.width;
-                                 let height = img.height;
-                                 const max = 800;
-                                 if (width > height && width > max) { height *= max / width; width = max; }
-                                 else if (height > max) { width *= max / height; height = max; }
-                                 canvas.width = width;
-                                 canvas.height = height;
-                                 const ctx = canvas.getContext('2d');
-                                 ctx.drawImage(img, 0, 0, width, height);
-                                 setEditingLoc({...editingLoc, image: canvas.toDataURL('image/jpeg', 0.8)});
-                              };
-                              img.src = event.target.result;
-                           };
-                           reader.readAsDataURL(file);
-                        }
-                     }}
-                   />
-                </label>
+                      </div>
+                      <div className="flex gap-2">
+                         <button type="button" onClick={() => setBlurModeActive(false)} className="flex-1 bg-slate-100 text-slate-700 py-2.5 rounded-xl text-[12px] font-bold border border-slate-200 active:scale-95 transition-transform">បោះបង់</button>
+                         <button type="button" onClick={saveBlurEdit} className="flex-1 bg-[#10b981] text-white py-2.5 rounded-xl text-[12px] font-black shadow-sm flex justify-center items-center gap-1 active:scale-95 transition-transform"><Check className="w-4 h-4"/> រក្សាទុករូបភាព</button>
+                      </div>
+                   </div>
+                ) : (
+                   <>
+                      <label className="relative flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 overflow-hidden group">
+                         {editingLoc.image ? (
+                            <React.Fragment>
+                               <img src={editingLoc.image} alt="Preview" className="absolute inset-0 w-full h-full object-cover" />
+                               <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                  <span className="text-white font-bold px-3 py-1.5 rounded-lg text-[12px] flex gap-1 items-center bg-[#0F2B5C] border border-white/20 shadow-lg">
+                                     <Edit3 className="w-4 h-4"/> ជ្រើសរើសរូបភាពថ្មី (Upload)
+                                  </span>
+                               </div>
+                            </React.Fragment>
+                         ) : (
+                            <div className="text-slate-400 flex flex-col items-center"><ImageSvgIcon className="mb-1"/><span className="text-[11px] font-bold">Upload រូបភាព</span></div>
+                         )}
+                         <input
+                           type="file"
+                           accept="image/*"
+                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                           onChange={e => {
+                              if (e.target.files && e.target.files[0]) {
+                                 const file = e.target.files[0];
+                                 const reader = new FileReader();
+                                 reader.onload = (event) => {
+                                    const img = new Image();
+                                    img.onload = () => {
+                                       const canvas = document.createElement('canvas');
+                                       let width = img.width;
+                                       let height = img.height;
+                                       const max = 800;
+                                       if (width > height && width > max) { height *= max / width; width = max; }
+                                       else if (height > max) { width *= max / height; height = max; }
+                                       canvas.width = width;
+                                       canvas.height = height;
+                                       const ctx = canvas.getContext('2d');
+                                       ctx.drawImage(img, 0, 0, width, height);
+                                       setEditingLoc({...editingLoc, image: canvas.toDataURL('image/jpeg', 0.8)});
+                                    };
+                                    img.src = event.target.result;
+                                 };
+                                 reader.readAsDataURL(file);
+                              }
+                           }}
+                         />
+                      </label>
+                      {editingLoc.image && (
+                         <button 
+                           type="button" 
+                           onClick={initBlurEditor}
+                           className="mt-2 w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-sky-600 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5 transition-colors border border-sky-200 active:scale-95 shadow-sm"
+                         >
+                           <Edit3 className="w-4 h-4" /> គូស Blur បិទបាំងភាពឯកជន (Draw to Blur)
+                         </button>
+                      )}
+                   </>
+                )}
               </div>
               
               <div>
@@ -4907,7 +5022,7 @@ const AdminDashboard = ({ locations = [], setLocations, pendingLocations = [], u
             </div>
 
             <div className="p-3 border-t border-slate-100 shrink-0 bg-slate-50 flex gap-2">
-                <button onClick={() => setEditingLoc(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-[13px] active:scale-95 transition-all border border-slate-200">បោះបង់</button>
+                <button onClick={() => { setEditingLoc(null); setBlurModeActive(false); }} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-[13px] active:scale-95 transition-all border border-slate-200">បោះបង់</button>
                 <button onClick={async () => {
                    if (db) {
                       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'user_admin_data', editingLoc.id), {
@@ -5725,14 +5840,18 @@ const LocationCard = ({ location, isFavorite, onToggleFavorite, onClick }) => {
       <div className="cursor-pointer flex flex-col h-full" onClick={onClick}>
          <div className="w-full aspect-[16/10] bg-slate-100 overflow-hidden relative shrink-0 border-b border-slate-100">
             <img src={location.image} className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500" alt="img" />
-            <div className={`absolute bottom-2 left-2 backdrop-blur-md py-1 px-2.5 rounded-lg shadow-md text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${theme.solid}`}>
-               <span className="text-[12px] leading-none drop-shadow-sm">{theme.emoji}</span> <span>{safeStr(location.category)}</span>
-            </div>
          </div>
          <div className="p-3 flex flex-col justify-between flex-1 bg-white">
             <div>
-               <h3 className="font-bold text-[14px] leading-tight line-clamp-1 mb-1 text-slate-900">{displayTitle}</h3>
-               <p className="text-[11px] font-medium mb-2 flex items-center gap-1 text-slate-600"><MapPin className={`w-3.5 h-3.5 ${theme.icon}`}/> {safeStr(location.commune) || 'ស្រុករតនមណ្ឌល'}</p>
+               <div className="flex items-center gap-1.5 mb-2">
+                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1 w-fit ${theme.badge}`}>
+                       {theme.emoji} {safeStr(location.category)}
+                   </span>
+                   <span className="text-[10px] text-slate-300">|</span>
+                   <span className="text-[10px] font-bold text-slate-500 flex items-center gap-0.5"><MapPin className={`w-3 h-3 ${theme.icon}`}/> {safeStr(location.commune) || 'រតនមណ្ឌល'}</span>
+               </div>
+               
+               <h3 className="font-bold text-[14px] leading-tight line-clamp-1 mb-2 text-slate-900">{displayTitle}</h3>
                
                <div className="mb-2 space-y-1">
                  {contactLines.slice(0, 1).map((c, i) => (
@@ -5768,9 +5887,6 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              <img src={location.image} className="w-full h-full object-cover object-center" alt="loc"/>
              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3.5 flex items-end justify-between">
                 <div>
-                   <span className={`text-[10.5px] font-black px-2 py-1 rounded-lg shadow-md border uppercase tracking-wider flex items-center gap-1.5 w-fit ${theme.solid}`}>
-                      <span className="text-[12px] leading-none drop-shadow-sm">{theme.emoji}</span> <span>{safeStr(location.category)}</span>
-                   </span>
                    <h2 className="text-white font-black text-[15px] mt-1.5 leading-tight drop-shadow-lg">{displayTitle}</h2>
                 </div>
                 <button onClick={() => toggleFavorite(location.id)} className={`p-2.5 rounded-full backdrop-blur-md active:scale-95 transition ${isFav ? 'bg-emerald-500 text-white shadow-lg border border-emerald-400' : 'bg-white/90 text-slate-500 border border-slate-200/50'}`}>
@@ -5780,6 +5896,15 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              <button onClick={onClose} className="absolute top-2.5 right-2.5 p-1.5 bg-white/80 rounded-full text-slate-700 shadow-sm backdrop-blur-sm hover:bg-white"><X className="w-4 h-4"/></button>
           </div>
           <div className="p-3.5 overflow-y-auto flex-1 space-y-3.5 hide-scrollbar">
+             
+             <div className="flex items-center gap-2 mb-1">
+                 <span className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border flex items-center gap-1.5 w-fit ${theme.badge}`}>
+                    {theme.emoji} {safeStr(location.category)}
+                 </span>
+                 <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                    <MapPin className={`w-3.5 h-3.5 ${theme.icon}`}/> {safeStr(location.district)}
+                 </span>
+             </div>
              
              <div className="p-3 rounded-xl border space-y-2.5 shadow-sm bg-slate-50 border-slate-200">
                 <span className={`text-[10px] font-black uppercase tracking-widest block ${theme.icon}`}>បញ្ជីខ្សែទូរស័ព្ទទាក់ទង ({contactLines.length})</span>
@@ -5825,15 +5950,6 @@ const LocationDetailModal = ({ location, onClose, favorites = {}, toggleFavorite
              >
                 <Phone className="w-4.5 h-4.5" />
                 <span>ទូរស័ព្ទ</span>
-             </button>
-
-             <button 
-                type="button"
-                onClick={() => onSendLocationTrigger(location)} 
-                className="flex-1 py-2.5 rounded-xl font-black text-[11.5px] flex flex-col items-center justify-center gap-1 bg-sky-50 border border-sky-200 text-sky-600 shadow-sm active:scale-95 transition-all"
-             >
-                <MapPin className="w-4.5 h-4.5" />
-                <span>ផ្ញើទីតាំង</span>
              </button>
 
              <a 
